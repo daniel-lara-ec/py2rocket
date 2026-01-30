@@ -1,0 +1,380 @@
+# py2rocket - DSL para Stratio Rocket
+
+🚀 **Módulo Python para generar pipelines de Stratio Rocket de forma declarativa**
+
+---
+
+## 📦 Estructura del Proyecto
+
+```
+DSL/
+├── py2rocket/                  # Módulo principal
+│   ├── __init__.py            # API pública: create, build, push
+│   ├── cli.py                 # CLI de comandos
+│   ├── core/                  # Componentes core
+│   │   ├── pipeline.py        # Pipeline, Node, Edge
+│   │   ├── operations.py      # sql, pyspark, print_step
+│   │   ├── decorators.py      # @pipeline decorator
+│   │   └── compiler.py        # RocketCompiler
+│   ├── templates/             # Plantillas
+│   │   └── workflow_template.py
+│   └── README.md              # Documentación del módulo
+│
+├── dsl_plantilla.py           # Ejemplo de workflow objetivo
+├── ejemplo_uso.py             # Ejemplo funcional completo
+├── resumen_dsl_rocket.md      # Documento de diseño
+├── reusltado_workflow.json    # JSON esperado
+├── pyproject.toml             # Configuración del paquete
+└── README.md                  # Este archivo
+```
+
+---
+
+## 🚀 Instalación
+
+```bash
+# Instalar en modo desarrollo
+pip install -e .
+
+# Verificar instalación
+py2rocket --version
+```
+
+---
+
+## 📚 Uso Rápido
+
+### 1. Crear un nuevo workflow
+
+```bash
+py2rocket create mi-pipeline \
+    --params '{"P_TABLA": "ventas.datos"}' \
+    --description "Pipeline de ventas"
+```
+
+Genera `mi-pipeline.py` con la estructura básica.
+
+### 2. Editar el workflow
+
+```python
+from py2rocket import pipeline, sql, print_step
+
+@pipeline(
+    name="mi-pipeline",
+    execution_engine="Hybrid",
+    params={"P_TABLA": "ventas.datos"}
+)
+def workflow():
+    tabla = sql(
+        name="Load_Ventas",
+        query="SELECT * FROM {{P_TABLA}}",
+        priority=50
+    )
+    print_step(tabla, priority=50)
+```
+
+### 3. Compilar a JSON
+
+```bash
+py2rocket build mi-pipeline.py -o mi_pipeline.json
+```
+
+### 4. Desplegar a Rocket (próximamente)
+
+```bash
+py2rocket push mi_pipeline.json \
+    --url https://rocket.mycompany.com \
+    --token $ROCKET_API_TOKEN
+```
+
+---
+
+## 📖 Comandos Disponibles
+
+### `create` - Crear nuevo workflow
+
+```bash
+py2rocket create <nombre> [opciones]
+
+Opciones:
+  -o, --output PATH         Archivo de salida (default: {nombre}.py)
+  -e, --engine ENGINE       Motor: Batch|Streaming|Hybrid (default: Hybrid)
+  -p, --params JSON         Parámetros en JSON
+  -d, --description TEXT    Descripción del pipeline
+```
+
+### `build` - Compilar workflow
+
+```bash
+py2rocket build <archivo.py> [opciones]
+
+Opciones:
+  -o, --output PATH         Archivo JSON de salida
+  -i, --indent NUM          Indentación (default: 2)
+```
+
+### `push` - Desplegar a Rocket
+
+```bash
+py2rocket push <archivo.json> --url URL [opciones]
+
+Opciones:
+  --url URL                 URL de Rocket (requerido)
+  --token TOKEN             Token de API
+  --project-id ID           ID del proyecto
+  --group-id ID             ID del grupo
+  --no-verify-ssl           No verificar SSL
+  --dry-run                 Simular sin desplegar
+```
+
+> ⚠️ El comando `push` aún no está implementado
+
+---
+
+## 💻 Uso Programático
+
+```python
+from py2rocket import create, build, push
+
+# Crear workflow
+create(
+    name="mi-pipeline",
+    params={"P_TABLA": "datos.tabla"},
+    description="Mi pipeline"
+)
+
+# Compilar
+build(
+    workflow_file="mi-pipeline.py",
+    output_path="output.json"
+)
+
+# Desplegar (cuando esté implementado)
+# push(
+#     json_file="output.json",
+#     rocket_url="https://rocket.example.com",
+#     api_token="token"
+# )
+```
+
+---
+
+## 🔧 API del Módulo
+
+### Operaciones DSL
+
+- `@pipeline(name, execution_engine, params)` - Decorator para definir pipelines
+- `sql(name, query, priority)` - Paso de entrada SQL
+- `pyspark(name, code, inputs, priority)` - Transformación PySpark
+- `print_step(input_step, priority)` - Salida de debug
+
+### Funciones Principales
+
+- `create()` - Crea archivo .py base
+- `build()` - Compila a JSON de Rocket
+- `push()` - Despliega vía API (no implementado)
+
+Ver [py2rocket/README.md](py2rocket/README.md) para documentación completa.
+
+Define un paso de entrada SQL.
+
+**Parámetros:**
+
+- `name`: Nombre único del paso
+- `query`: Query SQL (soporta parámetros `{{NOMBRE}}`)
+- `priority`: Prioridad de ejecución (menor = antes)
+- `cache_table`: Cachear resultado en memoria
+- `description`: Descripción del paso
+
+**Ejemplo:**
+
+```python
+tabla = sql(
+    name="Load_Ventas",
+    query="SELECT * FROM {{P_TABLA}} WHERE fecha >= '2024-01-01'",
+    priority=10
+)
+```
+
+### `pyspark(name, code, inputs, priority, ...)`
+
+Define un paso de transformación PySpark.
+
+**Parámetros:**
+
+- `name`: Nombre único del paso
+- `code`: Código PySpark a ejecutar
+- `inputs`: Paso(s) previo(s) que alimentan esta transformación
+- `priority`: Prioridad de ejecución
+- `description`: Descripción de la transformación
+
+**Ejemplo:**
+
+```python
+filtrado = pyspark(
+    name="Filtrar_Activos",
+    code="df.filter(col('estado') == 'activo')",
+    inputs=tabla
+)
+```
+
+### `print_step(input_step, priority, ...)`
+
+Define un paso de salida para imprimir datos.
+
+**Parámetros:**
+
+- `input_step`: Paso previo del cual imprimir datos
+- `priority`: Prioridad de ejecución
+- `print_data`: Imprimir los datos (costoso)
+- `print_schema`: Imprimir el schema
+- `print_metadata`: Imprimir metadatos (filas, columnas)
+- `log_level`: Nivel de log
+
+**Ejemplo:**
+
+```python
+print_step(tabla, print_schema=True, print_metadata=True)
+```
+
+## 🔧 Clases Principales
+
+### `Pipeline`
+
+Representa un pipeline completo (DAG).
+
+**Atributos:**
+
+- `name`: Nombre único del pipeline
+- `execution_engine`: Motor de ejecución (Batch, Streaming, Hybrid)
+- `nodes`: Lista de nodos (operaciones)
+- `edges`: Lista de conexiones entre nodos
+- `parameters`: Parámetros del pipeline
+
+### `Node`
+
+Representa un nodo en el DAG.
+
+**Atributos:**
+
+- `name`: Identificador único
+- `step_type`: Tipo (Input, Transform, Output)
+- `class_name`: Clase Rocket que implementa el paso
+- `execution_engine`: Motor de ejecución
+- `priority`: Prioridad de ejecución
+- `configuration`: Configuración específica
+
+### `Edge`
+
+Representa una conexión entre nodos.
+
+**Atributos:**
+
+- `origin`: Nombre del nodo origen
+- `destination`: Nombre del nodo destino
+- `data_type`: Tipo de datos (ValidData, InvalidData)
+
+## 📋 Reglas del DSL
+
+### ✅ Permitido
+
+- DAG arbitrario
+- Un nodo con múltiples salidas (fan-out)
+- Un nodo con múltiples entradas (fan-in)
+
+### ❌ Prohibido
+
+- Ciclos en el DAG
+- Nodos huérfanos (sin conexiones)
+- Outputs sin inputs
+- Reutilizar variables (shadowing)
+
+## 🌳 Ejemplo Fan-out / Fan-in
+
+```python
+@pipeline("ventas_branching")
+def flujo():
+    # Carga base
+    base = sql("SELECT * FROM ventas")
+
+    # Fan-out: dos transformaciones paralelas
+    por_region = pyspark(
+        "Agrupar_Region",
+        "df.groupBy('region').sum('monto')",
+        inputs=base
+    )
+    por_producto = pyspark(
+        "Agrupar_Producto",
+        "df.groupBy('producto').sum('monto')",
+        inputs=base
+    )
+
+    # Fan-in: combinar resultados
+    combinado = sql(
+        "Combinar",
+        "SELECT * FROM por_region CROSS JOIN por_producto",
+        inputs=[por_region, por_producto]
+    )
+
+    print_step(combinado)
+```
+
+## 🎯 Beneficios vs Rocket UI
+
+| Aspecto      | Rocket UI        | DSL               |
+| ------------ | ---------------- | ----------------- |
+| Versionado   | ❌ Manual        | ✅ Git nativo     |
+| Testing      | ❌ Limitado      | ✅ Automático     |
+| Validaciones | ⚠️ En runtime    | ✅ En compilación |
+| Errores      | ❌ Muchos clicks | ✅ Code review    |
+| Velocidad    | 🐢 Lento         | 🚀 Rápido         |
+| Gobierno     | ✅ Rocket        | ✅ Rocket         |
+
+## 🗺️ Roadmap
+
+### Fase 1 (Actual) ✅
+
+- DSL básico (sql, pyspark, print)
+- IR (modelo intermedio)
+- Export JSON Rocket
+
+### Fase 2 (Próximo)
+
+- CLI para compilar pipelines
+- Validaciones de DAG (ciclos, huérfanos)
+- Más operaciones (join, filter, aggregate)
+
+### Fase 3 (Futuro)
+
+- Deploy automático vía API de Rocket
+- Testing framework
+- Rocket en modo read-only
+
+## 💡 Mensaje Clave
+
+> **No se reemplaza Rocket.**  
+> **Se acelera el desarrollo sobre Rocket.**
+
+Rocket sigue siendo el **runtime**, **gobierno** y **auditoría**.  
+El DSL es simplemente una forma más eficiente de **definir** pipelines.
+
+## 📖 Recursos
+
+- `resumen_dsl_rocket.md`: Documento completo de diseño
+- `dsl_plantilla.py`: Ejemplo de workflow objetivo
+- `reusltado_workflow.json`: JSON de salida esperado
+- `ejemplo_uso.py`: Ejemplo funcional completo
+
+## 🤝 Contribuir
+
+El DSL está basado en Apache Spark 3.1.1 y la plataforma Stratio Rocket.
+
+Para añadir nuevas operaciones:
+
+1. Definir la clase Node correspondiente en `dsl_classes.py`
+2. Crear la función en `dsl_operations.py`
+3. Actualizar la documentación
+
+---
+
+**Desarrollado para Stratio Rocket - Apache Spark 3.1.1**
