@@ -13,7 +13,7 @@ from py2rocket.core.output import parquet_output
 @pipeline(
     name="pl-transformacion-Zp-Mdp-CargaTablas",
     execution_engine="Hybrid",
-    params={"P_NOMBRE_TABLA": "ZC_BP_Par_Cam_salesforce_Account"},
+    params={"P_NOMBRE_TABLA": "ZC_DLA_Par_Cam_salesforce_Account"},
     parameters_lists=["ParamsRemesas"],
 )
 def workflow():
@@ -32,7 +32,7 @@ def workflow():
 
     Load_TablaTrxMonetarias = sql(
         name="Load_TablaTrxMonetarias",
-        query="SELECT * FROM prd_campanias.ZC_BP_Par_Cam_salesforce_Account",
+        query="SELECT * FROM prd_campanias.ZC_DLA_Par_Cam_salesforce_Account",
         priority=20,
     )
 
@@ -51,7 +51,7 @@ def workflow():
     )
 
     T_AgregamosTimeStamp.set_outputs_writer(
-        table_name="ZC_BP_Par_Cam_salesforce_Account",
+        table_name="ZC_DLA_Par_Cam_salesforce_Account",
         save_mode="Overwrite",
         check_if_empty=True,
         partition_overwrite_enabled=True,

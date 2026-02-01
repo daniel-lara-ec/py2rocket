@@ -181,7 +181,7 @@
         "userDefinedParameters": [
           {
             "customParameterName": "P_NOMBRE_TABLA",
-            "customParameterValue": "ZC_BP_Par_Cam_salesforce_Account"
+            "customParameterValue": "ZC_DLA_Par_Cam_salesforce_Account"
           }
         ]
       }
@@ -199,7 +199,7 @@
         "configuration": {
           "priority": "20",
           "debugOptions": "{\"executeStepAutoDebug\":true}",
-          "query": "SELECT * FROM prd_campanias.ZC_BP_Par_Cam_salesforce_Account",
+          "query": "SELECT * FROM prd_campanias.ZC_DLA_Par_Cam_salesforce_Account",
           "forceNativeQuery": false,
           "cacheTable": false,
           "isSaved": true,
@@ -249,7 +249,7 @@
           {
             "saveMode": "Overwrite",
             "outputStepName": "Po_Parquet",
-            "tableName": "ZC_BP_Par_Cam_salesforce_Account",
+            "tableName": "ZC_DLA_Par_Cam_salesforce_Account",
             "discardTableName": "",
             "extraOptions": {
               "checkIfEmpty": true,
