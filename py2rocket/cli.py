@@ -6,6 +6,7 @@ Comandos disponibles:
     py2rocket build <archivo.py>           - Compila workflow a JSON
     py2rocket push <archivo.json>          - Despliega a Rocket
     py2rocket run <archivo.json>           - Ejecuta un workflow en Rocket
+    py2rocket pull <archivo>               - Descarga workflow desde Rocket
 """
 
 import argparse
@@ -17,7 +18,7 @@ from typing import Optional
 from dotenv import load_dotenv
 import requests
 
-from py2rocket import create, build, push, run, __version__
+from py2rocket import create, build, push, run, pull, __version__
 
 # Cargar variables de entorno
 load_dotenv()
@@ -353,6 +354,15 @@ def cmd_push(args):
 def cmd_run(args):
     """Comando: run - Ejecuta workflow en Rocket"""
     try:
+        # Determinar el archivo JSON real (soporta .py, .json o sin extensión)
+        from pathlib import Path
+
+        json_path = Path(args.json_file)
+        if json_path.suffix == ".py" or json_path.suffix == "":
+            json_path = json_path.with_suffix(".json")
+
+        print(f"[⚙️] Ejecutando workflow desde: {json_path.name}")
+
         verify_ssl = _get_verify_ssl_from_env()
         if args.no_verify_ssl:
             verify_ssl = False
@@ -373,6 +383,69 @@ def cmd_run(args):
                 print(json.dumps(result["response"], ensure_ascii=False, indent=2))
         else:
             print("\n❌ Error al ejecutar workflow")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
+def cmd_pull(args):
+    """Comando: pull - Descarga workflow desde Rocket"""
+    try:
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+
+        # Intentar descargar el workflow
+        result = pull(
+            workflow_file=args.workflow_file,
+            rocket_url=args.url,
+            api_token=args.token,
+            output_file=args.output,
+            force_overwrite=args.force,
+            verify_ssl=verify_ssl,
+        )
+
+        # Si necesita confirmación (archivo existe)
+        if result.get("status") == "confirm_needed":
+            output_path = Path(result["output_path"])
+            print(f"\n⚠️  {result['message']}")
+            print("\n¿Qué deseas hacer?")
+            print("  1. Reemplazar el archivo existente")
+            print("  2. Guardar con otro nombre (añadir '_server')")
+            print("  3. Cancelar")
+
+            choice = input("\nSelecciona una opción (1/2/3): ").strip()
+
+            if choice == "1":
+                # Reemplazar
+                output_path.write_text(
+                    json.dumps(result["workflow_data"], ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                print(f"\n✓ Workflow descargado y reemplazado: {output_path}")
+                print(f"  Workflow ID: {result['workflow_id']}")
+            elif choice == "2":
+                # Guardar con _server
+                base_name = output_path.stem
+                new_output = output_path.parent / f"{base_name}_server.json"
+                new_output.write_text(
+                    json.dumps(result["workflow_data"], ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                print(f"\n✓ Workflow descargado como: {new_output}")
+                print(f"  Workflow ID: {result['workflow_id']}")
+            else:
+                print("\n❌ Operación cancelada")
+                sys.exit(0)
+
+        elif result.get("status") == "success":
+            print(f"\n✓ {result['message']}")
+            print(f"  Archivo: {result['output_file']}")
+            print(f"  Workflow ID: {result['workflow_id']}")
+        else:
+            print(f"\n❌ Error al descargar workflow: {result.get('message')}")
             sys.exit(1)
 
     except Exception as e:
@@ -471,7 +544,9 @@ def main():
 
     # Comando: run
     parser_run = subparsers.add_parser("run", help="Ejecuta un workflow en Rocket")
-    parser_run.add_argument("json_file", help="Archivo JSON del pipeline")
+    parser_run.add_argument(
+        "json_file", help="Archivo del pipeline (.py, .json o sin extensión)"
+    )
     parser_run.add_argument(
         "--workflow-id",
         help="ID del workflow en Rocket (si no se especifica, usa el id del JSON)",
@@ -494,6 +569,33 @@ def main():
         "--no-verify-ssl", action="store_true", help="No verificar SSL"
     )
     parser_run.set_defaults(func=cmd_run)
+
+    # Comando: pull
+    parser_pull = subparsers.add_parser(
+        "pull", help="Descarga un workflow desde Rocket"
+    )
+    parser_pull.add_argument(
+        "workflow_file", help="Archivo del pipeline (.py, .json o sin extensión)"
+    )
+    parser_pull.add_argument(
+        "-o", "--output", help="Nombre del archivo de salida (opcional)"
+    )
+    parser_pull.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_pull.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_pull.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Forzar sobrescritura sin preguntar",
+    )
+    parser_pull.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_pull.set_defaults(func=cmd_pull)
 
     # Parsear argumentos
     args = parser.parse_args()

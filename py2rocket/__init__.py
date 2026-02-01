@@ -9,6 +9,7 @@ Comandos principales:
     - build: Compila el workflow a JSON de Rocket
     - push: Despliega el pipeline a Rocket vía API
     - run: Ejecuta un workflow en Rocket vía API
+    - pull: Descarga un workflow desde Rocket vía API
 """
 
 import os
@@ -28,6 +29,7 @@ __all__ = [
     "build",
     "push",
     "run",
+    "pull",
     "pipeline",
 ]
 
@@ -446,7 +448,7 @@ def run(
     compilado y agregando el parámetro instance.
 
     Args:
-        json_file: Ruta al archivo JSON del pipeline compilado
+        json_file: Ruta al archivo JSON del pipeline compilado (acepta .json, .py o sin extensión)
         workflow_id: ID del workflow a ejecutar. Si no se proporciona, se usa el "id" del JSON
         project_id: ID del proyecto en Rocket. Si no se proporciona, intenta usar PROJECT_ID del .env
         rocket_url: URL base de Rocket (ej: https://rocket.example.com)
@@ -460,9 +462,15 @@ def run(
         Diccionario con la respuesta de la API
     """
     # 1. Leer JSON del pipeline
+    # Soportar .py, .json o sin extensión (busca .json correspondiente)
     json_path = Path(json_file)
+
+    if json_path.suffix == ".py" or json_path.suffix == "":
+        # Si es .py o sin extensión, buscar el .json con el mismo nombre base
+        json_path = json_path.with_suffix(".json")
+
     if not json_path.exists():
-        raise FileNotFoundError(f"Archivo no encontrado: {json_file}")
+        raise FileNotFoundError(f"Archivo no encontrado: {json_path}")
 
     try:
         pipeline_data = json.loads(json_path.read_text(encoding="utf-8"))
@@ -588,4 +596,135 @@ def run(
         "message": "Workflow ejecutado exitosamente",
         "url": url,
         "response": response_data,
+    }
+
+
+def pull(
+    workflow_file: str,
+    rocket_url: Optional[str] = None,
+    api_token: Optional[str] = None,
+    output_file: Optional[str] = None,
+    force_overwrite: bool = False,
+    verify_ssl: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Descarga un workflow desde Stratio Rocket vía API.
+
+    Descarga el JSON del workflow desde el servidor. Si el archivo ya existe,
+    pregunta si desea reemplazarlo o guardarlo con otro nombre (_server).
+
+    Args:
+        workflow_file: Ruta al archivo .py o .json para obtener el workflow_id o id
+        rocket_url: URL base de Rocket (ej: https://rocket.example.com)
+        api_token: Cookie de autenticación. Si no se proporciona, usa ROCKET_AUTH_COOKIE
+        output_file: Nombre del archivo de salida (opcional, default: mismo nombre que entrada)
+        force_overwrite: Si es True, sobrescribe sin preguntar
+        verify_ssl: Verificar certificados SSL (default: True)
+
+    Returns:
+        Diccionario con el resultado de la operación
+    """
+    # 1. Determinar el archivo y obtener el workflow_id
+    input_path = Path(workflow_file)
+    workflow_id = None
+
+    # Si es .py o sin extensión, buscar el .json
+    if input_path.suffix == ".py" or input_path.suffix == "":
+        json_path = input_path.with_suffix(".json")
+        if json_path.exists():
+            try:
+                json_data = json.loads(json_path.read_text(encoding="utf-8"))
+                # Para .py buscamos workflow_id en el JSON compilado
+                workflow_id = json_data.get("id")
+            except json.JSONDecodeError:
+                pass
+    elif input_path.suffix == ".json":
+        # Si es .json, leer el id directamente
+        if input_path.exists():
+            try:
+                json_data = json.loads(input_path.read_text(encoding="utf-8"))
+                workflow_id = json_data.get("id")
+            except json.JSONDecodeError:
+                pass
+        json_path = input_path
+    else:
+        raise ValueError(f"Formato de archivo no soportado: {input_path.suffix}")
+
+    if not workflow_id:
+        raise ValueError(
+            f"No se pudo obtener el workflow_id desde {workflow_file}. "
+            "Asegúrate de que el archivo JSON existe y contiene el campo 'id'."
+        )
+
+    # 2. Validar configuración de API
+    if rocket_url is None:
+        rocket_url = os.getenv("ROCKET_API_HOST", "")
+    if api_token is None:
+        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+
+    if not rocket_url:
+        raise ValueError("Debe proporcionar 'rocket_url' o configurar ROCKET_API_HOST")
+    if not api_token:
+        raise ValueError(
+            "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
+        )
+    if verify_ssl is None:
+        verify_ssl = _get_verify_ssl_from_env()
+
+    # 3. Descargar el workflow desde el servidor
+    url = f"{rocket_url.rstrip('/')}/workflows/download/{workflow_id}"
+
+    cookies = {"stratio-cookie": api_token, "lang": "en"}
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": "py2rocket/" + __version__,
+    }
+
+    try:
+        response = requests.get(
+            url, headers=headers, cookies=cookies, verify=verify_ssl, timeout=30
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        raise ConnectionError(f"Error al descargar el workflow: {exc}") from exc
+
+    try:
+        workflow_data = response.json()
+    except ValueError as exc:
+        raise ValueError(f"Respuesta inválida del servidor: {exc}") from exc
+
+    # 4. Determinar el nombre del archivo de salida
+    if output_file:
+        output_path = Path(output_file)
+    else:
+        # Usar el nombre base del archivo de entrada
+        base_name = json_path.stem
+        output_path = Path(f"{base_name}.json")
+
+    # 5. Verificar si el archivo existe y manejar la lógica de sobrescritura
+    final_output_path = output_path
+    if output_path.exists() and not force_overwrite:
+        # El archivo existe, retornar información para que el CLI maneje la interacción
+        return {
+            "status": "confirm_needed",
+            "message": f"El archivo {output_path} ya existe",
+            "workflow_data": workflow_data,
+            "output_path": str(output_path),
+            "workflow_id": workflow_id,
+        }
+
+    # 6. Guardar el archivo
+    try:
+        output_path.write_text(
+            json.dumps(workflow_data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except IOError as exc:
+        raise IOError(f"Error al guardar el archivo: {exc}") from exc
+
+    return {
+        "status": "success",
+        "message": f"Workflow descargado exitosamente",
+        "workflow_id": workflow_id,
+        "output_file": str(output_path),
+        "url": url,
     }
