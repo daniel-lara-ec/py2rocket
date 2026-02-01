@@ -5,6 +5,7 @@ Comandos disponibles:
     py2rocket create <nombre> [opciones]   - Crea un nuevo workflow
     py2rocket build <archivo.py>           - Compila workflow a JSON
     py2rocket push <archivo.json>          - Despliega a Rocket
+    py2rocket run <archivo.json>           - Ejecuta un workflow en Rocket
 """
 
 import argparse
@@ -16,7 +17,7 @@ from typing import Optional
 from dotenv import load_dotenv
 import requests
 
-from py2rocket import create, build, push, __version__
+from py2rocket import create, build, push, run, __version__
 
 # Cargar variables de entorno
 load_dotenv()
@@ -247,6 +248,33 @@ def cmd_push(args):
         sys.exit(1)
 
 
+def cmd_run(args):
+    """Comando: run - Ejecuta workflow en Rocket"""
+    try:
+        result = run(
+            json_file=args.json_file,
+            workflow_id=args.workflow_id,
+            project_id=args.project_id,
+            rocket_url=args.url,
+            api_token=args.token,
+            instance=args.instance,
+            extra_params_file=args.extra_params,
+            verify_ssl=not args.no_verify_ssl,
+        )
+
+        if result.get("status") == "success":
+            print("\n✓ Workflow ejecutado exitosamente")
+            if result.get("response"):
+                print(json.dumps(result["response"], ensure_ascii=False, indent=2))
+        else:
+            print("\n❌ Error al ejecutar workflow")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
 def main():
     """Punto de entrada principal del CLI"""
     parser = argparse.ArgumentParser(
@@ -323,6 +351,32 @@ def main():
         "--dry-run", action="store_true", help="Simular sin desplegar"
     )
     parser_push.set_defaults(func=cmd_push)
+
+    # Comando: run
+    parser_run = subparsers.add_parser("run", help="Ejecuta un workflow en Rocket")
+    parser_run.add_argument("json_file", help="Archivo JSON del pipeline")
+    parser_run.add_argument(
+        "--workflow-id",
+        help="ID del workflow en Rocket (si no se especifica, usa el id del JSON)",
+    )
+    parser_run.add_argument("--project-id", help="ID del proyecto en Rocket")
+    parser_run.add_argument("--url", help="URL de Rocket")
+    parser_run.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_run.add_argument(
+        "--instance",
+        default="XS",
+        help="Instancia a añadir en paramsLists (default: XS)",
+    )
+    parser_run.add_argument(
+        "--extra-params",
+        help="Ruta a JSON con lista de extraParams",
+    )
+    parser_run.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_run.set_defaults(func=cmd_run)
 
     # Parsear argumentos
     args = parser.parse_args()
