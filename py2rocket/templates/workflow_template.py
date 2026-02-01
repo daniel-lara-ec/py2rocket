@@ -8,7 +8,7 @@ WORKFLOW_TEMPLATE = '''"""
 Workflow generado por py2rocket
 """
 
-from py2rocket import pipeline, sql, print_step
+from py2rocket.core import pipeline, sql, print_step
 
 
 @pipeline(

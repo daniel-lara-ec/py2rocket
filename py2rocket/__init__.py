@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 from dotenv import load_dotenv
-from py2rocket.core import pipeline, sql, pyspark, print_step, RocketCompiler
+from py2rocket.core import pipeline, RocketCompiler
 from py2rocket.templates.workflow_template import WORKFLOW_TEMPLATE
 
 __version__ = "0.1.0"
@@ -29,9 +29,6 @@ __all__ = [
     "push",
     "run",
     "pipeline",
-    "sql",
-    "pyspark",
-    "print_step",
 ]
 
 # Cargar variables de entorno del archivo .env
@@ -46,6 +43,19 @@ def _get_project_id_from_env() -> Optional[str]:
         El valor de PROJECT_ID si existe, None en caso contrario
     """
     return os.getenv("PROJECT_ID")
+
+
+def _get_verify_ssl_from_env() -> bool:
+    """Obtiene ROCKET_VERIFY_SSL desde .env (default: True)."""
+    value = os.getenv("ROCKET_VERIFY_SSL")
+    if value is None:
+        return True
+    value = value.strip().lower()
+    if value in {"1", "true", "yes", "y", "on"}:
+        return True
+    if value in {"0", "false", "no", "n", "off"}:
+        return False
+    return True
 
 
 def create(
@@ -260,7 +270,7 @@ def push(
     api_token: Optional[str] = None,
     project_id: Optional[str] = None,
     group_id: Optional[str] = None,
-    verify_ssl: bool = True,
+    verify_ssl: Optional[bool] = None,
     dry_run: bool = False,
 ) -> Dict[str, Any]:
     """
@@ -347,6 +357,8 @@ def push(
         raise ValueError(
             "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
         )
+    if verify_ssl is None:
+        verify_ssl = _get_verify_ssl_from_env()
 
     # 5. Construir request HTTP a la API de Rocket
     url = f"{rocket_url.rstrip('/')}/workflows"
@@ -417,7 +429,7 @@ def run(
     instance: str = "XS",
     extra_params_file: Optional[str] = None,
     extra_params: Optional[list] = None,
-    verify_ssl: bool = True,
+    verify_ssl: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Ejecuta un workflow en Stratio Rocket vía API.
@@ -505,6 +517,8 @@ def run(
         raise ValueError(
             "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
         )
+    if verify_ssl is None:
+        verify_ssl = _get_verify_ssl_from_env()
 
     url = f"{rocket_url.rstrip('/')}/workflows/runWithExecutionContext"
 
