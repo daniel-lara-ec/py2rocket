@@ -53,7 +53,7 @@ def _attach_outputs_writer(
     extra_options: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Adjunta configuración outputsWriter al nodo de transformación origen."""
-    if input_step.node.step_type != StepType.TRANSFORM:
+    if input_step.node.step_type != StepType.TRANSFORMATION:
         return
 
     if save_mode is None:

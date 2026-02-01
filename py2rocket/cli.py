@@ -213,6 +213,33 @@ def cmd_create(args):
                         print("❌ Error: No se encontró el ID del asset creado")
                     else:
                         print(f"✓ Asset creado: {asset_id}")
+
+                        # Obtener workflow_id desde findAllVersions
+                        workflow_id = None
+                        print("[⚙️] Obteniendo workflow ID...")
+                        try:
+                            versions_response = requests.get(
+                                f"{api_host}/assets/findAllVersions/{asset_id}",
+                                headers=headers,
+                                cookies=cookies,
+                                verify=verify_ssl,
+                                timeout=30,
+                            )
+                            versions_response.raise_for_status()
+                            versions_list = versions_response.json()
+
+                            # Buscar el diccionario con version == 0
+                            for version_item in versions_list:
+                                if version_item.get("version") == 0:
+                                    workflow_id = version_item.get("id")
+                                    break
+
+                            if workflow_id:
+                                print(f"✓ Workflow ID obtenido: {workflow_id}")
+                            else:
+                                print("⚠️  No se encontró workflow con version 0")
+                        except requests.exceptions.RequestException as e:
+                            print(f"⚠️  Error al obtener workflow ID: {e}")
                 except requests.exceptions.RequestException as e:
                     print(f"❌ Error al crear el asset: {e}")
             else:
@@ -239,6 +266,7 @@ def cmd_create(args):
             project_id=project_id,
             group_id=group_id,
             asset_id=asset_id,
+            workflow_id=workflow_id if online and asset_id else None,
         )
 
         print(f"\n👉 Siguiente paso: edita {output_path} y define tu pipeline")
@@ -281,11 +309,23 @@ def cmd_build(args):
 def cmd_push(args):
     """Comando: push - Despliega pipeline a Rocket"""
     try:
+        # Manejar diferentes formatos de archivo
+        json_file = args.json_file
+        file_path = Path(json_file)
+
+        if file_path.suffix == "":
+            # Sin extensión: agregar .json
+            json_file = f"{json_file}.json"
+        elif file_path.suffix == ".py":
+            # Con .py: cambiar a .json
+            json_file = file_path.with_suffix(".json")
+        # Si ya tiene .json, usar como está
+
         verify_ssl = _get_verify_ssl_from_env()
         if args.no_verify_ssl:
             verify_ssl = False
         result = push(
-            json_file=args.json_file,
+            json_file=str(json_file),
             rocket_url=args.url,
             api_token=args.token,
             project_id=args.project_id,

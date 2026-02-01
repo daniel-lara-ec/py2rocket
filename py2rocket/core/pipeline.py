@@ -26,7 +26,7 @@ class StepType(Enum):
     """Tipo de paso en el pipeline"""
 
     INPUT = "Input"
-    TRANSFORM = "Transform"
+    TRANSFORMATION = "Transformation"
     OUTPUT = "Output"
 
 
@@ -155,6 +155,7 @@ class Pipeline:
     edges: List[Edge] = field(default_factory=list)
     parameters: Dict[str, str] = field(default_factory=dict)
     description: str = ""
+    workflow_id: Optional[str] = None
     project_id: Optional[str] = None
     group_id: Optional[str] = None
     asset_id: Optional[str] = None
@@ -202,20 +203,20 @@ class Pipeline:
                         f"Todos los inputs deben conectarse a al menos una transformación u output."
                     )
 
-        # Validar que todos los nodos TRANSFORM tengan al menos una entrada y una salida
+        # Validar que todos los nodos TRANSFORMATION tengan al menos una entrada y una salida
         for node in self.nodes:
-            if node.step_type == StepType.TRANSFORM:
+            if node.step_type == StepType.TRANSFORMATION:
                 has_incoming = any(edge.destination == node.name for edge in self.edges)
                 has_outgoing = any(edge.origin == node.name for edge in self.edges)
 
                 if not has_incoming:
                     raise ValueError(
-                        f"El nodo TRANSFORM '{node.name}' no tiene conexiones de entrada. "
+                        f"El nodo TRANSFORMATION '{node.name}' no tiene conexiones de entrada. "
                         f"Todas las transformaciones deben recibir datos de un input u otra transformación."
                     )
                 if not has_outgoing:
                     raise ValueError(
-                        f"El nodo TRANSFORM '{node.name}' no tiene conexiones de salida. "
+                        f"El nodo TRANSFORMATION '{node.name}' no tiene conexiones de salida. "
                         f"Todas las transformaciones deben conectarse a otra transformación u output."
                     )
 

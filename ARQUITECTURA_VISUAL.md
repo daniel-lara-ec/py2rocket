@@ -78,7 +78,7 @@
                 │                  │                  │
                 ▼                  ▼                  ▼
         ┌─────────────┐    ┌─────────────┐  ┌──────────────┐
-        │   INPUT     │    │ TRANSFORM   │  │   OUTPUT     │
+        │   INPUT     │    │ TRANSFORMATION   │  │   OUTPUT     │
         │ Operations  │───▶│ Operations  │─▶│ Operations   │
         └─────────────┘    └─────────────┘  └──────────────┘
              (10)               (8)              (14)

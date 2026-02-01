@@ -90,7 +90,7 @@ def add_columns(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="AddColumnsTransformStep",
         class_pretty_name="AddColumns",
         execution_engine=ExecutionEngine.HYBRID,
@@ -167,7 +167,7 @@ def drop_columns(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="DropColumnsTransformStep",
         class_pretty_name="DropColumns",
         execution_engine=ExecutionEngine.HYBRID,
@@ -242,7 +242,7 @@ def rename_columns(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="RenameColumnTransformationStep",
         class_pretty_name="RenameColumns",
         execution_engine=ExecutionEngine.HYBRID,
@@ -320,7 +320,7 @@ def custom_lite_xd_transform(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="CustomLiteXDTransformStep",
         class_pretty_name="CustomLiteXD",
         execution_engine=ExecutionEngine.HYBRID,
@@ -400,7 +400,7 @@ def coalesce(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="CoalesceTransformStep",
         class_pretty_name="Coalesce",
         execution_engine=ExecutionEngine.HYBRID,
@@ -471,7 +471,7 @@ def persist(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="PersistTransformStep",
         class_pretty_name="Persist",
         execution_engine=ExecutionEngine.HYBRID,
@@ -545,7 +545,7 @@ def repartition(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="RepartitionTransformStep",
         class_pretty_name="Repartition",
         execution_engine=ExecutionEngine.HYBRID,
@@ -620,7 +620,7 @@ def bypass(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="BypassTransformStep",
         class_pretty_name="Bypass",
         execution_engine=ExecutionEngine.HYBRID,
@@ -693,7 +693,7 @@ def pyspark(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="PySparkTransformStep",
         class_pretty_name="PySpark",
         execution_engine=ExecutionEngine.HYBRID,
@@ -776,7 +776,7 @@ def trigger(
 
     node = Node(
         name=name,
-        step_type=StepType.TRANSFORM,
+        step_type=StepType.TRANSFORMATION,
         class_name="TriggerTransformStep",
         class_pretty_name="Trigger",
         execution_engine=ExecutionEngine.HYBRID,

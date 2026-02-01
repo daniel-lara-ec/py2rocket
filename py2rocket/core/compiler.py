@@ -257,7 +257,7 @@ class RocketCompiler:
         now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
         rocket_json = {
-            "id": str(uuid.uuid4()),
+            "id": self.pipeline.workflow_id or str(uuid.uuid4()),
             "name": self.pipeline.name,
             "description": self.pipeline.description,
             "settings": self.STANDARD_SETTINGS.copy(),

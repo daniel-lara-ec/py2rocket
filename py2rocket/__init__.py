@@ -67,6 +67,7 @@ def create(
     project_id: Optional[str] = None,
     group_id: Optional[str] = None,
     asset_id: Optional[str] = None,
+    workflow_id: Optional[str] = None,
     parameters_lists: Optional[list] = None,
     pre_execution_sql_sentences: Optional[list] = None,
     udfs_to_register: Optional[list] = None,
@@ -125,6 +126,7 @@ def create(
     # Preparar parámetros para la plantilla
     params_str = repr(params) if params else "{}"
     output_json = name.replace("pl-", "").replace("-", "_") + ".json"
+    workflow_id_str = repr(workflow_id) if workflow_id else "None"
     project_id_str = repr(project_id) if project_id else "None"
     group_id_str = repr(group_id) if group_id else "None"
     asset_id_str = repr(asset_id) if asset_id else "None"
@@ -144,6 +146,7 @@ def create(
         params=params_str,
         description=description or f"Pipeline {name}",
         output_file=output_json,
+        workflow_id=workflow_id_str,
         project_id=project_id_str,
         group_id=group_id_str,
         asset_id=asset_id_str,
@@ -244,8 +247,13 @@ def build(
 
     # Determinar ruta de salida
     if output_path is None:
-        pipeline_name = pipeline_obj.name.replace("pl-", "").replace("-", "_")
-        output_path = f"{pipeline_name}.json"
+        if workflow_file is not None:
+            # Usar el nombre del archivo .py como base
+            output_path = Path(workflow_file).stem + ".json"
+        else:
+            # Usar el nombre del pipeline
+            pipeline_name = pipeline_obj.name.replace("pl-", "").replace("-", "_")
+            output_path = f"{pipeline_name}.json"
 
     output_file = Path(output_path)
 
