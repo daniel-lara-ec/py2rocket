@@ -1,0 +1,30 @@
+{
+  "name": "Custom",
+  "stepType": "Input",
+  "className": "CustomLiteXDInputStep",
+  "classPrettyName": "CustomLiteXD",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 155, "y": 82 } },
+  "configuration": {
+    "vaultDbName": "",
+    "inputOptions": "",
+    "priority": "50",
+    "customLiteClassType": "",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+    "lineage_custom": "",
+    "userPassEnabled": false,
+    "isLegacyBatchStep": false,
+    "tlsEnabled": false,
+    "vaultCustomPropertyEnabled": false,
+    "isStreaming": false,
+    "genAIMetadataColumns": "",
+    "vaultCustomPropertyName": ""
+  },
+  "supportedEngines": ["Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T16:51:06Z"
+}

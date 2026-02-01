@@ -1,0 +1,22 @@
+{
+  "name": "RenameColumns",
+  "stepType": "Transformation",
+  "className": "RenameColumnTransformationStep",
+  "classPrettyName": "RenameColumns",
+  "arity": ["UnaryToNary"],
+  "uiConfiguration": { "position": [520, 429] },
+  "configuration": {
+    "priority": "50",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{\"executeStepAutoDebug\":true, \"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+    "inputSchemas": "",
+    "columns": [{ "name": "null", "alias": "null" }],
+    "genAIMetadataColumns": "",
+    "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+    "executionEngine": "Hybrid",
+    "supportedDataRelations": ["ValidData"],
+    "lineageProperties": [""],
+    "outputsWriter": [""],
+    "lastModified": "2026-01-30T17:05:39Z"
+  }
+}

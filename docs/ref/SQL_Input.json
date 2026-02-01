@@ -1,0 +1,28 @@
+{
+  "name": "SQL",
+  "stepType": "Input",
+  "className": "SQLInputStep",
+  "classPrettyName": "SQL",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": {
+    "position": { "x": 478, "y": 75 }
+  },
+  "configuration": {
+    "priority": "50",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{\"executeStepAutoDebug\":true, \"executeStepDebug\":true, \"mockType\":\"AutoInfer\"}",
+    "query": "",
+    "forceNativeQuery": false,
+    "refreshPeriod": "300s",
+    "cacheTable": false,
+    "genAIMetadataColumns": "",
+    "storageLevel": "MEMORY_ONLY",
+    "asyncRefresh": false
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:03:03Z"
+}

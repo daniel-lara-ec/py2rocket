@@ -1,0 +1,24 @@
+{
+  "name": "Trigger",
+  "stepType": "Transformation",
+  "className": "TriggerTransformStep",
+  "classPrettyName": "Trigger",
+  "arity": ["NaryToNary"],
+  "uiConfiguration": { "position": { "x": 345, "y": 631 } },
+  "configuration": {
+    "sql": "",
+    "quoteSql": false,
+    "priority": "50",
+    "discardConditions": "",
+    "genAIMetadataTablesDescription": "",
+    "debugOptions": "{\\executeStepAutoDebug\":true, \"executeStepDebug\":true, \"mockType\":\"NoMock\"}",
+    "replaceWithInputDataframe": false,
+    "genAIMetadataColumns": ""
+  },
+  "supportedEngines": ["Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData", "DiscardedData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:08:54Z"
+}

@@ -14,7 +14,15 @@ from py2rocket import pipeline, sql, print_step
 @pipeline(
     name="{name}",
     execution_engine="{engine}",
-    params={params}
+    params={params},
+    project_id={project_id},
+    group_id={group_id},
+    asset_id={asset_id},
+    parameters_lists={parameters_lists},
+    pre_execution_sql_sentences={pre_execution_sql_sentences},
+    udfs_to_register={udfs_to_register},
+    udafs_to_register={udafs_to_register},
+    user_spark_conf={user_spark_conf}
 )
 def workflow():
     """

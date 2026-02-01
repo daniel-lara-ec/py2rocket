@@ -1,0 +1,42 @@
+{
+  "name": "Parquet",
+  "stepType": "Input",
+  "className": "ParquetInputStep",
+  "classPrettyName": "Parquet",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 648, "y": 178 } },
+  "configuration": {
+    "excludeGlobFilter": "",
+    "inputOptions": "",
+    "priority": "50",
+    "dataAsJsonEnabled": true,
+    "path": "",
+    "subdirGlobFilter": "",
+    "genAlMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+    "subdirRegexFilter": "",
+    "isRecursiveEnabled": true,
+    "readMode": "DefaultReadMode",
+    "paths": [
+      {
+        "path": null,
+        "subdirGlobFilter": null,
+        "subdirRegexFilter": null,
+        "excludeGlobFilter": null,
+        "excludeRegexFilter": null
+      }
+    ],
+    "metadataColumnEnabled": true,
+    "excludeRegexFilter": "",
+    "enableFilterPattern": true,
+    "genAlMetadataColumns": "",
+    "schema.sparkSchema": "",
+    "pathGlobFilter": "*.parquet"
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  " supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:12:34Z"
+}

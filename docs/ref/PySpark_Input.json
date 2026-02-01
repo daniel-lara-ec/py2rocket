@@ -1,0 +1,24 @@
+{
+  "name": "PySpark",
+  "stepType": "Input",
+  "className": "PySparkInputStep",
+  "classPrettyName": "PySpark",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": {
+    "position": { "x": 147, "y": 183 },
+    "configuration": {
+      "priority": 50,
+      "genAIMetadataTableDescription": "",
+      "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+      "pythonCode": "from pyspark.sql import \\nfrom pyspark import \\nfrom pyspark.sql.types import \\n\\ndef pyspa param_dict):ln \\n\\n :param spark: SparkSessio param_dict: Input dict\\n :return: Valid DataF \\\"\\\"\\\" # Insert your pySpark code here\\n # .. output df",
+      "genAIMetadataColumns": "",
+      "pythonInputDictionary": ""
+    },
+    "supportedEngines": ["Batch", "Hybrid"],
+    "executionEngine": "Hybrid",
+    "supportedDataRelations": ["ValidData"],
+    "lineageProperties": [],
+    "outputsWriter": [],
+    "lastModified": "2026-01-30T17:04:37Z"
+  }
+}

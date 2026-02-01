@@ -1,21 +1,22 @@
 {
-  "id": "490b9d00-f780-4ffb-bb0a-2f0e73f46e2d",
-  "name": "pl-transformacion-zp-mdp-validacionlecturatablas",
+  "id": "96060235-3e6d-4ea2-8776-2e8d6e98cdf2",
+  "name": "pl-transformacion-Zp-Mdp-CargaTablas",
   "description": "",
   "settings": {
     "global": {
       "executionMode": "kubernetes",
       "dockerSettings": {
-        "driverDockerImage": "{{SparkConfigurations.SPARK_DRIVER_DOCKER_IMAGE}}",
-        "driverDockerVolumes": "{{SparkConfigurations.SPARK_DRIVER_DOCKER_VOLUMES}}",
-        "executorDockerImage": "{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_IMAGE}}",
-        "executorDockerVolumes": "{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_VOLUMES}}"
+        "driverDockerImage": "{{{SparkConfigurations.SPARK_DRIVER_DOCKER_IMAGE}}}",
+        "driverDockerVolumes": "{{{SparkConfigurations.SPARK_DRIVER_DOCKER_VOLUMES}}}",
+        "executorDockerImage": "{{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_IMAGE}}}",
+        "executorDockerVolumes": "{{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_VOLUMES}}}"
       },
       "userPluginsJars": [],
       "parametersLists": [
         "Environment",
         "SparkResources",
-        "SparkConfigurations"
+        "SparkConfigurations",
+        "ParamsRemesas"
       ],
       "sqlSettings": {
         "preExecutionSqlSentences": [],
@@ -24,10 +25,10 @@
         "udafsToRegister": []
       },
       "kubernetesDeploymentSettings": {
-        "gracePeriodSeconds": "{{SparkConfigurations.HEALTH_CHECK_GRACE_PERIOD_SECONDS}}",
-        "intervalSeconds": "{{SparkConfigurations.HEALTH_CHECK_INTERVAL_SECONDS}}",
-        "timeoutSeconds": "{{SparkConfigurations.HEALTH_CHECK_FAILURES_TIMEOUT}}",
-        "maxConsecutiveFailures": "{{SparkConfigurations.HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES}}",
+        "gracePeriodSeconds": "{{{SparkConfigurations.HEALTH_CHECK_GRACE_PERIOD_SECONDS}}}",
+        "intervalSeconds": "{{{SparkConfigurations.HEALTH_CHECK_INTERVAL_SECONDS}}}",
+        "timeoutSeconds": "{{{SparkConfigurations.HEALTH_CHECK_FAILURES_TIMEOUT}}}",
+        "maxConsecutiveFailures": "{{{SparkConfigurations.HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES}}}",
         "imagePullPolicy": "IfNotPresent",
         "userEnvVariables": [],
         "userLabels": []
@@ -54,16 +55,16 @@
       "enableQualityRules": true,
       "debugSettings": {
         "forceDebugExecutionForAllSteps": false,
-        "limitRecordsDebug": "{{SparkConfigurations.DEBUG_MOCK_DATA_LIMIT}}",
-        "limitProcessingRecordsDebug": "{{SparkConfigurations.DEBUG_PROCESSING_DATA_LIMIT}}",
+        "limitRecordsDebug": "{{{SparkConfigurations.DEBUG_MOCK_DATA_LIMIT}}}",
+        "limitProcessingRecordsDebug": "{{{SparkConfigurations.DEBUG_PROCESSING_DATA_LIMIT}}}",
         "doNotUseCacheData": true,
         "unlimitedRecordsInProcessing": false,
-        "autoInferMaxFiles": "{{SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT}}",
+        "autoInferMaxFiles": "{{{SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT}}}",
         "forceRunAsExecution": false,
-        "forceRunAsExecutionWithMaxSteps": "{{SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS}}",
+        "forceRunAsExecutionWithMaxSteps": "{{{SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS}}}",
         "executeWithSameExecutionMode": false,
-        "numberOfColumnExamples": "{{SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES}}",
-        "maxSizeColumnExamples": "{{SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES}}",
+        "numberOfColumnExamples": "{{{SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES}}}",
+        "maxSizeColumnExamples": "{{{SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES}}}",
         "executeDataAnalysisInAllSteps": true
       },
       "autoDebugSettings": {
@@ -96,16 +97,16 @@
         "sparkVaultSecretListNames": [],
         "sparkConf": {
           "sparkResourcesConf": {
-            "executorMemory": "{{SparkResources.SPARK_EXECUTOR_MEMORY}}",
-            "executorCores": "{{SparkResources.SPARK_EXECUTOR_CORES}}",
-            "driverCores": "{{SparkResources.SPARK_DRIVER_CORES}}",
-            "driverMemory": "{{SparkResources.SPARK_DRIVER_MEMORY}}",
+            "executorMemory": "{{{SparkResources.SPARK_EXECUTOR_MEMORY}}}",
+            "executorCores": "{{{SparkResources.SPARK_EXECUTOR_CORES}}}",
+            "driverCores": "{{{SparkResources.SPARK_DRIVER_CORES}}}",
+            "driverMemory": "{{{SparkResources.SPARK_DRIVER_MEMORY}}}",
             "limitModeDriverCores": "SOFT",
             "limitModeDriverMemory": "GUARANTEED",
             "limitModeExecutorCores": "SOFT",
             "executorTaskParallelism": "",
             "sparkParallelism": "",
-            "executorInstances": "{{SparkResources.SPARK_EXECUTOR_INSTANCES}}",
+            "executorInstances": "{{{SparkResources.SPARK_EXECUTOR_INSTANCES}}}",
             "enableDriverGpus": false,
             "driverGpus": "1",
             "enableExecutorGpus": false,
@@ -121,11 +122,11 @@
         "sparkUser": "root",
         "logStagesProgress": false,
         "hdfsTokenCache": true,
-        "executorExtraJavaOptions": "{{SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS}}",
-        "stopGracefullyTimeout": "{{SparkResources.SPARK_KUBERNETES_SHUTDOWN}}",
+        "executorExtraJavaOptions": "{{{SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS}}}",
+        "stopGracefullyTimeout": "{{{SparkResources.SPARK_KUBERNETES_SHUTDOWN}}}",
         "sparkSchedulingConf": {
-          "minRegisteredResourcesRatio": "{{SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO}}",
-          "maxRegisteredResourcesWaitingTime": "{{SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME}}"
+          "minRegisteredResourcesRatio": "{{{SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO}}}",
+          "maxRegisteredResourcesWaitingTime": "{{{SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME}}}"
         },
         "sparkMetricsConf": {
           "sparkMetricsEnabled": false,
@@ -151,7 +152,7 @@
       },
       "structuredStreamingSettings": {},
       "parametersUsed": [
-        "P_TABLA",
+        "P_NOMBRE_TABLA",
         "SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT",
         "SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS",
         "SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES",
@@ -179,8 +180,8 @@
       "parametersSettings": {
         "userDefinedParameters": [
           {
-            "customParameterName": "P_TABLA",
-            "customParameterValue": "prd_campanias.ZC_BP_Par_Cam_salesforce_Account"
+            "customParameterName": "P_NOMBRE_TABLA",
+            "customParameterValue": "ZC_BP_Par_Cam_salesforce_Account"
           }
         ]
       }
@@ -189,18 +190,16 @@
   "pipelineGraph": {
     "nodes": [
       {
-        "name": "Load_Tabla",
+        "name": "Load_TablaTrxMonetarias",
         "stepType": "Input",
         "className": "SQLInputStep",
         "classPrettyName": "SQL",
-        "arity": [
-          "NullaryToNary"
-        ],
+        "arity": ["NullaryToNary"],
         "description": "",
         "configuration": {
-          "priority": "50",
+          "priority": "20",
           "debugOptions": "{\"executeStepAutoDebug\":true}",
-          "query": "SELECT * FROM {{P_TABLA}}",
+          "query": "SELECT * FROM prd_campanias.ZC_BP_Par_Cam_salesforce_Account",
           "forceNativeQuery": false,
           "cacheTable": false,
           "isSaved": true,
@@ -208,14 +207,9 @@
           "genAIMetadataTableDescription": "",
           "genAIMetadataColumns": ""
         },
-        "supportedEngines": [
-          "Batch",
-          "Hybrid"
-        ],
+        "supportedEngines": ["Batch", "Hybrid"],
         "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData"
-        ],
+        "supportedDataRelations": ["ValidData"],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
@@ -224,49 +218,98 @@
             "y": 289
           }
         },
-        "lastModified": "2026-01-30T03:00:58Z"
+        "lastModified": "2026-02-01T19:18:40Z"
       },
       {
-        "name": "Print",
-        "stepType": "Output",
-        "className": "PrintOutputStep",
-        "classPrettyName": "Print",
-        "arity": [
-          "NaryToNullary"
-        ],
+        "name": "T_AgregamosTimeStamp",
+        "stepType": "Transform",
+        "className": "TriggerTransformStep",
+        "classPrettyName": "Trigger",
+        "arity": ["NaryToNullary"],
         "description": "",
         "configuration": {
-          "priority": "50",
-          "debugOptions": "{\"executeStepAutoDebug\":true}",
-          "printData": false,
-          "printSchema": false,
-          "printMetadata": true,
-          "logLevel": "warn"
+          "priority": "30",
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "NoMock"
+          },
+          "sql": "\n    SELECT \n        *\n        , CURRENT_TIMESTAMP() AS fecha_procesamiento\n    FROM Load_TablaTrxMonetarias\n    ",
+          "quoteSql": false,
+          "discardConditions": "",
+          "replaceWithInputDataframe": false,
+          "genAIMetadataTablesDescription": "",
+          "genAIMetadataColumns": ""
         },
-        "supportedEngines": [
-          "Streaming",
-          "Batch",
-          "Hybrid"
-        ],
+        "supportedEngines": ["Hybrid"],
         "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData"
-        ],
+        "supportedDataRelations": ["ValidData"],
         "lineageProperties": [],
-        "outputsWriter": [],
+        "outputsWriter": [
+          {
+            "saveMode": "Overwrite",
+            "outputStepName": "Po_Parquet",
+            "tableName": "ZC_BP_Par_Cam_salesforce_Account",
+            "discardTableName": "",
+            "extraOptions": {
+              "checkIfEmpty": true,
+              "partitionBy": "periodo",
+              "partitionOverwriteEnabled": true,
+              "partitionColumns": "",
+              "saveMode": "Overwrite",
+              "partitions": ""
+            }
+          }
+        ],
         "uiConfiguration": {
           "position": {
             "x": 782,
             "y": 289
           }
         },
-        "lastModified": "2026-01-30T03:00:58Z"
+        "lastModified": "2026-02-01T19:18:40Z"
+      },
+      {
+        "name": "Po_Parquet",
+        "stepType": "Output",
+        "className": "ParquetOutputStep",
+        "classPrettyName": "Parquet",
+        "arity": ["NaryToNullary"],
+        "description": "",
+        "configuration": {
+          "priority": "40",
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "NoMock"
+          },
+          "path": "s3a://bucket-datalake-landing-zone-mdp/campanias/",
+          "saveMode": "Overwrite",
+          "saveOptions": ""
+        },
+        "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+        "executionEngine": "Hybrid",
+        "supportedDataRelations": ["ValidData"],
+        "lineageProperties": [],
+        "outputsWriter": [],
+        "uiConfiguration": {
+          "position": {
+            "x": 952,
+            "y": 289
+          }
+        },
+        "lastModified": "2026-02-01T19:18:40Z"
       }
     ],
     "edges": [
       {
-        "origin": "Load_Tabla",
-        "destination": "Print",
+        "origin": "Load_TablaTrxMonetarias",
+        "destination": "T_AgregamosTimeStamp",
+        "dataType": "ValidData"
+      },
+      {
+        "origin": "T_AgregamosTimeStamp",
+        "destination": "Po_Parquet",
         "dataType": "ValidData"
       }
     ],
@@ -282,8 +325,8 @@
       "k": 4.0
     }
   },
-  "creationDate": "2026-01-30T03:00:58Z",
-  "lastUpdateDate": "2026-01-30T03:00:58Z",
+  "creationDate": "2026-02-01T19:18:40Z",
+  "lastUpdateDate": "2026-02-01T19:18:40Z",
   "version": 0,
   "readOnly": false,
   "releaseInProgress": false,
@@ -291,6 +334,6 @@
   "debugMode": false,
   "debugAsExecutionMaybe": false,
   "versionSparta": "3.6.3",
-  "normalizedName": "pl-transformacion-zp-mdp-validacionlecturatablas",
+  "normalizedName": "pl-transformacion-zp-mdp-cargatablas",
   "isHybridStreaming": false
 }

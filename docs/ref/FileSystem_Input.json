@@ -1,0 +1,23 @@
+{
+  "name": "FileSystem",
+  "stepType": "Input",
+  "className": "FileSystemInputStep",
+  "classPrettyName": "Filesystem",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 324, "y": 277 } },
+  "configuration": {
+    "inputOptions": "",
+    "priority": "50",
+    "path": "",
+    "outputField": "raw",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+    "genAIMetadataColumns": ""
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:05:12Z"
+}

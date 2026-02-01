@@ -35,10 +35,10 @@ class RocketCompiler:
         "global": {
             "executionMode": "kubernetes",
             "dockerSettings": {
-                "driverDockerImage": "{{SparkConfigurations.SPARK_DRIVER_DOCKER_IMAGE}}",
-                "driverDockerVolumes": "{{SparkConfigurations.SPARK_DRIVER_DOCKER_VOLUMES}}",
-                "executorDockerImage": "{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_IMAGE}}",
-                "executorDockerVolumes": "{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_VOLUMES}}",
+                "driverDockerImage": "{{{SparkConfigurations.SPARK_DRIVER_DOCKER_IMAGE}}}",
+                "driverDockerVolumes": "{{{SparkConfigurations.SPARK_DRIVER_DOCKER_VOLUMES}}}",
+                "executorDockerImage": "{{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_IMAGE}}}",
+                "executorDockerVolumes": "{{{SparkConfigurations.SPARK_EXECUTOR_DOCKER_VOLUMES}}}",
             },
             "userPluginsJars": [],
             "parametersLists": ["Environment", "SparkResources", "SparkConfigurations"],
@@ -49,10 +49,10 @@ class RocketCompiler:
                 "udafsToRegister": [],
             },
             "kubernetesDeploymentSettings": {
-                "gracePeriodSeconds": "{{SparkConfigurations.HEALTH_CHECK_GRACE_PERIOD_SECONDS}}",
-                "intervalSeconds": "{{SparkConfigurations.HEALTH_CHECK_INTERVAL_SECONDS}}",
-                "timeoutSeconds": "{{SparkConfigurations.HEALTH_CHECK_FAILURES_TIMEOUT}}",
-                "maxConsecutiveFailures": "{{SparkConfigurations.HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES}}",
+                "gracePeriodSeconds": "{{{SparkConfigurations.HEALTH_CHECK_GRACE_PERIOD_SECONDS}}}",
+                "intervalSeconds": "{{{SparkConfigurations.HEALTH_CHECK_INTERVAL_SECONDS}}}",
+                "timeoutSeconds": "{{{SparkConfigurations.HEALTH_CHECK_FAILURES_TIMEOUT}}}",
+                "maxConsecutiveFailures": "{{{SparkConfigurations.HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES}}}",
                 "imagePullPolicy": "IfNotPresent",
                 "userEnvVariables": [],
                 "userLabels": [],
@@ -73,16 +73,16 @@ class RocketCompiler:
             "enableQualityRules": True,
             "debugSettings": {
                 "forceDebugExecutionForAllSteps": False,
-                "limitRecordsDebug": "{{SparkConfigurations.DEBUG_MOCK_DATA_LIMIT}}",
-                "limitProcessingRecordsDebug": "{{SparkConfigurations.DEBUG_PROCESSING_DATA_LIMIT}}",
+                "limitRecordsDebug": "{{{SparkConfigurations.DEBUG_MOCK_DATA_LIMIT}}}",
+                "limitProcessingRecordsDebug": "{{{SparkConfigurations.DEBUG_PROCESSING_DATA_LIMIT}}}",
                 "doNotUseCacheData": True,
                 "unlimitedRecordsInProcessing": False,
-                "autoInferMaxFiles": "{{SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT}}",
+                "autoInferMaxFiles": "{{{SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT}}}",
                 "forceRunAsExecution": False,
-                "forceRunAsExecutionWithMaxSteps": "{{SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS}}",
+                "forceRunAsExecutionWithMaxSteps": "{{{SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS}}}",
                 "executeWithSameExecutionMode": False,
-                "numberOfColumnExamples": "{{SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES}}",
-                "maxSizeColumnExamples": "{{SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES}}",
+                "numberOfColumnExamples": "{{{SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES}}}",
+                "maxSizeColumnExamples": "{{{SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES}}}",
                 "executeDataAnalysisInAllSteps": True,
             },
             "autoDebugSettings": {
@@ -113,16 +113,16 @@ class RocketCompiler:
                 "sparkVaultSecretListNames": [],
                 "sparkConf": {
                     "sparkResourcesConf": {
-                        "executorMemory": "{{SparkResources.SPARK_EXECUTOR_MEMORY}}",
-                        "executorCores": "{{SparkResources.SPARK_EXECUTOR_CORES}}",
-                        "driverCores": "{{SparkResources.SPARK_DRIVER_CORES}}",
-                        "driverMemory": "{{SparkResources.SPARK_DRIVER_MEMORY}}",
+                        "executorMemory": "{{{SparkResources.SPARK_EXECUTOR_MEMORY}}}",
+                        "executorCores": "{{{SparkResources.SPARK_EXECUTOR_CORES}}}",
+                        "driverCores": "{{{SparkResources.SPARK_DRIVER_CORES}}}",
+                        "driverMemory": "{{{SparkResources.SPARK_DRIVER_MEMORY}}}",
                         "limitModeDriverCores": "SOFT",
                         "limitModeDriverMemory": "GUARANTEED",
                         "limitModeExecutorCores": "SOFT",
                         "executorTaskParallelism": "",
                         "sparkParallelism": "",
-                        "executorInstances": "{{SparkResources.SPARK_EXECUTOR_INSTANCES}}",
+                        "executorInstances": "{{{SparkResources.SPARK_EXECUTOR_INSTANCES}}}",
                         "enableDriverGpus": False,
                         "driverGpus": "1",
                         "enableExecutorGpus": False,
@@ -138,11 +138,11 @@ class RocketCompiler:
                 "sparkUser": "root",
                 "logStagesProgress": False,
                 "hdfsTokenCache": True,
-                "executorExtraJavaOptions": "{{SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS}}",
-                "stopGracefullyTimeout": "{{SparkResources.SPARK_KUBERNETES_SHUTDOWN}}",
+                "executorExtraJavaOptions": "{{{SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS}}}",
+                "stopGracefullyTimeout": "{{{SparkResources.SPARK_KUBERNETES_SHUTDOWN}}}",
                 "sparkSchedulingConf": {
-                    "minRegisteredResourcesRatio": "{{SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO}}",
-                    "maxRegisteredResourcesWaitingTime": "{{SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME}}",
+                    "minRegisteredResourcesRatio": "{{{SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO}}}",
+                    "maxRegisteredResourcesWaitingTime": "{{{SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME}}}",
                 },
                 "sparkMetricsConf": {
                     "sparkMetricsEnabled": False,
@@ -279,6 +279,50 @@ class RocketCompiler:
             "normalizedName": self.pipeline.name.lower(),
             "isHybridStreaming": False,
         }
+
+        # Añadir listas de parámetros adicionales
+        if getattr(self.pipeline, "parameters_lists", None):
+            base_lists = rocket_json["settings"]["global"]["parametersLists"]
+            extra_lists = [p for p in self.pipeline.parameters_lists if p]
+            rocket_json["settings"]["global"]["parametersLists"] = list(
+                dict.fromkeys(base_lists + extra_lists)
+            )
+
+        # Agregar sentencias SQL de pre-ejecución
+        if getattr(self.pipeline, "pre_execution_sql_sentences", None):
+            sql_sentences = [
+                {"sentence": sentence}
+                for sentence in self.pipeline.pre_execution_sql_sentences
+                if sentence
+            ]
+            rocket_json["settings"]["global"]["sqlSettings"][
+                "preExecutionSqlSentences"
+            ] = sql_sentences
+
+        # Agregar UDFs a registrar
+        if getattr(self.pipeline, "udfs_to_register", None):
+            udfs = [{"name": udf} for udf in self.pipeline.udfs_to_register if udf]
+            rocket_json["settings"]["global"]["sqlSettings"]["udfsToRegister"] = udfs
+
+        # Agregar UDAFs a registrar
+        if getattr(self.pipeline, "udafs_to_register", None):
+            udafs = [{"name": udaf} for udaf in self.pipeline.udafs_to_register if udaf]
+            rocket_json["settings"]["global"]["sqlSettings"]["udafsToRegister"] = udafs
+
+        # Agregar configuraciones Spark personalizadas
+        if getattr(self.pipeline, "user_spark_conf", None):
+            spark_conf = [
+                {"sparkConfKey": key, "sparkConfValue": value}
+                for key, value in self.pipeline.user_spark_conf.items()
+                if key and value
+            ]
+            rocket_json["settings"]["global"]["sparkSettings"][
+                "userSparkConf"
+            ] = spark_conf
+
+        # Incluir el workflowMasterId si existe
+        if getattr(self.pipeline, "asset_id", None):
+            rocket_json["workflowMasterId"] = self.pipeline.asset_id
 
         # Añadir parámetros usados
         rocket_json["settings"]["global"][

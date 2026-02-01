@@ -1,0 +1,29 @@
+{
+  "name": "Postgres",
+  "stepType": "Input",
+  "className": "PostgresInputStep",
+  "classPrettyName": "Postgres",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 652, "y": 74 } },
+  "configuration": {
+    "inputOptions": {
+      "priority": "50",
+      "url": "",
+      "genAIMetadataTableDescription": "",
+      "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+      "isolationLevel": "READ_UNCOMMITTED",
+      "tlsEnabled": true,
+      "caseSensitiveEnabled": true,
+      "selectInput": "TABLE",
+      "dbtable": "",
+      "selectExp": "",
+      "genAIMetadataColumns": ""
+    },
+    "supportedEngines": ["Batch", "Hybrid"],
+    "executionEngine": "Hybrid",
+    "supportedDataRelations": ["ValidData"],
+    "lineageProperties": [],
+    "outputsWriter": [],
+    "lastModified": "2026-01-30T17:03:17Z"
+  }
+}

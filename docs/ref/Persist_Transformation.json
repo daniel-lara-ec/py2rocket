@@ -1,0 +1,20 @@
+{
+  "name": "Persist",
+  "stepType": "Transformation",
+  "className": "PersistTransformStep",
+  "classPrettyName": "Persist",
+  "arity": ["UnaryToNary"],
+  "uiConfiguration": { "position": { "x": 344, "y": 514 } },
+  "configuration": {
+    "storageLevel": "",
+    "inputSchemas": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "priority": "50"
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:06:01Z"
+}

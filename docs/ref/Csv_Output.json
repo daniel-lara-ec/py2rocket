@@ -1,0 +1,22 @@
+{
+  "name": "Csv-1",
+  "stepType": "Output",
+  "className": "CsvOutputStep",
+  "classPrettyName": "Csv",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 988, "y": 323 } },
+  "configuration": {
+    "priority": "50",
+    "path": "",
+    "debugOptions": "{\"texecuteStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"nNoMock\" \"}",
+    "inferSchema": false,
+    "header": false,
+    "saveOptions": "",
+    "delimiter": "{{{Environment.DEFAULT_DELIMITER}}}",
+    "supportedEngines": ["Streaming", "Batch", "Hybrid"]
+  },
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:10:06Z"
+}

@@ -10,10 +10,16 @@ Comandos disponibles:
 import argparse
 import sys
 import json
+import os
 from pathlib import Path
 from typing import Optional
+from dotenv import load_dotenv
+import requests
 
 from py2rocket import create, build, push, __version__
+
+# Cargar variables de entorno
+load_dotenv()
 
 
 def cmd_create(args):
@@ -27,22 +33,167 @@ def cmd_create(args):
             except json.JSONDecodeError:
                 print("Error: Los parámetros deben estar en formato JSON válido")
                 sys.exit(1)
-        
+
+        # Obtener configuración de API desde .env
+        api_host = os.getenv("ROCKET_API_HOST")
+        auth_cookie = os.getenv("ROCKET_AUTH_COOKIE")
+
+        # Variables para IDs
+        # Intentar obtener PROJECT_ID del .env si no se proporciona --project-name
+        project_id = None
+        if not args.project_name and os.getenv("PROJECT_ID"):
+            project_id = os.getenv("PROJECT_ID")
+            print(f"[*] Usando PROJECT_ID del .env: {project_id}")
+
+        group_id = None
+        asset_id = None
+
+        # Si se proporcionaron projectName y groupName, obtener los IDs
+        if args.project_name or args.group_name:
+            # Verificar modo offline
+            if args.offline:
+                print("\n⚠️  MODO OFFLINE ACTIVADO")
+                print("   Los IDs de proyecto y grupo NO fueron validados.")
+                print("   Deberás configurar manualmente el pipeline en Rocket:")
+                if args.group_name:
+                    print(f"   - Ruta del grupo: {args.group_name}")
+                if args.project_name:
+                    print(f"   - Proyecto: {args.project_name}")
+                print(
+                    "   - El pipeline debe ser subido manualmente a través de la interfaz de Rocket."
+                )
+                print()
+            elif not api_host or not auth_cookie:
+                print(
+                    "[!] Error: Para usar --project-name y --group-name, debes configurar:"
+                )
+                print("   ROCKET_API_HOST y ROCKET_AUTH_COOKIE en el archivo .env")
+                print("\n💡 Tip: Usa --offline para crear sin verificación de API")
+                sys.exit(1)
+            if not args.offline:
+                # Headers simulando navegador Edge
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+                    "Accept": "application/json, text/plain, */*",
+                    "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Connection": "keep-alive",
+                    "Sec-Fetch-Dest": "empty",
+                    "Sec-Fetch-Mode": "cors",
+                    "Sec-Fetch-Site": "same-origin",
+                    "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": '"Windows"',
+                }
+
+                # Cookies de autenticación
+                cookies = {"auth_token": auth_cookie, "lang": "en"}
+
+                # Obtener projectId
+                if args.project_name:
+                    print(f"[*] Buscando proyecto: {args.project_name}...")
+                    try:
+                        response = requests.get(
+                            f"{api_host}/projects/findByName/{args.project_name}",
+                            headers=headers,
+                            cookies=cookies,
+                            timeout=30,
+                        )
+                        response.raise_for_status()
+                        project_data = response.json()
+                        project_id = project_data.get("id")
+                        if not project_id:
+                            print(
+                                f"❌ Error: No se encontró el ID del proyecto '{args.project_name}'"
+                            )
+                            sys.exit(1)
+                        print(f"✓ Proyecto encontrado: {project_id}")
+                    except requests.exceptions.RequestException as e:
+                        print(f"❌ Error al buscar proyecto: {e}")
+                        sys.exit(1)
+
+                # Obtener groupId
+                if args.group_name:
+                    print(f"🔍 Buscando grupo: {args.group_name}...")
+                    try:
+                        response = requests.get(
+                            f"{api_host}/groups/findByName",
+                            params={"name": args.group_name},
+                            headers=headers,
+                            cookies=cookies,
+                            timeout=30,
+                        )
+                        response.raise_for_status()
+                        group_data = response.json()
+                        group_id = group_data.get("id")
+                        if not group_id:
+                            print(
+                                f"❌ Error: No se encontró el ID del grupo '{args.group_name}'"
+                            )
+                            sys.exit(1)
+                        print(f"✓ Grupo encontrado: {group_id}")
+                    except requests.exceptions.RequestException as e:
+                        print(f"❌ Error al buscar grupo: {e}")
+                        sys.exit(1)
+
+                # Crear asset en Rocket
+                if project_id and group_id:
+                    print("🔍 Creando asset en Rocket...")
+                    payload = {
+                        "workflowAsset": {
+                            "name": args.name,
+                            "description": args.description or "",
+                            "groupId": group_id,
+                            "projectId": project_id,
+                            "executionEngine": args.engine,
+                        }
+                    }
+                    method = os.getenv("ROCKET_ASSETS_METHOD", "POST").upper()
+                    try:
+                        response = requests.request(
+                            method,
+                            f"{api_host}/assets",
+                            headers=headers,
+                            cookies=cookies,
+                            json=payload,
+                            timeout=30,
+                        )
+                        response.raise_for_status()
+                        asset_data = response.json()
+                        asset_id = (asset_data.get("workflowAsset", {}) or {}).get("id")
+                        if not asset_id:
+                            print("❌ Error: No se encontró el ID del asset creado")
+                            sys.exit(1)
+                        print(f"✓ Asset creado: {asset_id}")
+                    except requests.exceptions.RequestException as e:
+                        print(f"❌ Error al crear el asset: {e}")
+                        sys.exit(1)
+                else:
+                    print(
+                        "⚠️  No se pudo crear el asset porque falta projectId o groupId."
+                    )
+
         output_path = create(
             name=args.name,
             output_path=args.output,
             execution_engine=args.engine,
             params=params,
             description=args.description,
+            project_id=project_id,
+            group_id=group_id,
+            asset_id=asset_id,
         )
-        
+
         print(f"\n👉 Siguiente paso: edita {output_path} y define tu pipeline")
-        
+
     except FileExistsError as e:
         print(f"❌ Error: {e}")
         sys.exit(1)
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
+        import traceback
+
+        traceback.print_exc()
         sys.exit(1)
 
 
@@ -54,9 +205,11 @@ def cmd_build(args):
             output_path=args.output,
             indent=args.indent,
         )
-        
-        print(f"\n👉 Siguiente paso: revisa {output_path} o despliega con 'py2rocket push'")
-        
+
+        print(
+            f"\n👉 Siguiente paso: revisa {output_path} o despliega con 'py2rocket push'"
+        )
+
     except (FileNotFoundError, ValueError) as e:
         print(f"❌ Error: {e}")
         sys.exit(1)
@@ -77,7 +230,7 @@ def cmd_push(args):
             verify_ssl=not args.no_verify_ssl,
             dry_run=args.dry_run,
         )
-        
+
         if result["status"] == "success":
             print(f"\n✓ Pipeline desplegado exitosamente")
             print(f"  ID: {result['pipeline_id']}")
@@ -85,7 +238,7 @@ def cmd_push(args):
         else:
             print(f"\n❌ Error al desplegar: {result['message']}")
             sys.exit(1)
-        
+
     except NotImplementedError as e:
         print(f"⚠️  {e}")
         sys.exit(2)
@@ -100,13 +253,13 @@ def main():
         description="py2rocket - DSL para generar pipelines de Stratio Rocket",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    
+
     parser.add_argument(
         "--version", action="version", version=f"py2rocket {__version__}"
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Comando a ejecutar")
-    
+
     # Comando: create
     parser_create = subparsers.add_parser(
         "create", help="Crea un nuevo archivo de workflow"
@@ -128,21 +281,30 @@ def main():
         help='Parámetros en formato JSON (ej: \'{"P_TABLA": "tabla1"}\')',
     )
     parser_create.add_argument("-d", "--description", default="", help="Descripción")
+    parser_create.add_argument(
+        "--project-name", help="Nombre del proyecto (se buscará el UUID vía API)"
+    )
+    parser_create.add_argument(
+        "--group-name", help="Nombre del grupo (se buscará el UUID vía API)"
+    )
+    parser_create.add_argument(
+        "--offline",
+        action="store_true",
+        help="Crear sin verificación de API (requiere configuración manual en Rocket)",
+    )
     parser_create.set_defaults(func=cmd_create)
-    
+
     # Comando: build
     parser_build = subparsers.add_parser(
         "build", help="Compila un workflow a JSON de Rocket"
     )
     parser_build.add_argument("workflow_file", help="Archivo .py del workflow")
-    parser_build.add_argument(
-        "-o", "--output", help="Ruta del archivo JSON de salida"
-    )
+    parser_build.add_argument("-o", "--output", help="Ruta del archivo JSON de salida")
     parser_build.add_argument(
         "-i", "--indent", type=int, default=2, help="Indentación del JSON (default: 2)"
     )
     parser_build.set_defaults(func=cmd_build)
-    
+
     # Comando: push
     parser_push = subparsers.add_parser(
         "push", help="Despliega un pipeline a Rocket vía API"
@@ -161,14 +323,14 @@ def main():
         "--dry-run", action="store_true", help="Simular sin desplegar"
     )
     parser_push.set_defaults(func=cmd_push)
-    
+
     # Parsear argumentos
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         sys.exit(1)
-    
+
     # Ejecutar comando
     args.func(args)
 

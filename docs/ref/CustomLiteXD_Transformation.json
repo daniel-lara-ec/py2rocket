@@ -1,0 +1,23 @@
+{
+  "name": "Custom 1",
+  "stepType": "Transformation",
+  "className": "CustomLiteXDTransformStep",
+  "classPrettyName": "CustomLiteXD",
+  "arity": [],
+  "uiConfiguration": { "position": { "x": 679, "y": 432 } },
+  "configuration": {
+    "priority": "50",
+    "customLiteClassType": "Custom",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "isLegacyBatchStep": false,
+    "genAIMetadataColumns": "",
+    "transformationOptions": ""
+  },
+  "supportedEngines": ["Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData", "DiscardedData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:05:45Z"
+}

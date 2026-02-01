@@ -1,0 +1,19 @@
+{
+  "name": "PySpark_2",
+  "stepType": "Output",
+  "className": "PySparkOutputStep",
+  "classPrettyName": "PySpark",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 981, "y": 214 } },
+  "configuration": {
+    "pythonCode": "from pyspark.sql import *\\nfrom pyspark.sql.fun import *\\nfrom pyspark.sql.types import *\\n\\ndef pyspark_outpu df_,write_options_dict, param_dict):\\n \\n :param spar SparkSession\\n :param df: Input DataFrame\\n :param write_options_dict: Write options defined in previous step\\n \\n param_dict: Key-value dictionary defined in previous step\\n # Insert your pyspark code here\\n # ... \\n\\n return",
+    "pythonInputDictionary": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "priority": "50"
+  },
+  "supportedEngines": ["Batch", "Hybrid", "Streaming"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:09:37Z"
+}

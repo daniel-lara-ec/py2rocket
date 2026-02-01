@@ -1,0 +1,21 @@
+{
+  "name": "PySpark_1",
+  "stepType": "Transformation",
+  "className": "PySparkTransformerStep",
+  "classPrettyName": "PySpark",
+  "arity": ["NaryToNary"],
+  "uiConfiguration": { "position": { "x": 177, "y": 629 } },
+  "configuration": {
+    "priority": "50",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{\"executeStepAutoDebug\":true, \"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+    "pythonCode": "from pyspark.sql import *\nfrom pyspark.sql.functions import *\nimport pyspark.sql.types import *\nIf the step contains single input and output,\ndef pyspark_transform(spark, df, p \n #:param spark: SparkSession\n #:param df: Input DataFrame\n #:param param_dict: Input dictionary\n #:re Transformed DataFrame OR (Valid, discarded) dataframe tuple\n Insert your pySpark code here\n #: \n\n# return #: out (valid_df, discarded_df)\n#If the step contains multiple in outputs \ndef pyspark_transform(spark, dict_df, param_dict)::\n #:param spark: SparkSession\n #:param dict df: Input DataFrame \n #:param param_dict: Input Dictionary \n\nstep_df\n #:param param dict: In dictionary\n #:return: Transformed DataFrame OR (Valid, dis dictionary\n #:return\n # Insert your pySpark code here\n #: \n\n# dataframe tuple\n # output df OR (valid_df, discarded_df)",
+    "genAIMetadataColumns": "",
+    "pythonInputDictionary": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData", "DiscardedData"],
+  "lineageProperties": [],
+  "outputsWriter": []
+}

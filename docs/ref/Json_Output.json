@@ -1,0 +1,19 @@
+{
+  "name": "Json 1",
+  "stepType": "Output",
+  "className": "JsonOutputStep",
+  "classPrettyName": "Json",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 1569, "y": 214 } },
+  "configuration": {
+    "path": "",
+    "saveOptions": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "priority": "50"
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:10:01Z"
+}

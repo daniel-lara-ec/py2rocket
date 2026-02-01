@@ -1,0 +1,28 @@
+{
+  "name": "Jdbc",
+  "stepType": "Input",
+  "className": "JdbcInputStep",
+  "classPrettyName": "Jdbc",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 321, "y": 82 } },
+  "configuration": {
+    "vaultDbName": "",
+    "inputOptions": "",
+    "priority": "56",
+    "url": "",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+    "userPassEnabled": false,
+    "isolationLevel": "READ_UNCOMMITTED",
+    "tlsEnabled": false,
+    "driver": "org.postgresql.Driver",
+    "dbtable": "",
+    "genAIMetadataColumns": ""
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:02:56Z"
+}

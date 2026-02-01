@@ -55,6 +55,7 @@ class Node:
         configuration: Configuración específica del nodo
         supported_engines: Motores compatibles con este nodo
         supported_data_relations: Relaciones de datos soportadas
+        outputs_writer: Configuración de outputsWriter para el nodo
     """
 
     name: str
@@ -67,6 +68,7 @@ class Node:
     supported_engines: List[str] = field(default_factory=lambda: ["Batch", "Hybrid"])
     supported_data_relations: List[str] = field(default_factory=lambda: ["ValidData"])
     description: str = ""
+    outputs_writer: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el nodo a formato diccionario para serialización JSON"""
@@ -90,7 +92,7 @@ class Node:
             "executionEngine": self.execution_engine.value,
             "supportedDataRelations": self.supported_data_relations,
             "lineageProperties": [],
-            "outputsWriter": [],
+            "outputsWriter": self.outputs_writer,
         }
 
 
@@ -136,6 +138,9 @@ class Pipeline:
         edges: Lista de conexiones entre nodos
         parameters: Parámetros de negocio del pipeline
         description: Descripción del propósito del pipeline
+        project_id: UUID del proyecto (obtenido de la API)
+        group_id: UUID del grupo (obtenido de la API)
+        asset_id: UUID del asset creado en Rocket
 
     Reglas:
         - NO se permiten ciclos en el DAG
@@ -150,6 +155,14 @@ class Pipeline:
     edges: List[Edge] = field(default_factory=list)
     parameters: Dict[str, str] = field(default_factory=dict)
     description: str = ""
+    project_id: Optional[str] = None
+    group_id: Optional[str] = None
+    asset_id: Optional[str] = None
+    parameters_lists: List[str] = field(default_factory=list)
+    pre_execution_sql_sentences: List[str] = field(default_factory=list)
+    udfs_to_register: List[str] = field(default_factory=list)
+    udafs_to_register: List[str] = field(default_factory=list)
+    user_spark_conf: Dict[str, str] = field(default_factory=dict)
 
     def add_node(self, node: Node) -> None:
         """Añade un nodo al pipeline"""
@@ -176,8 +189,37 @@ class Pipeline:
         - No ciclos
         - No nodos huérfanos
         - DAG válido
+        - Todos los inputs tienen al menos una conexión
+        - Todos los transforms tienen entrada y salida
         """
-        # TODO: Implementar validaciones de DAG
+        # Validar que todos los nodos INPUT tengan al menos una conexión saliente
+        for node in self.nodes:
+            if node.step_type == StepType.INPUT:
+                has_connection = any(edge.origin == node.name for edge in self.edges)
+                if not has_connection:
+                    raise ValueError(
+                        f"El nodo INPUT '{node.name}' no tiene conexiones. "
+                        f"Todos los inputs deben conectarse a al menos una transformación u output."
+                    )
+
+        # Validar que todos los nodos TRANSFORM tengan al menos una entrada y una salida
+        for node in self.nodes:
+            if node.step_type == StepType.TRANSFORM:
+                has_incoming = any(edge.destination == node.name for edge in self.edges)
+                has_outgoing = any(edge.origin == node.name for edge in self.edges)
+
+                if not has_incoming:
+                    raise ValueError(
+                        f"El nodo TRANSFORM '{node.name}' no tiene conexiones de entrada. "
+                        f"Todas las transformaciones deben recibir datos de un input u otra transformación."
+                    )
+                if not has_outgoing:
+                    raise ValueError(
+                        f"El nodo TRANSFORM '{node.name}' no tiene conexiones de salida. "
+                        f"Todas las transformaciones deben conectarse a otra transformación u output."
+                    )
+
+        # TODO: Implementar validaciones adicionales (ciclos, nodos huérfanos completos)
         return True
 
     def to_dict(self) -> Dict[str, Any]:
@@ -215,3 +257,60 @@ class StepResult:
 
     def __repr__(self):
         return f"StepResult({self.node.name})"
+
+    def set_outputs_writer(
+        self,
+        save_mode: str = "Overwrite",
+        table_name: str = "",
+        discard_table_name: str = "",
+        check_if_empty: bool = False,
+        partition_by: Optional[List[str]] = None,
+        partition_overwrite_enabled: bool = True,
+        partition_columns: Optional[List[str]] = None,
+        partitions: Optional[int] = None,
+    ) -> "StepResult":
+        """
+        Configura outputsWriter en el nodo asociado sin requerir el outputStepName.
+
+        El outputStepName se completará automáticamente cuando se conecte
+        este nodo a un paso Output.
+
+        Args:
+            save_mode: Modo de guardado (Overwrite, Append, Ignore, Error)
+            table_name: Nombre de tabla destino
+            discard_table_name: Nombre de tabla de descartes
+            check_if_empty: Si validar vacío antes de escribir
+            partition_by: Columnas para particionar (lista de strings)
+            partition_overwrite_enabled: Si habilitar overwrite de particiones
+            partition_columns: Columnas de partición (lista de strings)
+            partitions: Número de particiones
+
+        Returns:
+            El mismo StepResult para encadenamiento
+        """
+        partition_by_str = ",".join(partition_by) if partition_by else "overwrite"
+        partition_columns_str = ",".join(partition_columns) if partition_columns else ""
+        partitions_str = "" if partitions is None else str(partitions)
+
+        extra_options = {
+            "checkIfEmpty": check_if_empty,
+            "partitionBy": partition_by_str,
+            "partitionOverwriteEnabled": partition_overwrite_enabled,
+            "partitionColumns": partition_columns_str,
+            "saveMode": save_mode,
+            "partitions": partitions_str,
+        }
+
+        entry = {
+            "saveMode": save_mode,
+            "outputStepName": None,
+            "tableName": table_name,
+            "discardTableName": discard_table_name,
+            "extraOptions": extra_options,
+        }
+
+        if self.node.outputs_writer is None:
+            self.node.outputs_writer = []
+
+        self.node.outputs_writer.append(entry)
+        return self

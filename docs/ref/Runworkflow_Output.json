@@ -1,0 +1,36 @@
+{
+  "name": "Runworkflow",
+  "stepType": "Output",
+  "className": "RunWorkflowOutputStep",
+  "classPrettyName": "RunWorkflow",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 1340, "y": 326 } },
+  "configuration": {
+    "limitMaxInputRows": "",
+    "uniqueInstance": false,
+    "dropDuplicates": false,
+    "priority": "50",
+    "assetId": "",
+    "debugOptions": {
+      "executeStepAutoDebug": true,
+      "executeStepDebug": true,
+      "mockType": "NoMock"
+    },
+    "contexts": "",
+    "attemptsConditions": "",
+    "variables": "",
+    "executionPriority": "0",
+    "forceExecutionIfAvailableResources": false,
+    "retryUnsuccessfulWrites": false,
+    "maxAttempts": "0",
+    "forwardVariables": false,
+    "runWorkflowWhen": "RECEIVE_DATA",
+    "workflowId": "",
+    "forwardContexts": false
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:16:12Z"
+}

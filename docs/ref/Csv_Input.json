@@ -1,0 +1,51 @@
+{
+  "name": "Csv",
+  "stepType": "Input",
+  "className": "CsvInputStep",
+  "classPrettyName": "Csv",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 159, "y": 286 } },
+  "configuration": {
+    "schema.inputMode": "NOSCHEMAPROVIDED",
+    "excludeGlobFilter": "",
+    "inputOptions": "",
+    "priority": "50",
+    "dataAsJsonEnabled": true,
+    "path": "",
+    "subdirGlobFilter": "",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": {
+      "executeStepAutoDebug": true,
+      "executeStepDebug": true,
+      "mockType": "AutoInfer"
+    },
+    "schema.header": "",
+    "subdirRegexFilter": "",
+    "isRecursiveEnabled": true,
+    "readMode": "DefaultReadMode",
+    "paths": [
+      {
+        "path": null,
+        "subdirGlobFilter": null,
+        "subdirRegexFilter": null,
+        "excludeGlobFilter": null,
+        "excludeRegexFilter": null
+      }
+    ],
+    "metadataColumnEnabled": true,
+    "excludeRegexFilter": "",
+    "header": false,
+    "schema.fields": "",
+    "enableFilterPattern": true,
+    "genAIMetadataColumns": "",
+    "schema.sparkSchema": "",
+    "pathGlobFilter": "*.csv",
+    "delimiter": ","
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:16:12Z"
+}

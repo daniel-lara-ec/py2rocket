@@ -11,11 +11,56 @@ from py2rocket.core.pipeline import (
     DataRelation,
     StepResult,
 )
-from py2rocket.core.operations import sql, pyspark, print_step
+
+# Importar operaciones de los módulos específicos - Input
+from py2rocket.core.input import (
+    sql,
+    jdbc,
+    postgres,
+    parquet,
+    delta,
+    json,
+    csv,
+    filesystem,
+    pyspark_input,
+    custom_lite_xd,
+)
+
+# Importar operaciones de los módulos específicos - Transformation
+from py2rocket.core.transformation import (
+    add_columns,
+    drop_columns,
+    rename_columns,
+    coalesce,
+    persist,
+    repartition,
+    bypass,
+    pyspark,
+    trigger,
+    custom_lite_xd_transform,
+)
+
+# Importar operaciones de los módulos específicos - Output
+from py2rocket.core.output import (
+    jdbc_output,
+    postgres_output,
+    sftp_output,
+    delta_output,
+    parquet_output,
+    json_output,
+    csv_output,
+    text_output,
+    print_step,
+    run_workflow,
+    pyspark_output,
+    custom_lite_xd_output,
+)
+
 from py2rocket.core.decorators import pipeline
 from py2rocket.core.compiler import RocketCompiler
 
 __all__ = [
+    # Core pipeline
     "Pipeline",
     "Node",
     "Edge",
@@ -23,9 +68,56 @@ __all__ = [
     "StepType",
     "DataRelation",
     "StepResult",
+    # Input operations - Database
     "sql",
+    "jdbc",
+    "postgres",
+    # Input operations - Structured files
+    "parquet",
+    "delta",
+    "json",
+    # Input operations - Unstructured files
+    "csv",
+    "filesystem",
+    # Input operations - Python
+    "pyspark_input",
+    # Input operations - CustomMade
+    "custom_lite_xd",
+    # Transformation operations - Column operations
+    "add_columns",
+    "drop_columns",
+    "rename_columns",
+    # Transformation operations - Optimization
+    "coalesce",
+    "persist",
+    "repartition",
+    # Transformation operations - Other
+    "bypass",
+    # Transformation operations - Python
     "pyspark",
+    # Transformation operations - SQL
+    "trigger",
+    # Transformation operations - CustomMade
+    "custom_lite_xd_transform",
+    # Output operations - Database
+    "jdbc_output",
+    "postgres_output",
+    "sftp_output",
+    # Output operations - Structured files
+    "delta_output",
+    "parquet_output",
+    "json_output",
+    # Output operations - Unstructured files
+    "csv_output",
+    "text_output",
+    # Output operations - Other
     "print_step",
+    "run_workflow",
+    # Output operations - Python
+    "pyspark_output",
+    # Output operations - CustomMade
+    "custom_lite_xd_output",
+    # Decorators and compiler
     "pipeline",
     "RocketCompiler",
 ]

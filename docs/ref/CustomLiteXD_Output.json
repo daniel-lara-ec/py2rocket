@@ -1,0 +1,25 @@
+{
+  "name": "Custom-2",
+  "stepType": "Output",
+  "className": "CustomLiteXDOutputStep",
+  "classPrettyName": "CustomLiteXD",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 962, "y": 83 } },
+  "configuration": {
+    "vaultDbName": "",
+    "priority": "50",
+    "customLiteClassType": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "lineage_custom": "",
+    "userPassEnabled": false,
+    "tlsEnabled": false,
+    "vaultCustomPropertyEnabled": false,
+    "saveOptions": "",
+    "vaultCustomPropertyName": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:09:02Z"
+}

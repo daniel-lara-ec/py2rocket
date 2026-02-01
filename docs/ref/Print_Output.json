@@ -1,0 +1,21 @@
+{
+  "name": "Print",
+  "stepType": "Output",
+  "className": "PrintOutputStep",
+  "classPrettyName": "Print",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 1515, "y": 319 } },
+  "configuration": {
+    "priority": "50",
+    "printData": false,
+    "printSchema": false,
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "printMetadata": true,
+    "logLevel": "warn"
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:16:17Z"
+}

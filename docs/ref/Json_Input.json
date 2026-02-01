@@ -1,0 +1,43 @@
+{
+  "name": "Json",
+  "stepType": "Input",
+  "className": "JsonInputStep",
+  "classPrettyName": "Json",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 482, "y": 179 } },
+  "configuration": {
+    "schema.inputMode": "NOSCHEMAPROVIDED",
+    "excludeGlobFilter": "",
+    "inputOptions": "",
+    "priority": "50",
+    "dataAsJsonEnabled": true,
+    "path": "",
+    "subdirGlobFilter": "",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+    "subdirRegexFilter": "",
+    "isRecursiveEnabled": true,
+    "readMode": "DefaultReadMode",
+    "paths": [
+      {
+        "path": null,
+        "subdirGlobFilter": null,
+        "subdirRegexFilter": null,
+        "excludeGlobFilter": null,
+        "excludeRegexFilter": null
+      }
+    ],
+    "metadataColumnEnabled": true,
+    "excludeRegexFilter": "",
+    "schema.provided": "",
+    "enableFilterPattern": true,
+    "genAIMetadataColumns": "",
+    "pathGlobFilter": "*.json"
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:09:10Z"
+}

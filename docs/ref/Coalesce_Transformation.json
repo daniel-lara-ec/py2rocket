@@ -1,0 +1,21 @@
+{
+  "name": "Coalesce",
+  "stepType": "Transformation",
+  "className": "CoalesceTransformStep",
+  "classPrettyName": "Coalesce",
+  "arity": [],
+  "uiConfiguration": { "position": { "x": 173, "y": 588 } },
+  "configuration": {
+    "priority": "50",
+    "debugOptions": "{\"executeStepAutoDebug\":true, \"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+    "inputSchemas": [],
+    "shuffle": false,
+    "partitions": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": {},
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:05:53Z"
+}

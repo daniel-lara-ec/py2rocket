@@ -1,0 +1,19 @@
+{
+  "name": "Delta_1",
+  "stepType": "Output",
+  "className": "DeltaOutputStep",
+  "classPrettyName": "Delta",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 1148, "y": 196 } },
+  "configuration": {
+    "path": "",
+    "saveOptions": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "priority": 56
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:09:48Z"
+}

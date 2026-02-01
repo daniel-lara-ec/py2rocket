@@ -1,0 +1,30 @@
+{
+  "name": "Jdbc_1",
+  "stepType": "Output",
+  "className": "JdbcOutputStep",
+  "classPrettyName": "Jdbc",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 1134, "y": 88 } },
+  "configuration": {
+    "vaultDbName": "",
+    "priority": "50",
+    "url": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "createSchemaIfNotExists": false,
+    "batchsize": "1000",
+    "userPassEnable": false,
+    "isolationLevel": "READ_UNCOMMITTED",
+    "failFast": true,
+    "tlsEnabled": false,
+    "driver": "",
+    "caseSensitiveEnabled": true,
+    "schemaFromDatabase": false,
+    "jdbcSaveMode": "STATEMENT",
+    "saveOptions": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:09:10Z"
+}

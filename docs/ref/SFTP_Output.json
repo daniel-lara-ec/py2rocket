@@ -1,0 +1,33 @@
+{
+  "name": "SFTP",
+  "stepType": "Output",
+  "className": "SFTPOutputStep",
+  "classPrettyName": "SFTP",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": {
+    "position": { "x": 1499, "y": 100 },
+    "configuration": {
+      "priority": "50",
+      "path": "",
+      "debugOptions": "{\"executeStepAutoDebug\":true, \"executeStepDebug\":true,\"mockType\":\"NoMock\"}]",
+      "avoidHdfsFiles": "false",
+      "host": "",
+      "customFileType": "",
+      "preserveWriterFileExtension": "false",
+      "tlsEnabled": "false",
+      "fileType": "txt",
+      "dataSourceClass": "",
+      "port": "22",
+      "vaultSecretName": "",
+      "sftpServerUsername": "",
+      "saveOptions": "",
+      "vaultUserPassEnabled": "false",
+      "password": ""
+    },
+    "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+    "executionEngine": "Hybrid",
+    "lineageProperties": [],
+    "outputsWriter": [],
+    "lastModified": "2026-01-30T17:09:31Z"
+  }
+}

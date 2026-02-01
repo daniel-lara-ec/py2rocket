@@ -1,0 +1,25 @@
+{
+  "name": "Repartition",
+  "stepType": "Transformation",
+  "className": "RepartitionTransformStep",
+  "classPrettyName": "Repartition",
+  "arity": [],
+  "uiConfiguration": { "position": { "x": 512, "y": 519 } },
+  "configuration": {
+    "priority": "50",
+    "debugOptions": {
+      "executeStepAutoDebug": true,
+      "executeStepDebug": true,
+      "mockType": "NoMock"
+    },
+    "inputSchemas": "",
+    "columns": "",
+    "partitions": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:06:13Z"
+}

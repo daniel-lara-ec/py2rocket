@@ -1,0 +1,20 @@
+{
+  "name": "Text",
+  "stepType": "Output",
+  "className": "TextOutputStep",
+  "classPrettyName": "Text",
+  "arity": ["nullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 1173, "y": 320 } },
+  "configuration": {
+    "priority": "50",
+    "path": "",
+    "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+    "saveOptions": "",
+    "delimiter": "{{{Environment.DEFAULT_DELIMITER}}}"
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputWriter": [],
+  "lastModified": "2026-01-30T17:10:10Z"
+}

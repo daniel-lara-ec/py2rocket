@@ -1,0 +1,20 @@
+{
+  "name": "Bypass",
+  "stepType": "Transformation",
+  "className": "ByPassStep",
+  "classPrettyName": "Bypass",
+  "arity": ["UnaryToNary"],
+  "uiConfiguration": { "position": { "x": 669, "y": 532 } },
+  "configuration": {
+    "genAIMetadataTableDescription": "",
+    "genAIMetadataColumns": "",
+    "debugOptions": "{\"executeStepAutoDebug\":\"true, \"executeStepDebug\":\"true, \"mockType\":\"NoMock\"}",
+    "priority": "50"
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:08:38Z"
+}

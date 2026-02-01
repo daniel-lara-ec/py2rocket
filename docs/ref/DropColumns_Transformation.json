@@ -1,0 +1,22 @@
+{
+  "name": "DropColumns",
+  "stepType": "Transformation",
+  "className": "DropColumnsTransformStep",
+  "classPrettyName": "DropColumns",
+  "arity": ["UnaryToNary"],
+  "uiConfiguration": { "position": { "x": 356, "y": 426 } },
+  "configuration": {
+    "priority": "50",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "inputSchemas": "",
+    "schema.fields": [{ "name": null }],
+    "genAIMetadataColumns": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:05:32Z"
+}

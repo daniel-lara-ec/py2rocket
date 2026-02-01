@@ -1,0 +1,27 @@
+{
+  "name": "Delta",
+  "stepType": "Input",
+  "className": "DeltaInputStep",
+  "classPrettyName": "Delta",
+  "arity": ["NullaryToNary"],
+  "uiConfiguration": { "position": { "x": 326, "y": 187 } },
+  "configuration": {
+    "inputOptions": "",
+    "priority": "50",
+    "path": "",
+    "versionAsOf": "",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\" }",
+    "readOlderVersionBy": "versionAsOf",
+    "enableReadingOfOlderVersions": false,
+    "timestampAsOf": "",
+    "genAIMetadataColumns": "",
+    "schema.sparkSchema": ""
+  },
+  "supportedEngines": ["Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:04:46Z"
+}

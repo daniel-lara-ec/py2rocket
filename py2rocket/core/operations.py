@@ -1,27 +1,87 @@
 """
 DSL Operations para Stratio Rocket
 
-Define las operaciones disponibles en el DSL:
-- sql: Ejecutar queries SQL
-- pyspark: Ejecutar transformaciones PySpark
-- print_step: Imprimir resultados para debugging
+NOTA: Este módulo mantiene compatibilidad hacia atrás.
+Las operaciones ahora están organizadas en módulos específicos:
+- input.py: Operaciones de entrada (sql, csv, postgres, jdbc, delta, parquet, json, filesystem, pyspark_input, custom_lite_xd)
+- transformation.py: Operaciones de transformación (pyspark, repartition, add_columns, drop_columns, rename_columns,
+                                                     coalesce, persist, bypass, trigger, custom_lite_xd_transform)
+- output.py: Operaciones de salida (print_step, run_workflow, csv_output, delta_output, parquet_output, json_output,
+                                    text_output, jdbc_output, postgres_output, sftp_output, pyspark_output, custom_lite_xd_output)
 
-Estas funciones son los building blocks del DSL declarativo.
+Se recomienda importar directamente desde los módulos específicos para mejor organización.
 """
 
-from typing import Optional, Union, List
-from py2rocket.core.pipeline import (
-    Node,
-    Edge,
-    StepType,
-    ExecutionEngine,
-    DataRelation,
-    StepResult,
-    Pipeline,
+# Importar desde los módulos específicos para mantener compatibilidad
+from py2rocket.core.input import (
+    # Database inputs
+    sql,
+    jdbc,
+    postgres,
+    # Structured file inputs
+    parquet,
+    delta,
+    json,
+    # Unstructured file inputs
+    csv,
+    filesystem,
+    # Python inputs
+    pyspark_input,
+    # CustomMade inputs
+    custom_lite_xd,
+    get_current_pipeline as _get_current_pipeline_input,
+    set_current_pipeline as _set_current_pipeline_input,
 )
 
+from py2rocket.core.transformation import (
+    # Column operations
+    add_columns,
+    drop_columns,
+    rename_columns,
+    # Optimization operations
+    coalesce,
+    persist,
+    repartition,
+    # Other operations
+    bypass,
+    # Python operations
+    pyspark,
+    # SQL operations
+    trigger,
+    # CustomMade operations
+    custom_lite_xd_transform,
+    get_current_pipeline as _get_current_pipeline_transform,
+    set_current_pipeline as _set_current_pipeline_transform,
+)
 
-# Variable global para almacenar el pipeline en construcción
+from py2rocket.core.output import (
+    # Database outputs
+    jdbc_output,
+    postgres_output,
+    sftp_output,
+    # Structured file outputs
+    delta_output,
+    parquet_output,
+    json_output,
+    # Unstructured file outputs
+    csv_output,
+    text_output,
+    # Other outputs
+    print_step,
+    run_workflow,
+    # Python outputs
+    pyspark_output,
+    # CustomMade outputs
+    custom_lite_xd_output,
+    get_current_pipeline as _get_current_pipeline_output,
+    set_current_pipeline as _set_current_pipeline_output,
+)
+
+from py2rocket.core.pipeline import Pipeline
+from typing import Optional
+
+
+# Variable global compartida entre todos los módulos
 _current_pipeline: Optional[Pipeline] = None
 
 
@@ -33,202 +93,69 @@ def get_current_pipeline() -> Pipeline:
 
 
 def set_current_pipeline(pipeline: Pipeline) -> None:
-    """Establece el pipeline actual"""
+    """
+    Establece el pipeline actual y lo sincroniza con todos los módulos
+    """
     global _current_pipeline
     _current_pipeline = pipeline
 
-
-def sql(
-    name: str,
-    query: str,
-    priority: int = 50,
-    cache_table: bool = False,
-    force_native_query: bool = False,
-    description: str = "",
-) -> StepResult:
-    """
-    Define un paso de entrada SQL.
-
-    Ejecuta una query SQL sobre las fuentes de datos configuradas en Rocket.
-    Soporta parámetros mediante sintaxis {{NOMBRE_PARAMETRO}}.
-
-    Args:
-        name: Nombre único del paso
-        query: Query SQL a ejecutar. Puede incluir parámetros: {{P_TABLA}}
-        priority: Prioridad de ejecución (menor número = ejecuta primero)
-        cache_table: Si se debe cachear el resultado en memoria
-        force_native_query: Forzar ejecución nativa de la query
-        description: Descripción del propósito de este paso
-
-    Returns:
-        StepResult que puede ser usado como input en otros pasos
-
-    Example:
-        >>> tabla = sql(
-        ...     name="Load_Ventas",
-        ...     query="SELECT * FROM {{P_TABLA}} WHERE fecha >= '2024-01-01'",
-        ...     priority=10
-        ... )
-    """
-    pipeline = get_current_pipeline()
-
-    node = Node(
-        name=name,
-        step_type=StepType.INPUT,
-        class_name="SQLInputStep",
-        class_pretty_name="SQL",
-        execution_engine=ExecutionEngine.HYBRID,
-        priority=priority,
-        description=description,
-        configuration={
-            "query": query,
-            "forceNativeQuery": force_native_query,
-            "cacheTable": cache_table,
-            "isSaved": True,
-            "asyncRefresh": False,
-            "genAIMetadataTableDescription": "",
-            "genAIMetadataColumns": "",
-        },
-        supported_engines=["Batch", "Hybrid"],
-    )
-
-    pipeline.add_node(node)
-    return StepResult(node, pipeline)
+    # Sincronizar con todos los módulos
+    _set_current_pipeline_input(pipeline)
+    _set_current_pipeline_transform(pipeline)
+    _set_current_pipeline_output(pipeline)
 
 
-def pyspark(
-    name: str,
-    code: str,
-    inputs: Optional[Union[StepResult, List[StepResult]]] = None,
-    priority: int = 50,
-    description: str = "",
-) -> StepResult:
-    """
-    Define un paso de transformación PySpark.
-
-    Ejecuta código PySpark personalizado para transformar datos.
-
-    Args:
-        name: Nombre único del paso
-        code: Código PySpark a ejecutar
-        inputs: Paso(s) previo(s) que alimentan esta transformación
-        priority: Prioridad de ejecución
-        description: Descripción de la transformación
-
-    Returns:
-        StepResult que puede ser usado en pasos posteriores
-
-    Example:
-        >>> base = sql(name="Load", query="SELECT * FROM tabla")
-        >>> filtrado = pyspark(
-        ...     name="Filtrar_Activos",
-        ...     code="df.filter(col('estado') == 'activo')",
-        ...     inputs=base
-        ... )
-    """
-    pipeline = get_current_pipeline()
-
-    node = Node(
-        name=name,
-        step_type=StepType.TRANSFORM,
-        class_name="PySparkTransformStep",
-        class_pretty_name="PySpark",
-        execution_engine=ExecutionEngine.HYBRID,
-        priority=priority,
-        description=description,
-        configuration={"code": code, "isSaved": True},
-        supported_engines=["Batch", "Streaming", "Hybrid"],
-    )
-
-    pipeline.add_node(node)
-
-    # Crear edges desde los inputs
-    if inputs is not None:
-        input_list = inputs if isinstance(inputs, list) else [inputs]
-        for input_step in input_list:
-            edge = Edge(
-                origin=input_step.node.name,
-                destination=name,
-                data_type=DataRelation.VALID_DATA,
-            )
-            pipeline.add_edge(edge)
-
-    return StepResult(node, pipeline)
-
-
-def print_step(
-    input_step: StepResult,
-    priority: int = 50,
-    print_data: bool = False,
-    print_schema: bool = False,
-    print_metadata: bool = True,
-    log_level: str = "warn",
-) -> StepResult:
-    """
-    Define un paso de salida para imprimir/mostrar datos.
-
-    Útil para debugging y validación. Imprime información sobre el DataFrame
-    sin persistirlo.
-
-    Args:
-        input_step: Paso previo del cual se imprimirán los datos
-        priority: Prioridad de ejecución
-        print_data: Si se deben imprimir los datos (puede ser costoso)
-        print_schema: Si se debe imprimir el schema del DataFrame
-        print_metadata: Si se deben imprimir metadatos (filas, columnas, etc.)
-        log_level: Nivel de log (debug, info, warn, error)
-
-    Returns:
-        StepResult del paso print
-
-    Example:
-        >>> tabla = sql(name="Load", query="SELECT * FROM tabla")
-        >>> print_step(tabla, print_schema=True)
-    """
-    pipeline = get_current_pipeline()
-
-    # Generar nombre único para el print
-    print_name = f"Print"
-
-    node = Node(
-        name=print_name,
-        step_type=StepType.OUTPUT,
-        class_name="PrintOutputStep",
-        class_pretty_name="Print",
-        execution_engine=ExecutionEngine.HYBRID,
-        priority=priority,
-        configuration={
-            "printData": print_data,
-            "printSchema": print_schema,
-            "printMetadata": print_metadata,
-            "logLevel": log_level,
-        },
-        supported_engines=["Streaming", "Batch", "Hybrid"],
-    )
-
-    pipeline.add_node(node)
-
-    # Crear edge desde el input
-    edge = Edge(
-        origin=input_step.node.name,
-        destination=print_name,
-        data_type=DataRelation.VALID_DATA,
-    )
-    pipeline.add_edge(edge)
-
-    # Actualizar outputsWriter del nodo de entrada
-    for n in pipeline.nodes:
-        if n.name == input_step.node.name:
-            if "outputsWriter" not in n.to_dict():
-                n.to_dict()["outputsWriter"] = []
-            n.to_dict()["outputsWriter"].append(
-                {
-                    "saveMode": "Append",
-                    "outputStepName": print_name,
-                    "tableName": "",
-                    "discardTableName": "",
-                    "extraOptions": {"checkIfEmpty": False},
-                }
-            )
-
-    return StepResult(node, pipeline)
+__all__ = [
+    # Funciones de gestión de pipeline
+    "get_current_pipeline",
+    "set_current_pipeline",
+    # Input operations - Database
+    "sql",
+    "jdbc",
+    "postgres",
+    # Input operations - Structured files
+    "parquet",
+    "delta",
+    "json",
+    # Input operations - Unstructured files
+    "csv",
+    "filesystem",
+    # Input operations - Python
+    "pyspark_input",
+    # Input operations - CustomMade
+    "custom_lite_xd",
+    # Transformation operations - Column operations
+    "add_columns",
+    "drop_columns",
+    "rename_columns",
+    # Transformation operations - Optimization
+    "coalesce",
+    "persist",
+    "repartition",
+    # Transformation operations - Other
+    "bypass",
+    # Transformation operations - Python
+    "pyspark",
+    # Transformation operations - SQL
+    "trigger",
+    # Transformation operations - CustomMade
+    "custom_lite_xd_transform",
+    # Output operations - Database
+    "jdbc_output",
+    "postgres_output",
+    "sftp_output",
+    # Output operations - Structured files
+    "delta_output",
+    "parquet_output",
+    "json_output",
+    # Output operations - Unstructured files
+    "csv_output",
+    "text_output",
+    # Output operations - Other
+    "print_step",
+    "run_workflow",
+    # Output operations - Python
+    "pyspark_output",
+    # Output operations - CustomMade
+    "custom_lite_xd_output",
+]

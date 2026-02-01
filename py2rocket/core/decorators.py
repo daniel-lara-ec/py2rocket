@@ -9,10 +9,25 @@ El decorator:
 3. Retorna el objeto Pipeline con el IR completo
 """
 
+import os
 from typing import Callable, Dict, Any, Optional
 from functools import wraps
+from dotenv import load_dotenv
 from py2rocket.core.pipeline import Pipeline, ExecutionEngine
 from py2rocket.core.operations import set_current_pipeline
+
+# Cargar variables de entorno del archivo .env
+load_dotenv()
+
+
+def _get_project_id_from_env() -> Optional[str]:
+    """
+    Obtiene el PROJECT_ID del archivo .env.
+
+    Returns:
+        El valor de PROJECT_ID si existe, None en caso contrario
+    """
+    return os.getenv("PROJECT_ID")
 
 
 def pipeline(
@@ -20,6 +35,14 @@ def pipeline(
     execution_engine: str = "Hybrid",
     params: Optional[Dict[str, str]] = None,
     description: str = "",
+    project_id: Optional[str] = None,
+    group_id: Optional[str] = None,
+    asset_id: Optional[str] = None,
+    parameters_lists: Optional[list] = None,
+    pre_execution_sql_sentences: Optional[list] = None,
+    udfs_to_register: Optional[list] = None,
+    udafs_to_register: Optional[list] = None,
+    user_spark_conf: Optional[dict] = None,
 ) -> Callable:
     """
     Decorator para definir un pipeline de Stratio Rocket.
@@ -32,6 +55,14 @@ def pipeline(
         execution_engine: Motor de ejecución (Batch, Streaming, Hybrid)
         params: Parámetros del pipeline con valores por defecto
         description: Descripción del propósito del pipeline
+        project_id: UUID del proyecto (obtenido de la API)
+        group_id: UUID del grupo (obtenido de la API)
+        asset_id: UUID del asset creado en Rocket
+        parameters_lists: Listas adicionales de parámetros a incluir
+        pre_execution_sql_sentences: Lista de sentencias SQL a ejecutar antes del pipeline
+        udfs_to_register: Lista de UDFs (User Defined Functions) a registrar
+        udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
+        user_spark_conf: Diccionario de configuraciones Spark personalizadas
 
     Returns:
         Función decorada que retorna un objeto Pipeline
@@ -62,11 +93,24 @@ def pipeline(
             engine = engine_map.get(execution_engine, ExecutionEngine.HYBRID)
 
             # Crear pipeline
+            # Si project_id no se proporciona, intenta obtener del .env
+            effective_project_id = (
+                project_id if project_id is not None else _get_project_id_from_env()
+            )
+
             pipe = Pipeline(
                 name=name,
                 execution_engine=engine,
                 parameters=params or {},
                 description=description,
+                project_id=effective_project_id,
+                group_id=group_id,
+                asset_id=asset_id,
+                parameters_lists=parameters_lists or [],
+                pre_execution_sql_sentences=pre_execution_sql_sentences or [],
+                udfs_to_register=udfs_to_register or [],
+                udafs_to_register=udafs_to_register or [],
+                user_spark_conf=user_spark_conf or {},
             )
 
             # Establecer como pipeline activo

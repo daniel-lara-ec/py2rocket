@@ -1,0 +1,19 @@
+{
+  "name": "Parquet 1",
+  "stepType": "Output",
+  "className": "ParquetOutputStep",
+  "classPrettyName": "Parquet",
+  "arity": ["NullaryToNullary", "NaryToNullary"],
+  "uiConfiguration": { "position": { "x": 1329, "y": 215 } },
+  "configuration": {
+    "path": "",
+    "saveOptions": "",
+    "debugOptions": "{ \"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\" }",
+    "priority": 50
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:09:54Z"
+}

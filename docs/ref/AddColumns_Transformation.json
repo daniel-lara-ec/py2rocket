@@ -1,0 +1,24 @@
+{
+  "name": "AddColumns",
+  "stepType": "Transformation",
+  "className": "AddColumnsTransformStep",
+  "classPrettyName": "AddColumns",
+  "arity": ["UnaryToNary"],
+  "uiConfiguration": { "position": { "x": 175, "y": 423 } },
+  "configuration": {
+    "priority": 50,
+    "selectType": "EXPRESSION",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{\"executeStepAutoDebug\":true, \"executeStepDebug\":true, \"mockType\": \"NoMock\"}",
+    "addColumnExpressionList": "",
+    "inputSchemas": "",
+    "columns": [{ "field": null, "query": null, "type": "string" }],
+    "genAIMetadataColumns": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-01-30T17:05:24Z"
+}
