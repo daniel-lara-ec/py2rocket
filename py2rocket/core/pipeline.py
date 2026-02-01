@@ -50,6 +50,7 @@ class Node:
         step_type: Tipo de paso (Input, Transform, Output)
         class_name: Nombre de la clase Rocket que implementa este paso
         class_pretty_name: Nombre legible de la clase
+        arity: Lista de relaciones de aridad (ej: ["NullaryToNary"], ["NaryToNary"])
         execution_engine: Motor de ejecución (Batch, Streaming, Hybrid)
         priority: Prioridad de ejecución (menor = antes)
         configuration: Configuración específica del nodo
@@ -62,6 +63,7 @@ class Node:
     step_type: StepType
     class_name: str
     class_pretty_name: str
+    arity: List[str] = field(default_factory=list)
     execution_engine: ExecutionEngine = ExecutionEngine.HYBRID
     priority: int = 50
     configuration: Dict[str, Any] = field(default_factory=dict)
@@ -77,11 +79,7 @@ class Node:
             "stepType": self.step_type.value,
             "className": self.class_name,
             "classPrettyName": self.class_pretty_name,
-            "arity": (
-                ["NullaryToNary"]
-                if self.step_type == StepType.INPUT
-                else ["NaryToNullary"]
-            ),
+            "arity": self.arity,
             "description": self.description,
             "configuration": {
                 "priority": str(self.priority),
