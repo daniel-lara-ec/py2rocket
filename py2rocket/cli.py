@@ -100,7 +100,11 @@ def cmd_create(args):
         # Solicitar parámetros interactivos
         name = _prompt_required("Nombre del pipeline", args.name)
         description = _prompt_optional("Descripción", args.description)
-        project_name = _prompt_optional("Nombre del proyecto", args.project_name)
+
+        # Usar PROJECT_NAME del .env como default
+        default_project = args.project_name or os.getenv("PROJECT_NAME")
+        project_name = _prompt_optional("Nombre del proyecto", default_project)
+
         group_name = _prompt_optional("Nombre del grupo", args.group_name)
 
         # Variables para IDs
@@ -409,9 +413,11 @@ def main():
         "push", help="Despliega un pipeline a Rocket vía API"
     )
     parser_push.add_argument("json_file", help="Archivo JSON del pipeline")
-    parser_push.add_argument("--url", required=True, help="URL de Rocket")
     parser_push.add_argument(
-        "--token", help="Token de API (o usar ROCKET_API_TOKEN env var)"
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_push.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
     )
     parser_push.add_argument("--project-id", help="ID del proyecto en Rocket")
     parser_push.add_argument("--group-id", help="ID del grupo en Rocket")
