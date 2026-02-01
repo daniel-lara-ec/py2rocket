@@ -252,8 +252,16 @@ descartes = print_step(name="DiscardedOutput", inputs=filtro.discarded)
 ```json
 {
   "edges": [
-    {"origin": "Filter", "destination": "ValidOutput", "dataType": "ValidData"},
-    {"origin": "Filter", "destination": "DiscardedOutput", "dataType": "DiscardedData"}
+    {
+      "origin": "Filter",
+      "destination": "ValidOutput",
+      "dataType": "ValidData"
+    },
+    {
+      "origin": "Filter",
+      "destination": "DiscardedOutput",
+      "dataType": "DiscardedData"
+    }
   ]
 }
 ```
