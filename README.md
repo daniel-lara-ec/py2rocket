@@ -129,6 +129,53 @@ Opciones:
 
 > ⚠️ El comando `push` aún no está implementado
 
+### `pull` - Descargar workflow desde Rocket
+
+```bash
+py2rocket pull <archivo.py|json> [opciones]
+
+Opciones:
+  -o, --output PATH         Archivo de salida (default: mismo nombre que entrada)
+  --url URL                 URL de Rocket
+  --token TOKEN             Cookie de autenticación
+  --no-verify-ssl           No verificar SSL
+  -f, --force               Forzar sobrescritura sin preguntar
+```
+
+Descarga el workflow desde el servidor usando el `id` del archivo local.
+
+### `download` - Descargar workflow por ID
+
+```bash
+py2rocket download <workflow-id> [opciones]
+
+Opciones:
+  --url URL                 URL de Rocket
+  --token TOKEN             Cookie de autenticación
+  --no-verify-ssl           No verificar SSL
+  -f, --force               Forzar sobrescritura sin preguntar
+```
+
+Descarga un workflow por su ID (UUID). El nombre del archivo se toma del campo `name` del workflow descargado.
+Si el archivo existe, pregunta si desea reemplazarlo o guardarlo con sufijo `_server`.
+
+### `from-json` - Convertir JSON a Python DSL
+
+```bash
+py2rocket from-json <archivo.json> [opciones]
+
+Opciones:
+  -o, --output PATH         Archivo Python de salida (default: mismo nombre con .py)
+```
+
+Convierte un workflow en formato JSON de Rocket al DSL Python de py2rocket.
+Características:
+
+- Ordena nodos: Inputs (alfabético) → Transformations → Outputs
+- Omite configuración de UI
+- Filtra valores por defecto conocidos
+- Convierte nombres de parámetros de camelCase a snake_case
+
 ---
 
 ## 💻 Uso Programático

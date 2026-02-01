@@ -30,6 +30,8 @@ __all__ = [
     "push",
     "run",
     "pull",
+    "download",
+    "from_json",
     "pipeline",
 ]
 
@@ -727,4 +729,430 @@ def pull(
         "workflow_id": workflow_id,
         "output_file": str(output_path),
         "url": url,
+    }
+
+
+def download(
+    workflow_id: str,
+    rocket_url: Optional[str] = None,
+    api_token: Optional[str] = None,
+    force_overwrite: bool = False,
+    verify_ssl: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Descarga un workflow desde Stratio Rocket por su ID.
+
+    Descarga el JSON del workflow desde el servidor usando su ID.
+    El nombre del archivo se toma del campo 'name' del workflow.
+    Si el archivo ya existe, pregunta si desea reemplazarlo o guardarlo con sufijo _server.
+
+    Args:
+        workflow_id: ID del workflow a descargar (UUID)
+        rocket_url: URL base de Rocket (ej: https://rocket.example.com)
+        api_token: Cookie de autenticación. Si no se proporciona, usa ROCKET_AUTH_COOKIE
+        force_overwrite: Si es True, sobrescribe sin preguntar
+        verify_ssl: Verificar certificados SSL (default: True)
+
+    Returns:
+        Diccionario con el resultado de la operación:
+        {
+            'status': 'success' | 'confirm_needed',
+            'message': str,
+            'workflow_id': str,
+            'output_file': str,
+            ...
+        }
+
+    Example:
+        >>> from py2rocket import download
+        >>> result = download(
+        ...     workflow_id="7133a9b4-d4fc-4390-9aa1-802d836a2874",
+        ...     rocket_url="https://rocket.mycompany.com",
+        ...     api_token="my-token"
+        ... )
+    """
+    # 1. Validar parámetros requeridos
+    if not workflow_id:
+        raise ValueError("workflow_id es requerido")
+
+    # 2. Configuración de conexión
+    if rocket_url is None:
+        rocket_url = os.getenv("ROCKET_URL")
+    if rocket_url is None:
+        raise ValueError(
+            "Debe proporcionar 'rocket_url' o configurar ROCKET_URL en .env"
+        )
+
+    if api_token is None:
+        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+    if api_token is None:
+        raise ValueError(
+            "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
+        )
+    if verify_ssl is None:
+        verify_ssl = _get_verify_ssl_from_env()
+
+    # 3. Descargar el workflow desde el servidor
+    url = f"{rocket_url.rstrip('/')}/workflows/download/{workflow_id}"
+
+    cookies = {"stratio-cookie": api_token, "lang": "en"}
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": "py2rocket/" + __version__,
+    }
+
+    try:
+        response = requests.get(
+            url, headers=headers, cookies=cookies, verify=verify_ssl, timeout=30
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        raise ConnectionError(f"Error al descargar el workflow: {exc}") from exc
+
+    try:
+        workflow_data = response.json()
+    except ValueError as exc:
+        raise ValueError(f"Respuesta inválida del servidor: {exc}") from exc
+
+    # 4. Determinar el nombre del archivo desde el campo 'name' del workflow
+    workflow_name = workflow_data.get("name", "workflow")
+    # Sanitizar el nombre para usar como nombre de archivo
+    import re
+
+    safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", workflow_name)
+    output_path = Path(f"{safe_name}.json")
+
+    # 5. Verificar si el archivo existe y manejar la lógica de sobrescritura
+    if output_path.exists() and not force_overwrite:
+        # El archivo existe, retornar información para que el CLI maneje la interacción
+        return {
+            "status": "confirm_needed",
+            "message": f"El archivo {output_path} ya existe",
+            "workflow_data": workflow_data,
+            "output_path": str(output_path),
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
+        }
+
+    # 6. Guardar el archivo
+    try:
+        output_path.write_text(
+            json.dumps(workflow_data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except IOError as exc:
+        raise IOError(f"Error al guardar el archivo: {exc}") from exc
+
+    return {
+        "status": "success",
+        "message": f"Workflow descargado exitosamente",
+        "workflow_id": workflow_id,
+        "workflow_name": workflow_name,
+        "output_file": str(output_path),
+        "url": url,
+    }
+
+
+# Mapeo de className a nombre de función Python
+CLASS_TO_FUNCTION = {
+    # Inputs
+    "SQLInputStep": ("sql", "py2rocket.core.input"),
+    "CustomLiteXDInputStep": ("custom_lite_xd", "py2rocket.core.input"),
+    "JdbcInputStep": ("jdbc", "py2rocket.core.input"),
+    "PostgresInputStep": ("postgres", "py2rocket.core.input"),
+    "PySparkInputStep": ("pyspark_input", "py2rocket.core.input"),
+    "ParquetInputStep": ("parquet_input", "py2rocket.core.input"),
+    "DeltaInputStep": ("delta_input", "py2rocket.core.input"),
+    "JsonInputStep": ("json_input", "py2rocket.core.input"),
+    "CsvInputStep": ("csv_input", "py2rocket.core.input"),
+    "FileSystemInputStep": ("filesystem", "py2rocket.core.input"),
+    # Transformations
+    "TriggerTransformStep": ("trigger", "py2rocket.core.transformation"),
+    "PySparkTransformStep": ("pyspark", "py2rocket.core.transformation"),
+    "AddColumnsTransformStep": ("add_columns", "py2rocket.core.transformation"),
+    "DropColumnsTransformStep": ("drop_columns", "py2rocket.core.transformation"),
+    "RenameColumnTransformationStep": (
+        "rename_columns",
+        "py2rocket.core.transformation",
+    ),
+    "PersistTransformStep": ("persist", "py2rocket.core.transformation"),
+    "CoalesceTransformStep": ("coalesce", "py2rocket.core.transformation"),
+    "RepartitionTransformStep": ("repartition", "py2rocket.core.transformation"),
+    "BypassTransformStep": ("bypass", "py2rocket.core.transformation"),
+    "CustomLiteXDTransformStep": (
+        "custom_lite_xd_transform",
+        "py2rocket.core.transformation",
+    ),
+    # Outputs
+    "PrintOutputStep": ("print_step", "py2rocket.core.output"),
+    "CustomLiteXDOutputStep": ("custom_lite_xd_output", "py2rocket.core.output"),
+    "JdbcOutputStep": ("jdbc_output", "py2rocket.core.output"),
+    "PostgresOutputStep": ("postgres_output", "py2rocket.core.output"),
+    "SFTPOutputStep": ("sftp_output", "py2rocket.core.output"),
+    "PySparkOutputStep": ("pyspark_output", "py2rocket.core.output"),
+    "ParquetOutputStep": ("parquet_output", "py2rocket.core.output"),
+    "DeltaOutputStep": ("delta_output", "py2rocket.core.output"),
+    "JsonOutputStep": ("json_output", "py2rocket.core.output"),
+    "CsvOutputStep": ("csv_output", "py2rocket.core.output"),
+    "TextOutputStep": ("text_output", "py2rocket.core.output"),
+    "RunWorkflowOutputStep": ("run_workflow_output", "py2rocket.core.output"),
+}
+
+
+def _sanitize_var_name(name: str) -> str:
+    """Convierte un nombre de nodo a nombre de variable Python válido."""
+    # Reemplazar caracteres no válidos con underscore
+    import re
+
+    var_name = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+    # Asegurar que no empiece con número
+    if var_name[0].isdigit():
+        var_name = f"step_{var_name}"
+    # Convertir a snake_case y minúsculas
+    var_name = var_name.lower()
+    return var_name
+
+
+def from_json(
+    json_file: str,
+    output_file: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Convierte un JSON de Rocket a código Python DSL.
+
+    Lee un archivo JSON de Rocket y genera el código Python equivalente
+    usando el DSL de py2rocket.
+
+    Args:
+        json_file: Ruta al archivo JSON del pipeline
+        output_file: Ruta del archivo .py de salida (opcional, default: mismo nombre con .py)
+
+    Returns:
+        Diccionario con el resultado de la operación
+    """
+    # Valores por defecto conocidos que se deben omitir
+    DEFAULT_VALUES = {
+        "forceNativeQuery": False,
+        "cacheTable": False,
+        "asyncRefresh": False,
+        "isSaved": True,
+        "quoteSql": False,
+        "replaceWithInputDataframe": False,
+        "discardConditions": "",
+        "printData": False,
+        "printSchema": False,
+        "printMetadata": True,
+        "logLevel": "warn",
+        "saveMode": "overwrite",
+        "tlsEnabled": False,
+        "userPassEnabled": False,
+    }
+
+    # 1. Leer JSON
+    json_path = Path(json_file)
+    if not json_path.exists():
+        raise FileNotFoundError(f"Archivo no encontrado: {json_file}")
+
+    try:
+        workflow_data = json.loads(json_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"JSON inválido: {exc}") from exc
+
+    # 2. Extraer información del pipeline
+    name = workflow_data.get("name", "imported_workflow")
+    execution_engine = workflow_data.get("executionEngine", "Hybrid")
+    workflow_id = workflow_data.get("id")
+
+    # Extraer parámetros desde settings
+    params = {}
+    settings = workflow_data.get("settings", {})
+    global_settings = settings.get("global", {})
+    parameters_lists = global_settings.get("parametersLists", [])
+
+    # 3. Extraer nodos y edges
+    pipeline_graph = workflow_data.get("pipelineGraph", {})
+    nodes = pipeline_graph.get("nodes", [])
+    edges = pipeline_graph.get("edges", [])
+
+    # 4. Clasificar y ordenar nodos
+    input_nodes = sorted(
+        [n for n in nodes if n.get("stepType") == "Input"], key=lambda x: x.get("name")
+    )
+    transform_nodes = sorted(
+        [n for n in nodes if n.get("stepType") == "Transformation"],
+        key=lambda x: x.get("name"),
+    )
+    output_nodes = sorted(
+        [n for n in nodes if n.get("stepType") == "Output"], key=lambda x: x.get("name")
+    )
+
+    # 5. Crear mapa de edges (qué inputs tiene cada nodo)
+    node_inputs = {}
+    for edge in edges:
+        dest = edge.get("destination")
+        origin = edge.get("origin")
+        if dest not in node_inputs:
+            node_inputs[dest] = []
+        node_inputs[dest].append(origin)
+
+    # 6. Generar código Python
+    imports = set()
+    imports.add("from py2rocket import pipeline, build")
+
+    code_lines = []
+    var_names = {}  # Map node name -> variable name
+
+    def generate_node_code(node):
+        """Genera código para un nodo"""
+        node_name = node.get("name")
+        class_name = node.get("className")
+        config = node.get("configuration", {})
+
+        if class_name not in CLASS_TO_FUNCTION:
+            return f"    # TODO: Unsupported node type: {class_name} ({node_name})"
+
+        func_name, module = CLASS_TO_FUNCTION[class_name]
+        imports.add(f"from {module} import {func_name}")
+
+        # Generar nombre de variable
+        var_name = _sanitize_var_name(node_name)
+        var_names[node_name] = var_name
+
+        # Construir argumentos
+        args = [f'name="{node_name}"']
+
+        # Agregar configuración relevante (filtrar debugOptions y defaults)
+        skip_keys = {
+            "priority",
+            "debugOptions",
+            "genAIMetadataTableDescription",
+            "genAIMetadataColumns",
+            "inputSchemas",
+            "genAIMetadataTablesDescription",
+        }
+
+        for key, value in config.items():
+            if key in skip_keys:
+                continue
+            if value == "" or value == [] or value == {}:
+                continue
+            # Omitir valores por defecto conocidos
+            if key in DEFAULT_VALUES and value == DEFAULT_VALUES[key]:
+                continue
+
+            # Convertir clave de camelCase a snake_case
+            import re
+
+            snake_key = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", key)
+            snake_key = re.sub("([a-z0-9])([A-Z])", r"\1_\2", snake_key)
+            snake_key = snake_key.lower()
+
+            # Formatear valor
+            if isinstance(value, str):
+                # Escapar comillas en el string
+                value_escaped = value.replace('"', '\\"').replace("\\", "\\\\")
+                args.append(f'{snake_key}="{value_escaped}"')
+            elif isinstance(value, bool):
+                args.append(f"{snake_key}={value}")
+            elif isinstance(value, (int, float)):
+                args.append(f"{snake_key}={value}")
+            elif isinstance(value, list):
+                args.append(f"{snake_key}={value}")
+            elif isinstance(value, dict):
+                args.append(f"{snake_key}={value}")
+
+        # Agregar inputs si existen
+        if node_name in node_inputs:
+            input_vars = [
+                var_names.get(inp, f'"{inp}"') for inp in node_inputs[node_name]
+            ]
+            if len(input_vars) == 1:
+                args.append(f"inputs={input_vars[0]}")
+            else:
+                args.append(f"inputs=[{', '.join(input_vars)}]")
+
+        # Agregar priority
+        priority = config.get("priority", "50")
+        args.append(f"priority={priority}")
+
+        # Generar línea de código
+        args_str = ",\n        ".join(args)
+        return f"    {var_name} = {func_name}(\n        {args_str}\n    )"
+
+    # Generar código para cada tipo de nodo
+    if input_nodes:
+        code_lines.append("    # Input nodes")
+        for node in input_nodes:
+            code_lines.append(generate_node_code(node))
+        code_lines.append("")
+
+    if transform_nodes:
+        code_lines.append("    # Transformation nodes")
+        for node in transform_nodes:
+            code_lines.append(generate_node_code(node))
+        code_lines.append("")
+
+    if output_nodes:
+        code_lines.append("    # Output nodes")
+        for node in output_nodes:
+            code_lines.append(generate_node_code(node))
+
+    # 7. Construir el archivo Python completo
+    python_code = '"""\nWorkflow generado desde JSON de Rocket\n\n'
+    python_code += f"Workflow: {name}\n"
+    if workflow_id:
+        python_code += f"ID: {workflow_id}\n"
+    python_code += '"""\n\n'
+
+    # Imports
+    python_code += "\n".join(sorted(imports)) + "\n\n\n"
+
+    # Decorator
+    decorator_args = [f'name="{name}"', f'execution_engine="{execution_engine}"']
+    if params:
+        decorator_args.append(f"params={params}")
+    if workflow_id:
+        decorator_args.append(f'workflow_id="{workflow_id}"')
+    if parameters_lists and parameters_lists != [
+        "Environment",
+        "SparkResources",
+        "SparkConfigurations",
+    ]:
+        decorator_args.append(f"parameters_lists={parameters_lists}")
+
+    decorator_str = ",\n    ".join(decorator_args)
+    python_code += f"@pipeline(\n    {decorator_str}\n)\n"
+    python_code += "def workflow():\n"
+    python_code += '    """\n    Workflow importado desde JSON de Rocket.\n    """\n'
+
+    # Body
+    python_code += "\n".join(code_lines)
+
+    # Main block
+    python_code += '\n\n\nif __name__ == "__main__":\n'
+    python_code += "    # Construir el pipeline\n"
+    python_code += "    pipe = workflow()\n\n"
+    python_code += "    # Compilar a JSON\n"
+    output_json = json_path.stem + "_rebuilt.json"
+    python_code += f'    build(pipe, "{output_json}")\n'
+
+    # 8. Guardar archivo
+    if output_file:
+        output_path = Path(output_file)
+    else:
+        output_path = json_path.with_suffix(".py")
+
+    try:
+        output_path.write_text(python_code, encoding="utf-8")
+    except IOError as exc:
+        raise IOError(f"Error al guardar el archivo: {exc}") from exc
+
+    return {
+        "status": "success",
+        "message": f"Código Python generado exitosamente",
+        "input_file": str(json_path),
+        "output_file": str(output_path),
+        "nodes_count": len(nodes),
+        "inputs": len(input_nodes),
+        "transforms": len(transform_nodes),
+        "outputs": len(output_nodes),
     }

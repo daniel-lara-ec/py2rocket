@@ -7,6 +7,8 @@ Comandos disponibles:
     py2rocket push <archivo.json>          - Despliega a Rocket
     py2rocket run <archivo.json>           - Ejecuta un workflow en Rocket
     py2rocket pull <archivo>               - Descarga workflow desde Rocket
+    py2rocket download <workflow-id>       - Descarga workflow por ID desde Rocket
+    py2rocket from-json <archivo.json>     - Convierte JSON a código Python
 """
 
 import argparse
@@ -18,7 +20,7 @@ from typing import Optional
 from dotenv import load_dotenv
 import requests
 
-from py2rocket import create, build, push, run, pull, __version__
+from py2rocket import create, build, push, run, pull, download, from_json, __version__
 
 # Cargar variables de entorno
 load_dotenv()
@@ -453,6 +455,96 @@ def cmd_pull(args):
         sys.exit(1)
 
 
+def cmd_download(args):
+    """Comando: download - Descarga workflow por ID desde Rocket"""
+    try:
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+
+        # Intentar descargar el workflow
+        result = download(
+            workflow_id=args.workflow_id,
+            rocket_url=args.url,
+            api_token=args.token,
+            force_overwrite=args.force,
+            verify_ssl=verify_ssl,
+        )
+
+        # Si necesita confirmación (archivo existe)
+        if result.get("status") == "confirm_needed":
+            output_path = Path(result["output_path"])
+            print(f"\n⚠️  {result['message']}")
+            print("\n¿Qué deseas hacer?")
+            print("  1. Reemplazar el archivo existente")
+            print("  2. Guardar con otro nombre (añadir '_server')")
+            print("  3. Cancelar")
+
+            choice = input("\nSelecciona una opción (1/2/3): ").strip()
+
+            if choice == "1":
+                # Reemplazar
+                output_path.write_text(
+                    json.dumps(result["workflow_data"], ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                print(f"\n✓ Workflow descargado y reemplazado: {output_path}")
+                print(f"  Workflow ID: {result['workflow_id']}")
+                print(f"  Workflow Name: {result['workflow_name']}")
+            elif choice == "2":
+                # Guardar con _server
+                base_name = output_path.stem
+                new_output = output_path.parent / f"{base_name}_server.json"
+                new_output.write_text(
+                    json.dumps(result["workflow_data"], ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                print(f"\n✓ Workflow descargado como: {new_output}")
+                print(f"  Workflow ID: {result['workflow_id']}")
+                print(f"  Workflow Name: {result['workflow_name']}")
+            else:
+                print("\n❌ Operación cancelada")
+                sys.exit(0)
+
+        elif result.get("status") == "success":
+            print(f"\n✓ {result['message']}")
+            print(f"  Archivo: {result['output_file']}")
+            print(f"  Workflow ID: {result['workflow_id']}")
+            print(f"  Workflow Name: {result['workflow_name']}")
+        else:
+            print(f"\n❌ Error al descargar workflow: {result.get('message')}")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
+def cmd_from_json(args):
+    """Comando: from-json - Convierte JSON de Rocket a código Python"""
+    try:
+        result = from_json(
+            json_file=args.json_file,
+            output_file=args.output,
+        )
+
+        if result.get("status") == "success":
+            print(f"\n✓ {result['message']}")
+            print(f"  Input: {result['input_file']}")
+            print(f"  Output: {result['output_file']}")
+            print(f"  Nodos: {result['nodes_count']} total")
+            print(f"    - Inputs: {result['inputs']}")
+            print(f"    - Transformations: {result['transforms']}")
+            print(f"    - Outputs: {result['outputs']}")
+        else:
+            print(f"\n❌ Error al convertir JSON")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
 def main():
     """Punto de entrada principal del CLI"""
     parser = argparse.ArgumentParser(
@@ -596,6 +688,44 @@ def main():
         "--no-verify-ssl", action="store_true", help="No verificar SSL"
     )
     parser_pull.set_defaults(func=cmd_pull)
+
+    # Comando: download
+    parser_download = subparsers.add_parser(
+        "download", help="Descarga un workflow por su ID desde Rocket"
+    )
+    parser_download.add_argument(
+        "workflow_id", help="ID del workflow a descargar (UUID)"
+    )
+    parser_download.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_download.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_download.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Forzar sobrescritura sin preguntar",
+    )
+    parser_download.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_download.set_defaults(func=cmd_download)
+
+    # Comando: from-json
+    parser_from_json = subparsers.add_parser(
+        "from-json", help="Convierte JSON de Rocket a código Python DSL"
+    )
+    parser_from_json.add_argument(
+        "json_file", help="Archivo JSON del workflow de Rocket"
+    )
+    parser_from_json.add_argument(
+        "-o",
+        "--output",
+        help="Archivo Python de salida (default: mismo nombre con .py)",
+    )
+    parser_from_json.set_defaults(func=cmd_from_json)
 
     # Parsear argumentos
     args = parser.parse_args()
