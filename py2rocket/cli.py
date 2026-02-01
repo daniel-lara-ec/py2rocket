@@ -128,7 +128,7 @@ def cmd_create(args):
                 "sec-ch-ua-platform": '"Windows"',
             }
 
-            cookies = {"auth_token": auth_cookie, "lang": "en"}
+            cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
 
             # Verificar proyecto
             while project_name:
