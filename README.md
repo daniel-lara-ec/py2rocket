@@ -224,7 +224,49 @@ build(
 
 Ver [py2rocket/README.md](py2rocket/README.md) para documentación completa.
 
-Define un paso de entrada SQL.
+---
+
+## 🔀 Soporte Multi-Output (Datos Válidos e Inválidos)
+
+Algunos nodos pueden generar múltiples tipos de datos (ej: `Filter` que genera datos válidos Y descartados).
+
+### API Limpia
+
+```python
+# Por defecto: VALID_DATA (implícito)
+datos = sql(name="Load", query="SELECT ...")
+filtro = filter(name="Filter", filter_exp="x > 100", inputs=datos)
+resultado = print_step(name="ValidOutput", inputs=filtro)
+
+# Explícito: DISCARDED_DATA (datos rechazados)
+descartes = print_step(name="DiscardedOutput", inputs=filtro.discarded)
+```
+
+### Parámetro `.discarded`
+
+- **`filtro`** → StepResult → Crea edge con `dataType: "ValidData"`
+- **`filtro.discarded`** → StepResultOutput → Crea edge con `dataType: "DiscardedData"`
+
+### JSON Generado
+
+```json
+{
+  "edges": [
+    {"origin": "Filter", "destination": "ValidOutput", "dataType": "ValidData"},
+    {"origin": "Filter", "destination": "DiscardedOutput", "dataType": "DiscardedData"}
+  ]
+}
+```
+
+### Nodos con Multi-Output
+
+- **`filter()`** - ValidData (pasa) vs DiscardedData (rechaza)
+- **`trigger()`** - Condiciones válidas vs inválidas
+- **`pyspark()`** - Datos válidos vs errores
+
+Ver [MULTI_OUTPUT_IMPLEMENTATION.md](MULTI_OUTPUT_IMPLEMENTATION.md) para detalles técnicos.
+
+---Define un paso de entrada SQL.
 
 **Parámetros:**
 
