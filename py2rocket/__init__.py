@@ -775,10 +775,10 @@ def download(
         raise ValueError("workflow_id es requerido")
 
     # 2. Obtener configuración de conexión de variables de entorno
-    rocket_url = os.getenv("ROCKET_URL")
+    rocket_url = os.getenv("ROCKET_API_HOST")
     if rocket_url is None:
         raise ValueError(
-            "Debe configurar ROCKET_URL en variables de entorno o archivo .env"
+            "Debe configurar ROCKET_API_HOST en variables de entorno o archivo .env"
         )
 
     if api_token is None:
