@@ -22,6 +22,7 @@ from py2rocket.core.pipeline import (
     ExecutionEngine,
     DataRelation,
     StepResult,
+    StepResultOutput,
     Pipeline,
 )
 
@@ -42,6 +43,22 @@ def set_current_pipeline(pipeline: Pipeline) -> None:
     """Establece el pipeline actual"""
     global _current_pipeline
     _current_pipeline = pipeline
+
+
+def _get_origin_and_relation(input_step: Union[StepResult, StepResultOutput]) -> tuple:
+    """
+    Extrae el nodo de origen y su tipo de relación de datos.
+
+    Args:
+        input_step: Un StepResult o StepResultOutput
+
+    Returns:
+        Tupla (node_name, data_relation) para crear el edge correctamente
+    """
+    if isinstance(input_step, StepResultOutput):
+        return input_step.node.name, input_step.data_relation
+    else:  # StepResult
+        return input_step.node.name, DataRelation.VALID_DATA
 
 
 # ============================================================================
@@ -119,10 +136,11 @@ def add_columns(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -195,10 +213,11 @@ def drop_columns(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -271,11 +290,15 @@ def rename_columns(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+
+            origin_name, data_relation = _get_origin_and_relation(input_step)
+
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
+
             pipeline.add_edge(edge)
 
     return StepResult(node, pipeline)
@@ -354,10 +377,11 @@ def custom_lite_xd_transform(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -431,10 +455,11 @@ def coalesce(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -503,10 +528,11 @@ def persist(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -579,10 +605,11 @@ def repartition(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -652,10 +679,11 @@ def bypass(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -728,10 +756,11 @@ def pyspark(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
 
@@ -814,11 +843,96 @@ def trigger(
     if inputs is not None:
         input_list = inputs if isinstance(inputs, list) else [inputs]
         for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
+            pipeline.add_edge(edge)
+
+    return StepResult(node, pipeline)
+
+
+def filter(
+    name: str,
+    filter_exp: str,
+    inputs: Optional[Union[StepResult, List[StepResult]]] = None,
+    quote_sql: bool = False,
+    priority: int = 50,
+    description: str = "",
+) -> StepResult:
+    """
+    Define un paso de transformación para filtrar datos.
+
+    Filtra filas del DataFrame basado en una expresión de filtro.
+
+    Args:
+        name: Nombre único del paso
+        filter_exp: Expresión de filtro (ej: "edad > 18 AND estado = 'activo'")
+        inputs: Paso previo que alimenta esta transformación
+        quote_sql: Si es True, escapa caracteres especiales en SQL
+        priority: Prioridad de ejecución
+        description: Descripción de la transformación
+
+    Returns:
+        StepResult con el nodo de transformación agregado al pipeline
+
+    Example:
+        >>> from py2rocket import pipeline, sql, filter, print_step
+        >>> @pipeline(name="filtrar_datos")
+        ... def workflow():
+        ...     datos = sql("SELECT * FROM ventas")
+        ...     activos = filter(
+        ...         "Filtrar_Activos",
+        ...         filter_exp="estado = 'activo' AND monto > 100",
+        ...         inputs=datos
+        ...     )
+        ...     print_step(activos)
+    """
+    pipeline = get_current_pipeline()
+
+    # Crear nodo de filtro
+    node = Node(
+        name=name,
+        step_type=StepType.TRANSFORMATION,
+        class_name="FilterTransformStep",
+        class_pretty_name="Filter",
+        execution_engine=ExecutionEngine.HYBRID,
+        arity=["UnaryToNary"],
+        priority=priority,
+        description=description,
+        configuration={
+            "filterExp": filter_exp,
+            "quoteSql": quote_sql,
+            "priority": str(priority),
+            "genAIMetadataTableDescription": "",
+            "debugOptions": {
+                "executeStepAutoDebug": True,
+                "executeStepDebug": True,
+                "mockType": "NoMock",
+            },
+            "inputSchemas": "",
+            "genAIMetadataColumns": "",
+        },
+        supported_engines=["Streaming", "Batch", "Hybrid"],
+    )
+
+    pipeline.add_node(node)
+
+    # Crear edges desde los inputs
+    if inputs is not None:
+        input_list = inputs if isinstance(inputs, list) else [inputs]
+        for input_step in input_list:
+
+            origin_name, data_relation = _get_origin_and_relation(input_step)
+
+            edge = Edge(
+                origin=origin_name,
+                destination=name,
+                data_type=data_relation,
+            )
+
             pipeline.add_edge(edge)
 
     return StepResult(node, pipeline)

@@ -465,7 +465,6 @@ def cmd_download(args):
         # Intentar descargar el workflow
         result = download(
             workflow_id=args.workflow_id,
-            rocket_url=args.url,
             api_token=args.token,
             force_overwrite=args.force,
             verify_ssl=verify_ssl,
@@ -695,9 +694,6 @@ def main():
     )
     parser_download.add_argument(
         "workflow_id", help="ID del workflow a descargar (UUID)"
-    )
-    parser_download.add_argument(
-        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
     )
     parser_download.add_argument(
         "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"

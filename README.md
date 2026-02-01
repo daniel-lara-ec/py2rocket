@@ -150,11 +150,12 @@ Descarga el workflow desde el servidor usando el `id` del archivo local.
 py2rocket download <workflow-id> [opciones]
 
 Opciones:
-  --url URL                 URL de Rocket
-  --token TOKEN             Cookie de autenticación
+  --token TOKEN             Cookie de autenticación (o ROCKET_AUTH_COOKIE env)
   --no-verify-ssl           No verificar SSL
   -f, --force               Forzar sobrescritura sin preguntar
 ```
+
+La URL de Rocket se obtiene automáticamente de la variable de entorno `ROCKET_URL`.
 
 Descarga un workflow por su ID (UUID). El nombre del archivo se toma del campo `name` del workflow descargado.
 Si el archivo existe, pregunta si desea reemplazarlo o guardarlo con sufijo `_server`.

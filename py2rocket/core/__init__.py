@@ -10,6 +10,7 @@ from py2rocket.core.pipeline import (
     StepType,
     DataRelation,
     StepResult,
+    StepResultOutput,
 )
 
 # Importar operaciones de los módulos específicos - Input
@@ -37,6 +38,7 @@ from py2rocket.core.transformation import (
     bypass,
     pyspark,
     trigger,
+    filter,
     custom_lite_xd_transform,
 )
 

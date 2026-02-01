@@ -22,6 +22,7 @@ from py2rocket.core.pipeline import (
     ExecutionEngine,
     DataRelation,
     StepResult,
+    StepResultOutput,
     Pipeline,
 )
 
@@ -42,6 +43,22 @@ def set_current_pipeline(pipeline: Pipeline) -> None:
     """Establece el pipeline actual"""
     global _current_pipeline
     _current_pipeline = pipeline
+
+
+def _get_origin_and_relation(input_step: Union[StepResult, StepResultOutput]) -> tuple:
+    """
+    Extrae el nodo de origen y su tipo de relación de datos.
+
+    Args:
+        input_step: Un StepResult o StepResultOutput
+
+    Returns:
+        Tupla (node_name, data_relation) para crear el edge correctamente
+    """
+    if isinstance(input_step, StepResultOutput):
+        return input_step.node.name, input_step.data_relation
+    else:  # StepResult
+        return input_step.node.name, DataRelation.VALID_DATA
 
 
 def _attach_outputs_writer(
@@ -165,18 +182,20 @@ def custom_lite_xd_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
             _attach_outputs_writer(input_step, node.name, "Overwrite")
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
         _attach_outputs_writer(inputs, node.name, "Overwrite")
@@ -274,20 +293,22 @@ def jdbc_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
             _attach_outputs_writer(
                 input_step, node.name, jdbc_save_mode, table_name=dbtable
             )
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
         _attach_outputs_writer(inputs, node.name, jdbc_save_mode, table_name=dbtable)
@@ -362,18 +383,20 @@ def postgres_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
             _attach_outputs_writer(input_step, node.name)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
         _attach_outputs_writer(inputs, node.name)
@@ -469,18 +492,20 @@ def sftp_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
             _attach_outputs_writer(input_step, node.name)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
         _attach_outputs_writer(inputs, node.name)
@@ -556,17 +581,19 @@ def print_step(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
 
@@ -739,17 +766,19 @@ def pyspark_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
 
@@ -816,18 +845,20 @@ def delta_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
             _attach_outputs_writer(input_step, node.name, save_mode)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
         _attach_outputs_writer(inputs, node.name, save_mode)
@@ -890,18 +921,20 @@ def parquet_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
             _attach_outputs_writer(input_step, node.name, save_mode)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
         _attach_outputs_writer(inputs, node.name, save_mode)
@@ -964,17 +997,19 @@ def json_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
 
@@ -1050,17 +1085,19 @@ def csv_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
 
@@ -1125,17 +1162,19 @@ def text_output(
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
             edge = Edge(
-                origin=input_step.node.name,
+                origin=origin_name,
                 destination=node.name,
-                data_type=DataRelation.VALID_DATA,
+                data_type=data_relation,
             )
             pipeline.add_edge(edge)
     else:
+        origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
-            origin=inputs.node.name,
+            origin=origin_name,
             destination=node.name,
-            data_type=DataRelation.VALID_DATA,
+            data_type=data_relation,
         )
         pipeline.add_edge(edge)
 

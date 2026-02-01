@@ -734,7 +734,6 @@ def pull(
 
 def download(
     workflow_id: str,
-    rocket_url: Optional[str] = None,
     api_token: Optional[str] = None,
     force_overwrite: bool = False,
     verify_ssl: Optional[bool] = None,
@@ -746,9 +745,10 @@ def download(
     El nombre del archivo se toma del campo 'name' del workflow.
     Si el archivo ya existe, pregunta si desea reemplazarlo o guardarlo con sufijo _server.
 
+    La URL de Rocket se obtiene automáticamente de la variable de entorno ROCKET_URL.
+
     Args:
         workflow_id: ID del workflow a descargar (UUID)
-        rocket_url: URL base de Rocket (ej: https://rocket.example.com)
         api_token: Cookie de autenticación. Si no se proporciona, usa ROCKET_AUTH_COOKIE
         force_overwrite: Si es True, sobrescribe sin preguntar
         verify_ssl: Verificar certificados SSL (default: True)
@@ -767,7 +767,6 @@ def download(
         >>> from py2rocket import download
         >>> result = download(
         ...     workflow_id="7133a9b4-d4fc-4390-9aa1-802d836a2874",
-        ...     rocket_url="https://rocket.mycompany.com",
         ...     api_token="my-token"
         ... )
     """
@@ -775,12 +774,11 @@ def download(
     if not workflow_id:
         raise ValueError("workflow_id es requerido")
 
-    # 2. Configuración de conexión
-    if rocket_url is None:
-        rocket_url = os.getenv("ROCKET_URL")
+    # 2. Obtener configuración de conexión de variables de entorno
+    rocket_url = os.getenv("ROCKET_URL")
     if rocket_url is None:
         raise ValueError(
-            "Debe proporcionar 'rocket_url' o configurar ROCKET_URL en .env"
+            "Debe configurar ROCKET_URL en variables de entorno o archivo .env"
         )
 
     if api_token is None:
@@ -878,6 +876,7 @@ CLASS_TO_FUNCTION = {
     "CoalesceTransformStep": ("coalesce", "py2rocket.core.transformation"),
     "RepartitionTransformStep": ("repartition", "py2rocket.core.transformation"),
     "BypassTransformStep": ("bypass", "py2rocket.core.transformation"),
+    "FilterTransformStep": ("filter", "py2rocket.core.transformation"),
     "CustomLiteXDTransformStep": (
         "custom_lite_xd_transform",
         "py2rocket.core.transformation",
@@ -945,6 +944,7 @@ def from_json(
         "saveMode": "overwrite",
         "tlsEnabled": False,
         "userPassEnabled": False,
+        "filterExp": "",
     }
 
     # 1. Leer JSON

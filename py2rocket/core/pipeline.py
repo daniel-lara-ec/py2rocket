@@ -34,7 +34,7 @@ class DataRelation(Enum):
     """Tipo de relación de datos entre nodos"""
 
     VALID_DATA = "ValidData"
-    INVALID_DATA = "InvalidData"
+    INVALID_DATA = "DiscardedData"
 
 
 @dataclass
@@ -237,6 +237,33 @@ class Pipeline:
         }
 
 
+class StepResultOutput:
+    """
+    Representa una salida específica (VALID o DISCARDED) de un nodo multi-output.
+
+    Se usa cuando un nodo puede generar múltiples tipos de datos (ej: Filter con ValidData y DiscardedData).
+    Almacena el tipo de relación de datos para crear edges con el dataType correcto.
+
+    Attributes:
+        node: El nodo asociado
+        pipeline: Referencia al pipeline
+        data_relation: Tipo de relación de datos (VALID_DATA o INVALID_DATA)
+    """
+
+    def __init__(
+        self,
+        node: Node,
+        pipeline: Pipeline,
+        data_relation: DataRelation = DataRelation.VALID_DATA,
+    ):
+        self.node = node
+        self.pipeline = pipeline
+        self.data_relation = data_relation
+
+    def __repr__(self):
+        return f"StepResultOutput({self.node.name}, {self.data_relation.value})"
+
+
 class StepResult:
     """
     Representa el resultado de un paso en el flujo.
@@ -244,6 +271,9 @@ class StepResult:
     Se usa para encadenar operaciones y construir el DAG automáticamente.
     Cada operación retorna un StepResult que puede ser usado como input
     en operaciones subsecuentes.
+
+    Por defecto se comporta como VALID_DATA. Usa la propiedad .discarded
+    para obtener la salida DISCARDED_DATA (si el nodo lo soporta).
 
     Attributes:
         node: El nodo asociado a este resultado
@@ -253,9 +283,25 @@ class StepResult:
     def __init__(self, node: Node, pipeline: Pipeline):
         self.node = node
         self.pipeline = pipeline
+        self.data_relation = DataRelation.VALID_DATA  # Por defecto VALID_DATA
 
     def __repr__(self):
         return f"StepResult({self.node.name})"
+
+    @property
+    def discarded(self) -> StepResultOutput:
+        """
+        Retorna una salida DISCARDED_DATA del mismo nodo.
+
+        Uso:
+            filtro = filter(name="Filter", filter_exp="...", inputs=datos)
+            valid_data = filtro           # VALID_DATA por defecto
+            invalid_data = filtro.discarded  # DISCARDED_DATA explícito
+
+        Returns:
+            StepResultOutput con data_relation = INVALID_DATA
+        """
+        return StepResultOutput(self.node, self.pipeline, DataRelation.INVALID_DATA)
 
     def set_outputs_writer(
         self,

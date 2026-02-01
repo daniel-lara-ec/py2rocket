@@ -1,0 +1,28 @@
+{
+  "name": "Filter",
+  "stepType": "Transformation",
+  "className": "FilterTransformStep",
+  "classPrettyName": "Filter",
+  "arity": ["UnaryToNary"],
+  "uiConfiguration": {
+    "position": {
+      "x": 644,
+      "y": 222
+    }
+  },
+  "configuration": {
+    "quoteSql": false,
+    "priority": "50",
+    "genAIMetadataTableDescription": "",
+    "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+    "inputSchemas": "",
+    "filterExp": "",
+    "genAIMetadataColumns": ""
+  },
+  "supportedEngines": ["Streaming", "Batch", "Hybrid"],
+  "executionEngine": "Hybrid",
+  "supportedDataRelations": ["ValidData", "DiscardedData"],
+  "lineageProperties": [],
+  "outputsWriter": [],
+  "lastModified": "2026-02-01T22:57:36Z"
+}
