@@ -1012,8 +1012,15 @@ def from_json(
         if class_name not in CLASS_TO_FUNCTION:
             return f"    # TODO: Unsupported node type: {class_name} ({node_name})"
 
-        func_name, module = CLASS_TO_FUNCTION[class_name]
-        imports.add(f"from {module} import {func_name}")
+        try:
+            func_name, module = CLASS_TO_FUNCTION[class_name]
+            imports.add(f"from {module} import {func_name}")
+        except Exception as e:
+            print(
+                f"ERROR: No se pudo procesar el nodo '{node_name}' de tipo '{class_name}'"
+            )
+            print(f"Detalles: {e}")
+            raise
 
         # Generar nombre de variable
         var_name = _sanitize_var_name(node_name)
