@@ -866,6 +866,7 @@ CLASS_TO_FUNCTION = {
     # Transformations
     "TriggerTransformStep": ("trigger", "py2rocket.core.transformation"),
     "PySparkTransformStep": ("pyspark", "py2rocket.core.transformation"),
+    "PySparkTransformerStep": ("pyspark", "py2rocket.core.transformation"),
     "AddColumnsTransformStep": ("add_columns", "py2rocket.core.transformation"),
     "DropColumnsTransformStep": ("drop_columns", "py2rocket.core.transformation"),
     "RenameColumnTransformationStep": (
@@ -876,6 +877,7 @@ CLASS_TO_FUNCTION = {
     "CoalesceTransformStep": ("coalesce", "py2rocket.core.transformation"),
     "RepartitionTransformStep": ("repartition", "py2rocket.core.transformation"),
     "BypassTransformStep": ("bypass", "py2rocket.core.transformation"),
+    "ByPassStep": ("bypass", "py2rocket.core.transformation"),
     "FilterTransformStep": ("filter", "py2rocket.core.transformation"),
     "CustomLiteXDTransformStep": (
         "custom_lite_xd_transform",
@@ -893,7 +895,7 @@ CLASS_TO_FUNCTION = {
     "JsonOutputStep": ("json_output", "py2rocket.core.output"),
     "CsvOutputStep": ("csv_output", "py2rocket.core.output"),
     "TextOutputStep": ("text_output", "py2rocket.core.output"),
-    "RunWorkflowOutputStep": ("run_workflow_output", "py2rocket.core.output"),
+    "RunWorkflowOutputStep": ("run_workflow", "py2rocket.core.output"),
 }
 
 
