@@ -616,16 +616,71 @@ def cmd_get_extensions(args):
             )
 
         headers_cols = ["id", "name", "extensionType", "customClasses"]
-        col_widths = {
-            key: max(len(key), max(len(r[key]) for r in rows)) for key in headers_cols
+
+        max_custom_classes_width = 80
+        max_widths = {
+            "id": 36,
+            "name": 40,
+            "extensionType": 20,
+            "customClasses": max_custom_classes_width,
         }
+
+        def _wrap_text(text: str, width: int) -> list:
+            if width <= 0:
+                return [text]
+            words = text.split()
+            if not words:
+                return [""]
+            lines = []
+            current = words[0]
+            for word in words[1:]:
+                if len(current) + 1 + len(word) <= width:
+                    current += f" {word}"
+                else:
+                    lines.append(current)
+                    current = word
+            lines.append(current)
+            return lines
+
+        def _truncate(text: str, width: int) -> str:
+            if width <= 0:
+                return text
+            if len(text) <= width:
+                return text
+            return text[: max(0, width - 1)] + "…"
+
+        col_widths = {}
+        for key in headers_cols:
+            longest = max(len(r[key]) for r in rows)
+            col_widths[key] = max(len(key), min(longest, max_widths[key]))
 
         header_line = " | ".join(key.ljust(col_widths[key]) for key in headers_cols)
         separator = "-+-".join("-" * col_widths[key] for key in headers_cols)
         print(header_line)
         print(separator)
+
         for r in rows:
-            print(" | ".join(r[key].ljust(col_widths[key]) for key in headers_cols))
+            custom_lines = _wrap_text(r["customClasses"], col_widths["customClasses"])
+            lines_count = max(1, len(custom_lines))
+            for i in range(lines_count):
+                row_id = _truncate(r["id"], col_widths["id"]) if i == 0 else ""
+                row_name = _truncate(r["name"], col_widths["name"]) if i == 0 else ""
+                row_type = (
+                    _truncate(r["extensionType"], col_widths["extensionType"])
+                    if i == 0
+                    else ""
+                )
+                row_custom = custom_lines[i] if i < len(custom_lines) else ""
+                print(
+                    " | ".join(
+                        [
+                            row_id.ljust(col_widths["id"]),
+                            row_name.ljust(col_widths["name"]),
+                            row_type.ljust(col_widths["extensionType"]),
+                            row_custom.ljust(col_widths["customClasses"]),
+                        ]
+                    )
+                )
 
     except requests.exceptions.RequestException as e:
         print(f"❌ Error al consultar extensiones: {e}")
