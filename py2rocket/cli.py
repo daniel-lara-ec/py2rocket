@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 import requests
+import traceback
 
 from py2rocket import create, build, push, run, pull, download, from_json, __version__
 
@@ -541,6 +542,7 @@ def cmd_from_json(args):
 
     except Exception as e:
         print(f"❌ Error: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
