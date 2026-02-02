@@ -619,6 +619,9 @@ def run_workflow(
     attempts_conditions: str = "",
     force_execution_if_available_resources: bool = False,
     retry_unsuccessful_writes: bool = False,
+    _asset_model_group: str = "",
+    _asset_model_name: str = "",
+    use_latest_version: bool = False,
     description: str = "",
 ) -> StepResult:
     """
@@ -646,6 +649,9 @@ def run_workflow(
         attempts_conditions: Condiciones para reintentos
         force_execution_if_available_resources: Forzar ejecución si hay recursos
         retry_unsuccessful_writes: Reintentar escrituras fallidas
+        _asset_model_group: Grupo del modelo de asset
+        _asset_model_name: Nombre del modelo de asset
+        use_latest_version: Si se debe usar la última versión disponible
         description: Descripción del propósito de este paso
 
     Returns:
@@ -687,6 +693,9 @@ def run_workflow(
             "attemptsConditions": attempts_conditions,
             "forceExecutionIfAvailableResources": force_execution_if_available_resources,
             "retryUnsuccessfulWrites": retry_unsuccessful_writes,
+            "_assetModelGroup": _asset_model_group,
+            "_assetModelName": _asset_model_name,
+            "useLatestVersion": use_latest_version,
             "debugOptions": {
                 "executeStepAutoDebug": True,
                 "executeStepDebug": True,
