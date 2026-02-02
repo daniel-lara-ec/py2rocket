@@ -996,6 +996,51 @@ def from_json(
             node_inputs[dest] = []
         node_inputs[dest].append(origin)
 
+    # 5.5 Función de ordenamiento topológico
+    def topological_sort(nodes_to_sort):
+        """Ordena los nodos de forma topológica según sus dependencias"""
+        sorted_nodes = []
+        visited = set()
+        visiting = set()
+
+        def visit(node_name):
+            if node_name in visited:
+                return
+            if node_name in visiting:
+                # Hay un ciclo, pero en un DAG no debería pasar
+                return
+
+            visiting.add(node_name)
+
+            # Primero visitar las dependencias
+            if node_name in node_inputs:
+                for dep in node_inputs[node_name]:
+                    visit(dep)
+
+            visiting.remove(node_name)
+            visited.add(node_name)
+
+            # Agregar el nodo a la lista ordenada
+            for n in nodes_to_sort:
+                if n.get("name") == node_name and node_name not in [
+                    x.get("name") for x in sorted_nodes
+                ]:
+                    sorted_nodes.append(n)
+
+        for node in nodes_to_sort:
+            visit(node.get("name"))
+
+        return sorted_nodes
+
+    # Ordenar nodos topológicamente
+    all_nodes = input_nodes + transform_nodes + output_nodes
+    all_nodes = topological_sort(all_nodes)
+
+    # Re-clasificar después del ordenamiento
+    input_nodes = [n for n in all_nodes if n.get("stepType") == "Input"]
+    transform_nodes = [n for n in all_nodes if n.get("stepType") == "Transformation"]
+    output_nodes = [n for n in all_nodes if n.get("stepType") == "Output"]
+
     # 6. Generar código Python
     imports = set()
     imports.add("from py2rocket import pipeline, build")
