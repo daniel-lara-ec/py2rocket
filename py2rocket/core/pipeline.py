@@ -162,6 +162,8 @@ class Pipeline:
     udfs_to_register: List[str] = field(default_factory=list)
     udafs_to_register: List[str] = field(default_factory=list)
     user_spark_conf: Dict[str, str] = field(default_factory=dict)
+    plugins: List[str] = field(default_factory=list)
+    user_plugins_jars: List[Dict[str, str]] = field(default_factory=list)
 
     def add_node(self, node: Node) -> None:
         """Añade un nodo al pipeline"""

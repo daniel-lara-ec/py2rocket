@@ -320,6 +320,11 @@ class RocketCompiler:
                 "userSparkConf"
             ] = spark_conf
 
+            # Agregar plugins de usuario si están resueltos
+            if getattr(self.pipeline, "user_plugins_jars", None):
+                jars = [j for j in self.pipeline.user_plugins_jars if j]
+                rocket_json["settings"]["global"]["userPluginsJars"] = jars
+
         # Incluir el workflowMasterId si existe
         if getattr(self.pipeline, "asset_id", None):
             rocket_json["workflowMasterId"] = self.pipeline.asset_id

@@ -23,7 +23,8 @@ from py2rocket.core import pipeline, sql, print_step
     pre_execution_sql_sentences={pre_execution_sql_sentences},
     udfs_to_register={udfs_to_register},
     udafs_to_register={udafs_to_register},
-    user_spark_conf={user_spark_conf}
+    user_spark_conf={user_spark_conf},
+    plugins={plugins}
 )
 def workflow():
     """

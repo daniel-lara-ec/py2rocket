@@ -117,6 +117,7 @@ def create(
     # Si project_id no se proporciona, intenta obtener del .env
     if project_id is None:
         project_id = _get_project_id_from_env()
+            plugins: Optional[list] = None,
     # Determinar ruta de salida
     if output_path is None:
         output_path = f"{name}.py"
@@ -138,6 +139,7 @@ def create(
     # Generar contenido desde plantilla
     parameters_lists_str = repr(parameters_lists) if parameters_lists else "[]"
     pre_execution_sql_sentences_str = (
+                plugins: Lista de nombres de plugins a incluir en el build
         repr(pre_execution_sql_sentences) if pre_execution_sql_sentences else "[]"
     )
     udfs_to_register_str = repr(udfs_to_register) if udfs_to_register else "[]"
@@ -199,6 +201,7 @@ def build(
 
     Raises:
         ValueError: Si no se proporciona ni pipeline_obj ni workflow_file
+                plugins=repr(plugins or []),
         FileNotFoundError: Si workflow_file no existe
 
     Example:
@@ -260,6 +263,55 @@ def build(
             output_path = f"{pipeline_name}.json"
 
     output_file = Path(output_path)
+
+    # Resolver plugins si aplica (usa el proyecto del archivo)
+    project_id = getattr(pipeline_obj, "project_id", None)
+    plugins = [p for p in (getattr(pipeline_obj, "plugins", []) or []) if p]
+    if project_id and plugins:
+        api_host = os.getenv("ROCKET_API_HOST")
+        auth_cookie = os.getenv("ROCKET_AUTH_COOKIE")
+        if api_host and auth_cookie:
+            verify_ssl = _get_verify_ssl_from_env()
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+            }
+            cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
+            try:
+                response = requests.get(
+                    f"{api_host}/extensions/findAllByProjectId/{project_id}",
+                    headers=headers,
+                    cookies=cookies,
+                    verify=verify_ssl,
+                    timeout=30,
+                )
+                response.raise_for_status()
+                extensions = response.json()
+                if isinstance(extensions, list):
+                    name_to_id = {
+                        str(item.get("name", "")): str(item.get("id", ""))
+                        for item in extensions
+                        if item.get("name") and item.get("id")
+                    }
+                    user_plugins_jars = []
+                    for plugin_name in plugins:
+                        plugin_id = name_to_id.get(plugin_name)
+                        if plugin_id:
+                            user_plugins_jars.append({"jarPath": plugin_id})
+                        else:
+                            print(
+                                f"⚠️  Plugin no encontrado en extensiones del proyecto: {plugin_name}"
+                            )
+                    pipeline_obj.user_plugins_jars = user_plugins_jars
+            except requests.exceptions.RequestException as e:
+                print(f"⚠️  No se pudieron resolver plugins: {e}")
+        else:
+            print(
+                "⚠️  ROCKET_API_HOST o ROCKET_AUTH_COOKIE no definidos; se omite resolución de plugins."
+            )
 
     # Compilar el pipeline
     compiler = RocketCompiler(pipeline_obj)
@@ -969,6 +1021,60 @@ def from_json(
     settings = workflow_data.get("settings", {})
     global_settings = settings.get("global", {})
     parameters_lists = global_settings.get("parametersLists", [])
+    project_id = (
+        workflow_data.get("projectId")
+        or workflow_data.get("project_id")
+        or global_settings.get("projectId")
+        or global_settings.get("project_id")
+    )
+    user_plugins_jars = global_settings.get("userPluginsJars", [])
+    plugins = []
+    if project_id and user_plugins_jars:
+        api_host = os.getenv("ROCKET_API_HOST")
+        auth_cookie = os.getenv("ROCKET_AUTH_COOKIE")
+        if api_host and auth_cookie:
+            verify_ssl = _get_verify_ssl_from_env()
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+            }
+            cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
+            try:
+                response = requests.get(
+                    f"{api_host}/extensions/findAllByProjectId/{project_id}",
+                    headers=headers,
+                    cookies=cookies,
+                    verify=verify_ssl,
+                    timeout=30,
+                )
+                response.raise_for_status()
+                extensions = response.json()
+                if isinstance(extensions, list):
+                    id_to_name = {
+                        str(item.get("id", "")): str(item.get("name", ""))
+                        for item in extensions
+                        if item.get("id") and item.get("name")
+                    }
+                    for jar in user_plugins_jars:
+                        jar_id = str(jar.get("jarPath", "")) if isinstance(jar, dict) else ""
+                        if not jar_id:
+                            continue
+                        plugin_name = id_to_name.get(jar_id)
+                        if plugin_name:
+                            plugins.append(plugin_name)
+                        else:
+                            print(
+                                f"⚠️  Plugin no encontrado en extensiones del proyecto para jarPath: {jar_id}"
+                            )
+            except requests.exceptions.RequestException as e:
+                print(f"⚠️  No se pudieron resolver plugins en from-json: {e}")
+        else:
+            print(
+                "⚠️  ROCKET_API_HOST o ROCKET_AUTH_COOKIE no definidos; se omite resolución de plugins en from-json."
+            )
 
     # 3. Extraer nodos y edges
     pipeline_graph = workflow_data.get("pipelineGraph", {})
@@ -1201,6 +1307,8 @@ def from_json(
         "SparkConfigurations",
     ]:
         decorator_args.append(f"parameters_lists={parameters_lists}")
+    if plugins:
+        decorator_args.append(f"plugins={plugins}")
 
     decorator_str = ",\n    ".join(decorator_args)
     python_code += f"@pipeline(\n    {decorator_str}\n)\n"

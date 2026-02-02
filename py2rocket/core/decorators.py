@@ -44,6 +44,7 @@ def pipeline(
     udfs_to_register: Optional[list] = None,
     udafs_to_register: Optional[list] = None,
     user_spark_conf: Optional[dict] = None,
+    plugins: Optional[list] = None,
 ) -> Callable:
     """
     Decorator para definir un pipeline de Stratio Rocket.
@@ -64,6 +65,7 @@ def pipeline(
         udfs_to_register: Lista de UDFs (User Defined Functions) a registrar
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
         user_spark_conf: Diccionario de configuraciones Spark personalizadas
+        plugins: Lista de nombres de plugins a incluir en el build
 
     Returns:
         Función decorada que retorna un objeto Pipeline
@@ -113,6 +115,7 @@ def pipeline(
                 udfs_to_register=udfs_to_register or [],
                 udafs_to_register=udafs_to_register or [],
                 user_spark_conf=user_spark_conf or {},
+                plugins=plugins or [],
             )
 
             # Establecer como pipeline activo
