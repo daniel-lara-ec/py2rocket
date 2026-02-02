@@ -9,6 +9,7 @@ Comandos disponibles:
     py2rocket pull <archivo>               - Descarga workflow desde Rocket
     py2rocket download <workflow-id>       - Descarga workflow por ID desde Rocket
     py2rocket from-json <archivo.json>     - Convierte JSON a código Python
+    py2rocket get-extensions               - Lista extensiones por proyecto
 """
 
 import argparse
@@ -546,6 +547,94 @@ def cmd_from_json(args):
         sys.exit(1)
 
 
+def cmd_get_extensions(args):
+    """Comando: get-extensions - Lista extensiones por proyecto"""
+    try:
+        api_host = args.url or os.getenv("ROCKET_API_HOST")
+        auth_cookie = args.token or os.getenv("ROCKET_AUTH_COOKIE")
+        if not api_host or not auth_cookie:
+            print(
+                "❌ Error: Configura ROCKET_API_HOST y ROCKET_AUTH_COOKIE en .env o pásalos por argumentos."
+            )
+            sys.exit(1)
+
+        default_project_id = os.getenv("PROJECT_ID")
+        if default_project_id is not None:
+            default_project_id = default_project_id.strip() or None
+
+        while True:
+            suffix = f" [{default_project_id}]" if default_project_id else ""
+            project_id = input(f"ID del proyecto{suffix}: ").strip()
+            if not project_id and default_project_id:
+                project_id = default_project_id
+            if project_id:
+                break
+            print("[!] El ID del proyecto es obligatorio y no puede estar vacío.")
+
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+        }
+        cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
+
+        response = requests.get(
+            f"{api_host}/extensions/findAllByProjectId/{project_id}",
+            headers=headers,
+            cookies=cookies,
+            verify=verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        extensions = response.json()
+
+        if not isinstance(extensions, list) or not extensions:
+            print("⚠️  No se encontraron extensiones para el proyecto.")
+            return
+
+        rows = []
+        for item in extensions:
+            rows.append(
+                {
+                    "id": str(item.get("id", "")),
+                    "name": str(item.get("name", "")),
+                    "extensionType": str(item.get("extensionType", "")),
+                    "customClasses": str(item.get("customClasses", "")),
+                }
+            )
+
+        headers_cols = ["id", "name", "extensionType", "customClasses"]
+        col_widths = {
+            key: max(len(key), max(len(r[key]) for r in rows)) for key in headers_cols
+        }
+
+        header_line = " | ".join(key.ljust(col_widths[key]) for key in headers_cols)
+        separator = "-+-".join("-" * col_widths[key] for key in headers_cols)
+        print(header_line)
+        print(separator)
+        for r in rows:
+            print(" | ".join(r[key].ljust(col_widths[key]) for key in headers_cols))
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error al consultar extensiones: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
 def main():
     """Punto de entrada principal del CLI"""
     parser = argparse.ArgumentParser(
@@ -724,6 +813,21 @@ def main():
         help="Archivo Python de salida (default: mismo nombre con .py)",
     )
     parser_from_json.set_defaults(func=cmd_from_json)
+
+    # Comando: get-extensions
+    parser_get_extensions = subparsers.add_parser(
+        "get-extensions", help="Lista extensiones por proyecto"
+    )
+    parser_get_extensions.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_get_extensions.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_get_extensions.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_get_extensions.set_defaults(func=cmd_get_extensions)
 
     # Parsear argumentos
     args = parser.parse_args()
