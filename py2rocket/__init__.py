@@ -1022,9 +1022,8 @@ def from_json(
             print(f"Detalles: {e}")
             raise
 
-        # Generar nombre de variable
-        var_name = _sanitize_var_name(node_name)
-        var_names[node_name] = var_name
+        # Obtener variable del nodo (ya debe estar en var_names)
+        var_name = var_names[node_name]
 
         # Construir argumentos
         args = [f'name="{node_name}"']
@@ -1110,6 +1109,12 @@ def from_json(
         # Generar línea de código
         args_str = ",\n        ".join(args)
         return f"    {var_name} = {func_name}(\n        {args_str}\n    )"
+
+    # Pre-procesar todos los nodos para llenar var_names
+    for node in input_nodes + transform_nodes + output_nodes:
+        node_name = node.get("name")
+        var_name = _sanitize_var_name(node_name)
+        var_names[node_name] = var_name
 
     # Generar código para cada tipo de nodo
     if input_nodes:
