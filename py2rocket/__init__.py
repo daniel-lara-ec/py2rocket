@@ -1048,9 +1048,31 @@ def from_json(
 
             # Formatear valor
             if isinstance(value, str):
-                # Escapar comillas en el string
-                value_escaped = value.replace('"', '\\"').replace("\\", "\\\\")
-                args.append(f'{snake_key}="{value_escaped}"')
+                # Detectar si es contenido multilínea (SQL, código Python, etc.)
+                is_multiline = "\n" in value or len(value) > 80
+
+                # Campos que típicamente contienen SQL o código multilínea
+                multiline_fields = {
+                    "query",
+                    "python_code",
+                    "code",
+                    "sql",
+                    "add_column_expression_list",
+                    "trigger_sql",
+                    "filterExp",
+                    "filter_exp",
+                    "select_expression",
+                }
+
+                if is_multiline or snake_key in multiline_fields and len(value) > 40:
+                    # Usar triple comillas para contenido multilínea
+                    # Escapar solo las triple comillas si existen en el contenido
+                    value_escaped = value.replace('"""', r"\"\"\"")
+                    args.append(f'{snake_key}="""\n{value_escaped}\n"""')
+                else:
+                    # Escapar comillas en el string
+                    value_escaped = value.replace('"', '\\"').replace("\\", "\\\\")
+                    args.append(f'{snake_key}="{value_escaped}"')
             elif isinstance(value, bool):
                 args.append(f"{snake_key}={value}")
             elif isinstance(value, (int, float)):
@@ -1141,8 +1163,36 @@ def from_json(
     else:
         output_path = json_path.with_suffix(".py")
 
+    # Limpiar líneas en blanco innecesarias y espacios al final
+    lines = python_code.split("\n")
+    cleaned_lines = []
+    prev_blank = False
+
+    for line in lines:
+        # Eliminar espacios al final de cada línea
+        line = line.rstrip()
+
+        # Si la línea está vacía
+        is_blank = not line
+
+        # Permitir máximo una línea en blanco consecutiva
+        if is_blank:
+            if not prev_blank:
+                cleaned_lines.append("")
+            prev_blank = True
+        else:
+            cleaned_lines.append(line)
+            prev_blank = False
+
+    # Eliminar líneas en blanco al final del archivo
+    while cleaned_lines and not cleaned_lines[-1]:
+        cleaned_lines.pop()
+
+    # Asegurar que el archivo termina con un solo newline
+    cleaned_code = "\n".join(cleaned_lines) + "\n"
+
     try:
-        output_path.write_text(python_code, encoding="utf-8")
+        output_path.write_text(cleaned_code, encoding="utf-8")
     except IOError as exc:
         raise IOError(f"Error al guardar el archivo: {exc}") from exc
 

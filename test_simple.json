@@ -1,0 +1,64 @@
+{
+  "id": "test-simple-strings",
+  "name": "test_simple",
+  "description": "Test strings simples",
+  "settings": {
+    "global": {
+      "executionMode": "kubernetes",
+      "parametersLists": ["Environment"],
+      "parametersSettings": {
+        "userDefinedParameters": []
+      }
+    }
+  },
+  "pipelineGraph": {
+    "nodes": [
+      {
+        "name": "SimpleInput",
+        "stepType": "Input",
+        "className": "SQLInputStep",
+        "arity": ["NullaryToNary"],
+        "configuration": {
+          "priority": "50",
+          "query": "SELECT * FROM tabla",
+          "debugOptions": "{\"executeStepAutoDebug\":true}"
+        },
+        "supportedEngines": ["Batch"],
+        "executionEngine": "Batch",
+        "supportedDataRelations": ["ValidData"],
+        "lineageProperties": [],
+        "outputsWriter": []
+      },
+      {
+        "name": "SimpleOutput",
+        "stepType": "Output",
+        "className": "PrintOutputStep",
+        "arity": ["NaryToNullary"],
+        "configuration": {
+          "priority": "50",
+          "logLevel": "warn",
+          "debugOptions": {
+            "executeStepAutoDebug": true
+          }
+        },
+        "supportedEngines": ["Batch"],
+        "executionEngine": "Batch",
+        "supportedDataRelations": ["ValidData"],
+        "lineageProperties": [],
+        "outputsWriter": []
+      }
+    ],
+    "edges": [
+      {
+        "origin": "SimpleInput",
+        "destination": "SimpleOutput",
+        "dataType": "ValidData"
+      }
+    ],
+    "annotations": [],
+    "nodeGroups": []
+  },
+  "executionEngine": "Batch",
+  "workflowType": "SpartaWorkflow",
+  "version": 0
+}
