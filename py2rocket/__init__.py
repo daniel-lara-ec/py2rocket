@@ -1048,6 +1048,10 @@ def from_json(
             snake_key = re.sub("([a-z0-9])([A-Z])", r"\1_\2", snake_key)
             snake_key = snake_key.lower()
 
+            # Renombrar campos específicos según el tipo de función
+            if func_name == "pyspark" and snake_key == "python_code":
+                snake_key = "code"
+
             # Formatear valor
             if isinstance(value, str):
                 # Detectar si es contenido multilínea (SQL, código Python, etc.)
@@ -1086,9 +1090,7 @@ def from_json(
 
         # Agregar inputs si existen
         if node_name in node_inputs:
-            input_vars = [
-                var_names.get(inp, f'"{inp}"') for inp in node_inputs[node_name]
-            ]
+            input_vars = [var_names[inp] for inp in node_inputs[node_name]]
             if len(input_vars) == 1:
                 args.append(f"inputs={input_vars[0]}")
             else:
