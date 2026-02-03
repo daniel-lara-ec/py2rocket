@@ -140,7 +140,6 @@ def create(
     # Generar contenido desde plantilla
     parameters_lists_str = repr(parameters_lists) if parameters_lists else "[]"
     pre_execution_sql_sentences_str = (
-                plugins: Lista de nombres de plugins a incluir en el build
         repr(pre_execution_sql_sentences) if pre_execution_sql_sentences else "[]"
     )
     udfs_to_register_str = repr(udfs_to_register) if udfs_to_register else "[]"
@@ -1060,7 +1059,9 @@ def from_json(
                         if item.get("id") and item.get("name")
                     }
                     for jar in user_plugins_jars:
-                        jar_id = str(jar.get("jarPath", "")) if isinstance(jar, dict) else ""
+                        jar_id = (
+                            str(jar.get("jarPath", "")) if isinstance(jar, dict) else ""
+                        )
                         if not jar_id:
                             continue
                         plugin_name = id_to_name.get(jar_id)
