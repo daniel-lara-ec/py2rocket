@@ -77,6 +77,7 @@ def create(
     udfs_to_register: Optional[list] = None,
     udafs_to_register: Optional[list] = None,
     user_spark_conf: Optional[dict] = None,
+    plugins: Optional[list] = None,
 ) -> str:
     """
     Crea un archivo .py base para un nuevo workflow de Rocket.
@@ -98,6 +99,7 @@ def create(
         udfs_to_register: Lista de UDFs (User Defined Functions) a registrar
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
         user_spark_conf: Diccionario de configuraciones Spark personalizadas
+        plugins: Lista de nombres de plugins a incluir en el build
 
     Returns:
         Ruta del archivo creado
@@ -117,7 +119,6 @@ def create(
     # Si project_id no se proporciona, intenta obtener del .env
     if project_id is None:
         project_id = _get_project_id_from_env()
-            plugins: Optional[list] = None,
     # Determinar ruta de salida
     if output_path is None:
         output_path = f"{name}.py"
