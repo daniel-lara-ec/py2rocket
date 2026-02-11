@@ -646,114 +646,136 @@ def cmd_sync(args):
             else:
                 group_dir = output_base / root_base
             group_dir.mkdir(parents=True, exist_ok=True)
+            group_cwd = Path.cwd()
+            os.chdir(group_dir)
+            group_dir = Path(".")
 
             group_assets = 0
             group_versions = 0
             group_downloaded = 0
             group_skipped = 0
 
-            for asset_dto in tqdm(
-                assets,
-                desc=f"Assets {name}",
-                unit="asset",
-            ):
-                workflow_asset = asset_dto.get("workflowAsset")
-                if not workflow_asset:
-                    continue
-
-                asset_id = workflow_asset.get("id")
-                asset_name = workflow_asset.get("name") or asset_id
-                if not asset_id:
-                    continue
-
-                safe_asset_name = _sanitize_path_part(asset_name) or asset_id
-                asset_dir = group_dir / safe_asset_name
-                asset_dir.mkdir(parents=True, exist_ok=True)
-
-                # Archivo identificador del asset
-                name_file = asset_dir / "name.txt"
-                if not name_file.exists() or args.force:
-                    name_file.write_text(str(asset_name), encoding="utf-8")
-
-                group_assets += 1
-
-                # 4) Buscar versiones del asset
-                versions_url = (
-                    f"{api_host.rstrip('/')}/assets/findAllVersions/{asset_id}"
-                )
-                v_response = requests.get(
-                    versions_url,
-                    headers=headers,
-                    cookies=cookies,
-                    verify=verify_ssl,
-                    timeout=30,
-                )
-                v_response.raise_for_status()
-                versions = v_response.json() or []
-
-                for version_info in tqdm(
-                    versions,
-                    desc=f"Versiones {asset_name}",
-                    unit="ver",
-                    leave=False,
+            try:
+                for asset_dto in tqdm(
+                    assets,
+                    desc=f"Assets {name}",
+                    unit="asset",
                 ):
-                    version_id = version_info.get("id")
-                    version_num = version_info.get("version")
-                    if not version_id:
-                        continue
-
-                    group_versions += 1
-
-                    file_name = (
-                        f"v{version_num}.py"
-                        if version_num is not None
-                        else f"{version_id}.py"
-                    )
-                    output_file = asset_dir / file_name
-
-                    if output_file.exists() and not args.force:
-                        group_skipped += 1
-                        print(f"⚠️  Saltando existente: {output_file}")
-                        continue
-
-                    workflow_url = (
-                        f"{api_host.rstrip('/')}/workflows/download/{version_id}"
-                    )
-                    w_response = requests.get(
-                        workflow_url,
-                        headers=headers,
-                        cookies=cookies,
-                        verify=verify_ssl,
-                        timeout=30,
-                    )
-                    w_response.raise_for_status()
-
+                    asset_name = "unknown"
+                    asset_id = "unknown"
                     try:
-                        workflow_data = w_response.json()
-                    except ValueError as exc:
-                        print(
-                            f"⚠️  Respuesta inválida al descargar {asset_name} v{version_num}: {exc}"
-                        )
+                        workflow_asset = asset_dto.get("workflowAsset")
+                        if not workflow_asset:
+                            continue
+
+                    asset_id = workflow_asset.get("id")
+                    asset_name = workflow_asset.get("name") or asset_id
+                    if not asset_id:
                         continue
 
-                    # Guardar temporalmente JSON y convertir a Python DSL
-                    temp_json = asset_dir / f"{output_file.stem}.json.tmp"
-                    temp_json.write_text(
-                        json.dumps(workflow_data, ensure_ascii=False, indent=2),
-                        encoding="utf-8",
-                    )
-                    try:
-                        from_json(
-                            json_file=str(temp_json), output_file=str(output_file)
-                        )
-                    finally:
-                        try:
-                            temp_json.unlink(missing_ok=True)
-                        except Exception:
-                            pass
+                        safe_asset_name = _sanitize_path_part(asset_name) or asset_id
+                        asset_dir = Path(safe_asset_name)
+                        asset_dir.mkdir(parents=True, exist_ok=True)
 
-                    group_downloaded += 1
-                    print(f"✓ Descargado: {output_file}")
+                    # Archivo identificador del asset
+                        name_file = asset_dir / "name.txt"
+                        if not name_file.exists() or args.force:
+                            name_file.write_text(str(asset_name), encoding="utf-8")
+
+                    group_assets += 1
+
+                    # 4) Buscar versiones del asset
+                        versions_url = (
+                            f"{api_host.rstrip('/')}/assets/findAllVersions/{asset_id}"
+                        )
+                        v_response = requests.get(
+                            versions_url,
+                            headers=headers,
+                            cookies=cookies,
+                            verify=verify_ssl,
+                            timeout=30,
+                        )
+                        v_response.raise_for_status()
+                        versions = v_response.json() or []
+
+                        for version_info in tqdm(
+                            versions,
+                            desc=f"Versiones {asset_name}",
+                            unit="ver",
+                            leave=False,
+                        ):
+                            version_id = version_info.get("id")
+                            version_num = version_info.get("version")
+                            if not version_id:
+                                continue
+
+                        group_versions += 1
+
+                            file_name = (
+                                f"v{version_num}.py"
+                                if version_num is not None
+                                else f"{version_id}.py"
+                            )
+                            output_file = asset_dir / file_name
+
+                            if output_file.exists() and not args.force:
+                                group_skipped += 1
+                                print(f"⚠️  Saltando existente: {output_file}")
+                                saved_entries.append(
+                                    f"{asset_name} -> {output_file} (omitido)"
+                                )
+                                continue
+
+                            workflow_url = (
+                                f"{api_host.rstrip('/')}/workflows/download/{version_id}"
+                            )
+                            w_response = requests.get(
+                                workflow_url,
+                                headers=headers,
+                                cookies=cookies,
+                                verify=verify_ssl,
+                                timeout=30,
+                            )
+                            w_response.raise_for_status()
+
+                            try:
+                                workflow_data = w_response.json()
+                            except ValueError as exc:
+                                print(
+                                    f"⚠️  Respuesta inválida al descargar {asset_name} v{version_num}: {exc}"
+                                )
+                                continue
+
+                        # Guardar temporalmente JSON y convertir a Python DSL
+                            temp_json = asset_dir / f"{output_file.stem}.json.tmp"
+                            temp_json.write_text(
+                                json.dumps(workflow_data, ensure_ascii=False, indent=2),
+                                encoding="utf-8",
+                            )
+                            try:
+                                from_json(
+                                    json_file=str(temp_json), output_file=str(output_file)
+                                )
+                            finally:
+                                try:
+                                    temp_json.unlink(missing_ok=True)
+                                except Exception:
+                                    pass
+
+                            group_downloaded += 1
+                            print(f"✓ Descargado: {output_file}")
+                            saved_entries.append(f"{asset_name} -> {output_file}")
+                    except Exception as exc:
+                        error_details.append(
+                            f"Asset {asset_name} ({asset_id}) en {name}: {exc}"
+                        )
+                        print(f"⚠️  Error en asset {asset_name}: {exc}")
+                        continue
+            finally:
+                try:
+                    os.chdir(group_cwd)
+                except Exception:
+                    pass
 
             return group_assets, group_versions, group_downloaded, group_skipped
 
@@ -796,6 +818,8 @@ def cmd_sync(args):
         total_versions = 0
         total_downloaded = 0
         total_skipped = 0
+        error_details = []
+        saved_entries = []
 
         for target in group_targets:
             target_name = target.get("name")
@@ -809,17 +833,45 @@ def cmd_sync(args):
                 print(f"⚠️  No se pudo resolver el ID del grupo '{target_name}'.")
                 continue
 
-            assets, versions, downloaded, skipped = _sync_group(target_name, target_id)
-            total_assets += assets
-            total_versions += versions
-            total_downloaded += downloaded
-            total_skipped += skipped
+            try:
+                assets, versions, downloaded, skipped = _sync_group(
+                    target_name, target_id
+                )
+                total_assets += assets
+                total_versions += versions
+                total_downloaded += downloaded
+                total_skipped += skipped
+            except Exception as exc:
+                error_details.append(f"Grupo {target_name} ({target_id}): {exc}")
+                print(f"⚠️  Error en grupo {target_name}: {exc}")
+                continue
 
         print("\nResumen de sincronización:")
         print(f"  - Assets: {total_assets}")
         print(f"  - Versiones: {total_versions}")
         print(f"  - Descargadas: {total_downloaded}")
         print(f"  - Omitidas: {total_skipped}")
+
+        log_lines = [
+            "Resumen de sincronización:",
+            f"  - Assets: {total_assets}",
+            f"  - Versiones: {total_versions}",
+            f"  - Descargadas: {total_downloaded}",
+            f"  - Omitidas: {total_skipped}",
+        ]
+        if saved_entries:
+            log_lines.append("Archivos:")
+            log_lines.extend(f"  - {item}" for item in saved_entries)
+        if error_details:
+            log_lines.append("Errores:")
+            log_lines.extend(f"  - {item}" for item in error_details)
+
+        try:
+            log_path = Path("sync.log")
+            log_path.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
+            print(f"✓ Log guardado en: {log_path.resolve()}")
+        except Exception as exc:
+            print(f"⚠️  No se pudo escribir el log: {exc}")
 
     except requests.exceptions.RequestException as e:
         print(f"❌ Error al consultar Rocket: {e}")
