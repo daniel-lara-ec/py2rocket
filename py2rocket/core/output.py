@@ -882,12 +882,16 @@ def parquet_output(
     priority: int = 50,
     save_mode: str = "Overwrite",
     save_options: str = "",
+    partition_by: Optional[str] = None,
+    partition_overwrite: Optional[bool] = None,
+    table_name: str = "",
+    check_if_empty: Optional[bool] = None,
     description: str = "",
 ) -> StepResult:
     """
     Define un paso de salida Parquet.
 
-    Escribe datos a archivos Parquet.
+    Escribe datos a archivos Parquet con opciones avanzadas.
 
     Args:
         name: Nombre único del paso
@@ -896,12 +900,38 @@ def parquet_output(
         priority: Prioridad de ejecución
         save_mode: Modo de guardado (Overwrite, Append, Ignore, Error)
         save_options: Opciones adicionales
+        partition_by: Columna para particionar los datos (ej: "tipo")
+        partition_overwrite: Habilitar overwrite de particiones específicas
+        table_name: Nombre de tabla para registrar en el metastore
+        check_if_empty: Validar que el dataset no está vacío antes de guardar
         description: Descripción del propósito de este paso
 
     Returns:
         StepResult del paso output
     """
     pipeline = get_current_pipeline()
+
+    # Construir configuración
+    config = {
+        "path": path,
+        "saveMode": save_mode,
+        "saveOptions": save_options,
+        "debugOptions": {
+            "executeStepAutoDebug": True,
+            "executeStepDebug": True,
+            "mockType": "NoMock",
+        },
+    }
+
+    # Agregar parámetros opcionales si se proporcionan
+    if partition_by:
+        config["partitionBy"] = partition_by
+    if partition_overwrite is not None:
+        config["partitionOverwriteEnabled"] = partition_overwrite
+    if table_name:
+        config["tableName"] = table_name
+    if check_if_empty is not None:
+        config["checkIfEmpty"] = check_if_empty
 
     node = Node(
         name=name,
@@ -912,16 +942,7 @@ def parquet_output(
         execution_engine=ExecutionEngine.HYBRID,
         priority=priority,
         description=description,
-        configuration={
-            "path": path,
-            "saveMode": save_mode,
-            "saveOptions": save_options,
-            "debugOptions": {
-                "executeStepAutoDebug": True,
-                "executeStepDebug": True,
-                "mockType": "NoMock",
-            },
-        },
+        configuration=config,
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 

@@ -910,10 +910,10 @@ CLASS_TO_FUNCTION = {
     "JdbcInputStep": ("jdbc", "py2rocket.core.input"),
     "PostgresInputStep": ("postgres", "py2rocket.core.input"),
     "PySparkInputStep": ("pyspark_input", "py2rocket.core.input"),
-    "ParquetInputStep": ("parquet_input", "py2rocket.core.input"),
-    "DeltaInputStep": ("delta_input", "py2rocket.core.input"),
-    "JsonInputStep": ("json_input", "py2rocket.core.input"),
-    "CsvInputStep": ("csv_input", "py2rocket.core.input"),
+    "ParquetInputStep": ("parquet", "py2rocket.core.input"),
+    "DeltaInputStep": ("delta", "py2rocket.core.input"),
+    "JsonInputStep": ("json", "py2rocket.core.input"),
+    "CsvInputStep": ("csv", "py2rocket.core.input"),
     "FileSystemInputStep": ("filesystem", "py2rocket.core.input"),
     # Transformations
     "TriggerTransformStep": ("trigger", "py2rocket.core.transformation"),
@@ -931,6 +931,7 @@ CLASS_TO_FUNCTION = {
     "BypassTransformStep": ("bypass", "py2rocket.core.transformation"),
     "ByPassStep": ("bypass", "py2rocket.core.transformation"),
     "FilterTransformStep": ("filter", "py2rocket.core.transformation"),
+    "UnionTransformStep": ("union", "py2rocket.core.transformation"),
     "CustomLiteXDTransformStep": (
         "custom_lite_xd_transform",
         "py2rocket.core.transformation",
@@ -951,8 +952,11 @@ CLASS_TO_FUNCTION = {
 }
 
 
-def _sanitize_var_name(name: str) -> str:
-    """Convierte un nombre de nodo a nombre de variable Python válido."""
+def _sanitize_var_name(name: str, imported_functions: Optional[set] = None) -> str:
+    """Convierte un nombre de nodo a nombre de variable Python válido.
+
+    Evita conflictos con nombres de funciones importadas agregando un sufijo.
+    """
     # Reemplazar caracteres no válidos con underscore
     import re
 
@@ -962,6 +966,11 @@ def _sanitize_var_name(name: str) -> str:
         var_name = f"step_{var_name}"
     # Convertir a snake_case y minúsculas
     var_name = var_name.lower()
+
+    # Si hay conflicto con funciones importadas, agregar sufijo
+    if imported_functions and var_name in imported_functions:
+        var_name = f"{var_name}_step"
+
     return var_name
 
 
@@ -1100,9 +1109,20 @@ def from_json(
     for edge in edges:
         dest = edge.get("destination")
         origin = edge.get("origin")
-        if dest not in node_inputs:
-            node_inputs[dest] = []
-        node_inputs[dest].append(origin)
+        data_type = edge.get("dataType", "ValidData")
+
+        # Procesar ValidData (comportamiento por defecto)
+        if data_type == "ValidData":
+            if dest not in node_inputs:
+                node_inputs[dest] = []
+            node_inputs[dest].append(origin)
+
+        # Procesar DiscardedData (datos rechazados por filtros, etc.)
+        elif data_type == "DiscardedData":
+            # Los datos descartados también son inputs válidos para nodos como Union
+            if dest not in node_inputs:
+                node_inputs[dest] = []
+            node_inputs[dest].append(origin)
 
     # 5.5 Función de ordenamiento topológico
     def topological_sort(nodes_to_sort):
@@ -1189,9 +1209,20 @@ def from_json(
             "genAIMetadataColumns",
             "inputSchemas",
             "genAIMetadataTablesDescription",
+            "isSaved",
+            "dataAsJsonEnabled",
+            "inputOptions",
+            "excludeGlobFilter",
+            "excludeRegexFilter",
+            "subdirGlobFilter",
+            "subdirRegexFilter",
+            "readMode",
         }
 
         for key, value in config.items():
+            # Saltar parámetros con puntos (schema.*, etc.)
+            if "." in key:
+                continue
             if key in skip_keys:
                 continue
             if value == "" or value == [] or value == {}:
@@ -1247,6 +1278,55 @@ def from_json(
             elif isinstance(value, dict):
                 args.append(f"{snake_key}={value}")
 
+        # ✅ NUEVO: Procesar OutputsWriter si existe
+        # OutputsWriter se aplica SOLO a nodos Output
+        # El OutputsWriter puede estar en el nodo Output MISMO o en los nodos ORIGEN que apuntan a este Output
+        outputs_writers = []
+
+        if node.get("stepType") == "Output":
+            # Primero obtener OutputsWriter del nodo actual
+            outputs_writers = node.get("outputsWriter", [])
+
+            # Si el nodo Output no tiene OutputsWriter directo, buscar en nodos origen
+            if not outputs_writers and node_name in node_inputs:
+                for source_node_name in node_inputs[node_name]:
+                    # Buscar el nodo fuente en la lista de nodos
+                    for source_node in nodes:
+                        if source_node.get("name") == source_node_name:
+                            source_writers = source_node.get("outputsWriter", [])
+                            if source_writers:
+                                # Buscar el OutputsWriter que apunta a este nodo Output
+                                for writer in source_writers:
+                                    if writer.get("outputStepName") == node_name:
+                                        outputs_writers = [writer]
+                                        break
+                            break
+                    if outputs_writers:
+                        break
+
+            # Aplicar OutputsWriter SOLO si el nodo es Output
+            if outputs_writers:
+                for writer in outputs_writers:
+                    save_mode = writer.get("saveMode")
+                    table_name = writer.get("tableName")
+                    extra_opts = writer.get("extraOptions", {})
+
+                    partition_by = extra_opts.get("partitionBy")
+                    partition_overwrite = extra_opts.get("partitionOverwriteEnabled")
+                    check_if_empty = extra_opts.get("checkIfEmpty")
+
+                    # Agregar parámetros extraídos de OutputsWriter
+                    if save_mode and save_mode.lower() != "append":
+                        args.append(f'save_mode="{save_mode}"')
+                    if table_name:
+                        args.append(f'table_name="{table_name}"')
+                    if partition_by:
+                        args.append(f'partition_by="{partition_by}"')
+                    if partition_overwrite is not None:
+                        args.append(f"partition_overwrite={partition_overwrite}")
+                    if check_if_empty is not None:
+                        args.append(f"check_if_empty={check_if_empty}")
+
         # Agregar inputs si existen
         if node_name in node_inputs:
             input_vars = [var_names[inp] for inp in node_inputs[node_name]]
@@ -1264,9 +1344,18 @@ def from_json(
         return f"    {var_name} = {func_name}(\n        {args_str}\n    )"
 
     # Pre-procesar todos los nodos para llenar var_names
+    # Primero, recopilar todos los nombres de funciones que se importarán
+    imported_functions = set()
+    for node in input_nodes + transform_nodes + output_nodes:
+        class_name = node.get("className")
+        if class_name in CLASS_TO_FUNCTION:
+            func_name, _ = CLASS_TO_FUNCTION[class_name]
+            imported_functions.add(func_name)
+
+    # Ahora sanitizar nombres de variables evitando conflictos
     for node in input_nodes + transform_nodes + output_nodes:
         node_name = node.get("name")
-        var_name = _sanitize_var_name(node_name)
+        var_name = _sanitize_var_name(node_name, imported_functions)
         var_names[node_name] = var_name
 
     # Generar código para cada tipo de nodo

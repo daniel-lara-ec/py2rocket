@@ -936,3 +936,78 @@ def filter(
             pipeline.add_edge(edge)
 
     return StepResult(node, pipeline)
+
+
+def union(
+    name: str,
+    inputs: Union[StepResult, StepResultOutput, List],
+    priority: int = 50,
+    description: str = "",
+) -> StepResult:
+    """
+    Combina múltiples flujos de datos usando UNION ALL.
+
+    Merge de dos o más fuentes de datos con la misma estructura.
+    Combina tanto datos válidos como descartados según su tipo.
+
+    Args:
+        name: Nombre del paso (ej: "UnionDatos")
+        inputs: Lista de StepResult o un único StepResult
+        priority: Prioridad de ejecución (1-100), default 50
+        description: Descripción del paso
+
+    Returns:
+        StepResult con la unión de datos
+
+    Ejemplo:
+        >>> f_datos = filter(name="F_Datos", ...)
+        >>> f_datos2 = filter(name="F_Datos2", ...)
+        >>> union_resultado = union(
+        ...     name="UnionDatos",
+        ...     inputs=[f_datos, f_datos2],
+        ...     priority=50
+        ... )
+    """
+    pipeline = get_current_pipeline()
+
+    # Crear nodo Union
+    node = Node(
+        name=name,
+        step_type=StepType.TRANSFORMATION,
+        class_name="UnionTransformStep",
+        class_pretty_name="Union",
+        execution_engine=ExecutionEngine.HYBRID,
+        arity=["NaryToNary"],
+        priority=priority,
+        description=description,
+        configuration={
+            "priority": str(priority),
+            "genAIMetadataTableDescription": "",
+            "debugOptions": {
+                "executeStepAutoDebug": True,
+                "executeStepDebug": True,
+                "mockType": "NoMock",
+            },
+            "inputSchemas": "",
+            "genAIMetadataColumns": "",
+        },
+        supported_engines=["Streaming", "Batch", "Hybrid"],
+    )
+
+    pipeline.add_node(node)
+
+    # Crear edges desde los inputs
+    if inputs is not None:
+        input_list = inputs if isinstance(inputs, list) else [inputs]
+        for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
+
+            edge = Edge(
+                origin=origin_name,
+                destination=name,
+                data_type=data_relation,
+            )
+
+            pipeline.add_edge(edge)
+
+    return StepResult(node, pipeline)
