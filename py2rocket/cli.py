@@ -605,6 +605,16 @@ def cmd_sync(args):
                     groups.extend(_extract_groups(item))
             return groups
 
+        def _sanitize_parts(parts: list) -> list:
+            return [p for p in (_sanitize_path_part(part) for part in parts) if p]
+
+        root_parts = [p for p in group_name.strip("/\\").split("/") if p]
+        root_base = (
+            _sanitize_path_part(root_parts[-1])
+            if root_parts
+            else _sanitize_path_part(group_name)
+        )
+
         def _sync_group(name: str, group_id: str) -> tuple:
             # 2) Buscar assets del grupo (solo workflows)
             assets_url = f"{api_host.rstrip('/')}/assets/findAllByGroupDto/{group_id}"
@@ -619,12 +629,16 @@ def cmd_sync(args):
             response.raise_for_status()
             assets = response.json() or []
 
-            # 3) Crear jerarquía local del grupo (solo último segmento)
+            # 3) Crear jerarquía local del grupo desde el último segmento del root
             group_parts = [p for p in name.strip("/\\").split("/") if p]
-            if group_parts:
-                group_dir = output_base / _sanitize_path_part(group_parts[-1])
+            rel_parts = group_parts
+            if root_parts and group_parts[: len(root_parts)] == root_parts:
+                rel_parts = group_parts[len(root_parts) :]
+            rel_parts = _sanitize_parts(rel_parts)
+            if rel_parts:
+                group_dir = output_base / root_base / Path(*rel_parts)
             else:
-                group_dir = output_base / _sanitize_path_part(name)
+                group_dir = output_base / root_base
             group_dir.mkdir(parents=True, exist_ok=True)
 
             group_assets = 0

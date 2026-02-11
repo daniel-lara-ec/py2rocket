@@ -16,6 +16,7 @@ import os
 import sys
 import json
 import requests
+import urllib3
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -272,6 +273,8 @@ def build(
         auth_cookie = os.getenv("ROCKET_AUTH_COOKIE")
         if api_host and auth_cookie:
             verify_ssl = _get_verify_ssl_from_env()
+            if not verify_ssl:
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
                 "Accept": "application/json, text/plain, */*",
