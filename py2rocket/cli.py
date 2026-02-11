@@ -561,7 +561,11 @@ def cmd_sync(args):
             print("❌ Error: Debes indicar el nombre del grupo a sincronizar.")
             sys.exit(1)
 
+        original_cwd = Path.cwd()
         output_base = Path(args.output or ".")
+        output_base.mkdir(parents=True, exist_ok=True)
+        os.chdir(output_base)
+        output_base = Path(".")
 
         headers = {
             "Accept": "application/json, text/plain, */*",
@@ -823,6 +827,11 @@ def cmd_sync(args):
     except Exception as e:
         print(f"❌ Error: {e}")
         sys.exit(1)
+    finally:
+        try:
+            os.chdir(original_cwd)
+        except Exception:
+            pass
 
 
 def cmd_from_json(args):
