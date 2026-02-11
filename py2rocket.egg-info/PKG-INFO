@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: py2rocket
-Version: 0.1.21
+Version: 0.1.23
 Summary: DSL para generar pipelines de Stratio Rocket desde Python
 Author: DSL Team
 Project-URL: Homepage, https://github.com/yourusername/py2rocket

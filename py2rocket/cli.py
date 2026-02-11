@@ -23,6 +23,7 @@ from urllib.parse import quote
 from dotenv import load_dotenv
 import requests
 import traceback
+from tqdm import tqdm
 
 from py2rocket import create, build, push, run, pull, download, from_json, __version__
 
@@ -563,13 +564,166 @@ def cmd_sync(args):
         }
         cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
 
+        def _get_group_by_name(name: str) -> Optional[dict]:
+            group_url = f"{api_host.rstrip('/')}/groups/findByName"
+            response = requests.get(
+                group_url,
+                params={"name": name},
+                headers=headers,
+                cookies=cookies,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            response.raise_for_status()
+            return response.json() or {}
+
+        def _extract_groups(payload) -> list:
+            groups = []
+            if isinstance(payload, dict):
+                if payload.get("name"):
+                    groups.append(
+                        {"name": payload.get("name"), "id": payload.get("id")}
+                    )
+                for key in (
+                    "children",
+                    "subGroups",
+                    "subgroups",
+                    "childGroups",
+                    "groupChildren",
+                    "groups",
+                ):
+                    if key in payload:
+                        groups.extend(_extract_groups(payload[key]))
+                for value in payload.values():
+                    if isinstance(value, (list, dict)):
+                        groups.extend(_extract_groups(value))
+            elif isinstance(payload, list):
+                for item in payload:
+                    groups.extend(_extract_groups(item))
+            return groups
+
+        def _sync_group(name: str, group_id: str) -> tuple:
+            # 2) Buscar assets del grupo (solo workflows)
+            assets_url = f"{api_host.rstrip('/')}/assets/findAllByGroupDto/{group_id}"
+            response = requests.get(
+                assets_url,
+                params={"assetType": "Workflow"},
+                headers=headers,
+                cookies=cookies,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            response.raise_for_status()
+            assets = response.json() or []
+
+            # 3) Crear jerarquía local del grupo
+            group_parts = [p for p in name.strip("/\\").split("/") if p]
+            if group_parts:
+                group_dir = output_base / Path(*group_parts)
+            else:
+                group_dir = output_base / _sanitize_path_part(name)
+            group_dir.mkdir(parents=True, exist_ok=True)
+
+            group_assets = 0
+            group_versions = 0
+            group_downloaded = 0
+            group_skipped = 0
+
+            for asset_dto in tqdm(
+                assets,
+                desc=f"Assets {name}",
+                unit="asset",
+            ):
+                workflow_asset = asset_dto.get("workflowAsset")
+                if not workflow_asset:
+                    continue
+
+                asset_id = workflow_asset.get("id")
+                asset_name = workflow_asset.get("name") or asset_id
+                if not asset_id:
+                    continue
+
+                safe_asset_name = _sanitize_path_part(asset_name) or asset_id
+                asset_dir = group_dir / safe_asset_name
+                asset_dir.mkdir(parents=True, exist_ok=True)
+
+                # Archivo identificador del asset
+                name_file = asset_dir / "name.txt"
+                if not name_file.exists() or args.force:
+                    name_file.write_text(str(asset_name), encoding="utf-8")
+
+                group_assets += 1
+
+                # 4) Buscar versiones del asset
+                versions_url = (
+                    f"{api_host.rstrip('/')}/assets/findAllVersions/{asset_id}"
+                )
+                v_response = requests.get(
+                    versions_url,
+                    headers=headers,
+                    cookies=cookies,
+                    verify=verify_ssl,
+                    timeout=30,
+                )
+                v_response.raise_for_status()
+                versions = v_response.json() or []
+
+                for version_info in tqdm(
+                    versions,
+                    desc=f"Versiones {asset_name}",
+                    unit="ver",
+                    leave=False,
+                ):
+                    version_id = version_info.get("id")
+                    version_num = version_info.get("version")
+                    if not version_id:
+                        continue
+
+                    group_versions += 1
+
+                    file_name = (
+                        f"v{version_num}.json"
+                        if version_num is not None
+                        else f"{version_id}.json"
+                    )
+                    output_file = asset_dir / file_name
+
+                    if output_file.exists() and not args.force:
+                        group_skipped += 1
+                        print(f"⚠️  Saltando existente: {output_file}")
+                        continue
+
+                    workflow_url = (
+                        f"{api_host.rstrip('/')}/workflows/download/{version_id}"
+                    )
+                    w_response = requests.get(
+                        workflow_url,
+                        headers=headers,
+                        cookies=cookies,
+                        verify=verify_ssl,
+                        timeout=30,
+                    )
+                    w_response.raise_for_status()
+
+                    try:
+                        workflow_data = w_response.json()
+                    except ValueError as exc:
+                        print(
+                            f"⚠️  Respuesta inválida al descargar {asset_name} v{version_num}: {exc}"
+                        )
+                        continue
+
+                    output_file.write_text(
+                        json.dumps(workflow_data, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
+                    group_downloaded += 1
+                    print(f"✓ Descargado: {output_file}")
+
+            return group_assets, group_versions, group_downloaded, group_skipped
+
         # 1) Encontrar el grupo por nombre (ruta)
-        group_url = f"{api_host.rstrip('/')}/groups/findByName/{quote(group_name)}"
-        response = requests.get(
-            group_url, headers=headers, cookies=cookies, verify=verify_ssl, timeout=30
-        )
-        response.raise_for_status()
-        group_data = response.json()
+        group_data = _get_group_by_name(group_name)
         group_id = group_data.get("id")
         if not group_id:
             print(f"❌ No se encontró el ID del grupo '{group_name}'.")
@@ -577,104 +731,54 @@ def cmd_sync(args):
 
         print(f"✓ Grupo encontrado: {group_id}")
 
-        # 2) Buscar assets del grupo (solo workflows)
-        assets_url = f"{api_host.rstrip('/')}/assets/findAllByGroupDto/{group_id}"
-        response = requests.get(
-            assets_url,
-            params={"assetType": "Workflow"},
-            headers=headers,
-            cookies=cookies,
-            verify=verify_ssl,
-            timeout=30,
-        )
-        response.raise_for_status()
-        assets = response.json() or []
-
-        # 3) Crear jerarquía local del grupo
-        group_parts = [p for p in group_name.strip("/\\").split("/") if p]
-        if group_parts:
-            group_dir = output_base / Path(*group_parts)
-        else:
-            group_dir = output_base / _sanitize_path_part(group_name)
-        group_dir.mkdir(parents=True, exist_ok=True)
+        # 1.1) Buscar subgrupos (recursivo si la API lo permite)
+        group_targets = [{"name": group_name, "id": group_id}]
+        try:
+            subgroups_url = f"{api_host.rstrip('/')}/groups/findSubGroupsByName"
+            sg_response = requests.get(
+                subgroups_url,
+                params={"name": group_name, "onlyFirstLevelChildren": False},
+                headers=headers,
+                cookies=cookies,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            sg_response.raise_for_status()
+            subgroup_payload = sg_response.json()
+            subgroups = _extract_groups(subgroup_payload)
+            seen = {group_name}
+            for sg in subgroups:
+                sg_name = sg.get("name")
+                if not sg_name or sg_name in seen:
+                    continue
+                seen.add(sg_name)
+                group_targets.append({"name": sg_name, "id": sg.get("id")})
+        except requests.exceptions.RequestException:
+            # Si falla, continuar solo con el grupo principal
+            pass
 
         total_assets = 0
         total_versions = 0
         total_downloaded = 0
         total_skipped = 0
 
-        for asset_dto in assets:
-            workflow_asset = asset_dto.get("workflowAsset")
-            if not workflow_asset:
+        for target in group_targets:
+            target_name = target.get("name")
+            target_id = target.get("id")
+            if not target_name:
+                continue
+            if not target_id:
+                resolved = _get_group_by_name(target_name)
+                target_id = resolved.get("id")
+            if not target_id:
+                print(f"⚠️  No se pudo resolver el ID del grupo '{target_name}'.")
                 continue
 
-            asset_id = workflow_asset.get("id")
-            asset_name = workflow_asset.get("name") or asset_id
-            if not asset_id:
-                continue
-
-            safe_asset_name = _sanitize_path_part(asset_name) or asset_id
-            asset_dir = group_dir / safe_asset_name
-            asset_dir.mkdir(parents=True, exist_ok=True)
-
-            total_assets += 1
-
-            # 4) Buscar versiones del asset
-            versions_url = f"{api_host.rstrip('/')}/assets/findAllVersions/{asset_id}"
-            v_response = requests.get(
-                versions_url,
-                headers=headers,
-                cookies=cookies,
-                verify=verify_ssl,
-                timeout=30,
-            )
-            v_response.raise_for_status()
-            versions = v_response.json() or []
-
-            for version_info in versions:
-                version_id = version_info.get("id")
-                version_num = version_info.get("version")
-                if not version_id:
-                    continue
-
-                total_versions += 1
-
-                file_name = (
-                    f"v{version_num}.json"
-                    if version_num is not None
-                    else f"{version_id}.json"
-                )
-                output_file = asset_dir / file_name
-
-                if output_file.exists() and not args.force:
-                    total_skipped += 1
-                    print(f"⚠️  Saltando existente: {output_file}")
-                    continue
-
-                workflow_url = f"{api_host.rstrip('/')}/workflows/download/{version_id}"
-                w_response = requests.get(
-                    workflow_url,
-                    headers=headers,
-                    cookies=cookies,
-                    verify=verify_ssl,
-                    timeout=30,
-                )
-                w_response.raise_for_status()
-
-                try:
-                    workflow_data = w_response.json()
-                except ValueError as exc:
-                    print(
-                        f"⚠️  Respuesta inválida al descargar {asset_name} v{version_num}: {exc}"
-                    )
-                    continue
-
-                output_file.write_text(
-                    json.dumps(workflow_data, ensure_ascii=False, indent=2),
-                    encoding="utf-8",
-                )
-                total_downloaded += 1
-                print(f"✓ Descargado: {output_file}")
+            assets, versions, downloaded, skipped = _sync_group(target_name, target_id)
+            total_assets += assets
+            total_versions += versions
+            total_downloaded += downloaded
+            total_skipped += skipped
 
         print("\nResumen de sincronización:")
         print(f"  - Assets: {total_assets}")
