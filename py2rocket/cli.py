@@ -8,6 +8,7 @@ Comandos disponibles:
     py2rocket run <archivo.json>           - Ejecuta un workflow en Rocket
     py2rocket pull <archivo>               - Descarga workflow desde Rocket
     py2rocket download <workflow-id>       - Descarga workflow por ID desde Rocket
+    py2rocket sync <grupo>                  - Sincroniza assets/workflows de un grupo a local
     py2rocket from-json <archivo.json>     - Convierte JSON a código Python
     py2rocket get-extensions               - Lista extensiones por proyecto
 """
@@ -18,6 +19,7 @@ import json
 import os
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 from dotenv import load_dotenv
 import requests
 import traceback
@@ -39,6 +41,18 @@ def _get_verify_ssl_from_env() -> bool:
     if value in {"0", "false", "no", "n", "off"}:
         return False
     return True
+
+
+def _sanitize_path_part(value: str) -> str:
+    """Sanitiza un segmento para uso en rutas locales."""
+    if value is None:
+        return ""
+    sanitized = value.strip()
+    for sep in filter(None, [os.sep, os.altsep]):
+        sanitized = sanitized.replace(sep, "_")
+    for ch in [":", "*", "?", '"', "<", ">", "|"]:
+        sanitized = sanitized.replace(ch, "_")
+    return sanitized
 
 
 def cmd_create(args):
@@ -521,6 +535,161 @@ def cmd_download(args):
         sys.exit(1)
 
 
+def cmd_sync(args):
+    """Comando: sync - Sincroniza assets/workflows de un grupo hacia una ruta local"""
+    try:
+        api_host = args.url or os.getenv("ROCKET_API_HOST")
+        auth_cookie = args.token or os.getenv("ROCKET_AUTH_COOKIE")
+        if not api_host or not auth_cookie:
+            print(
+                "❌ Error: Configura ROCKET_API_HOST y ROCKET_AUTH_COOKIE en .env o pásalos por argumentos."
+            )
+            sys.exit(1)
+
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+
+        group_name = args.group_name
+        if not group_name:
+            print("❌ Error: Debes indicar el nombre del grupo a sincronizar.")
+            sys.exit(1)
+
+        output_base = Path(args.output or ".")
+
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": "py2rocket/" + __version__,
+        }
+        cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
+
+        # 1) Encontrar el grupo por nombre (ruta)
+        group_url = f"{api_host.rstrip('/')}/groups/findByName/{quote(group_name)}"
+        response = requests.get(
+            group_url, headers=headers, cookies=cookies, verify=verify_ssl, timeout=30
+        )
+        response.raise_for_status()
+        group_data = response.json()
+        group_id = group_data.get("id")
+        if not group_id:
+            print(f"❌ No se encontró el ID del grupo '{group_name}'.")
+            sys.exit(1)
+
+        print(f"✓ Grupo encontrado: {group_id}")
+
+        # 2) Buscar assets del grupo (solo workflows)
+        assets_url = f"{api_host.rstrip('/')}/assets/findAllByGroupDto/{group_id}"
+        response = requests.get(
+            assets_url,
+            params={"assetType": "Workflow"},
+            headers=headers,
+            cookies=cookies,
+            verify=verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        assets = response.json() or []
+
+        # 3) Crear jerarquía local del grupo
+        group_parts = [p for p in group_name.strip("/\\").split("/") if p]
+        if group_parts:
+            group_dir = output_base / Path(*group_parts)
+        else:
+            group_dir = output_base / _sanitize_path_part(group_name)
+        group_dir.mkdir(parents=True, exist_ok=True)
+
+        total_assets = 0
+        total_versions = 0
+        total_downloaded = 0
+        total_skipped = 0
+
+        for asset_dto in assets:
+            workflow_asset = asset_dto.get("workflowAsset")
+            if not workflow_asset:
+                continue
+
+            asset_id = workflow_asset.get("id")
+            asset_name = workflow_asset.get("name") or asset_id
+            if not asset_id:
+                continue
+
+            safe_asset_name = _sanitize_path_part(asset_name) or asset_id
+            asset_dir = group_dir / safe_asset_name
+            asset_dir.mkdir(parents=True, exist_ok=True)
+
+            total_assets += 1
+
+            # 4) Buscar versiones del asset
+            versions_url = f"{api_host.rstrip('/')}/assets/findAllVersions/{asset_id}"
+            v_response = requests.get(
+                versions_url,
+                headers=headers,
+                cookies=cookies,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            v_response.raise_for_status()
+            versions = v_response.json() or []
+
+            for version_info in versions:
+                version_id = version_info.get("id")
+                version_num = version_info.get("version")
+                if not version_id:
+                    continue
+
+                total_versions += 1
+
+                file_name = (
+                    f"v{version_num}.json"
+                    if version_num is not None
+                    else f"{version_id}.json"
+                )
+                output_file = asset_dir / file_name
+
+                if output_file.exists() and not args.force:
+                    total_skipped += 1
+                    print(f"⚠️  Saltando existente: {output_file}")
+                    continue
+
+                workflow_url = f"{api_host.rstrip('/')}/workflows/download/{version_id}"
+                w_response = requests.get(
+                    workflow_url,
+                    headers=headers,
+                    cookies=cookies,
+                    verify=verify_ssl,
+                    timeout=30,
+                )
+                w_response.raise_for_status()
+
+                try:
+                    workflow_data = w_response.json()
+                except ValueError as exc:
+                    print(
+                        f"⚠️  Respuesta inválida al descargar {asset_name} v{version_num}: {exc}"
+                    )
+                    continue
+
+                output_file.write_text(
+                    json.dumps(workflow_data, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                total_downloaded += 1
+                print(f"✓ Descargado: {output_file}")
+
+        print("\nResumen de sincronización:")
+        print(f"  - Assets: {total_assets}")
+        print(f"  - Versiones: {total_versions}")
+        print(f"  - Descargadas: {total_downloaded}")
+        print(f"  - Omitidas: {total_skipped}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error al consultar Rocket: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
 def cmd_from_json(args):
     """Comando: from-json - Convierte JSON de Rocket a código Python"""
     try:
@@ -854,6 +1023,37 @@ def main():
         "--no-verify-ssl", action="store_true", help="No verificar SSL"
     )
     parser_download.set_defaults(func=cmd_download)
+
+    # Comando: sync
+    parser_sync = subparsers.add_parser(
+        "sync", help="Sincroniza assets/workflows de un grupo hacia local"
+    )
+    parser_sync.add_argument(
+        "group_name",
+        help="Nombre del grupo (ruta) a sincronizar, ejemplo: /mi/grupo",
+    )
+    parser_sync.add_argument(
+        "-o",
+        "--output",
+        help="Directorio base de salida (default: carpeta actual)",
+    )
+    parser_sync.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_sync.add_argument(
+        "--token",
+        help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)",
+    )
+    parser_sync.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Forzar sobrescritura sin preguntar",
+    )
+    parser_sync.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_sync.set_defaults(func=cmd_sync)
 
     # Comando: from-json
     parser_from_json = subparsers.add_parser(
