@@ -119,6 +119,8 @@ def cmd_create(args):
             verify_ssl = False
         if not verify_ssl:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Solicitar parámetros interactivos
         name = _prompt_required("Nombre del pipeline", args.name)
