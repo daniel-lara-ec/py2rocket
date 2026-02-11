@@ -668,23 +668,23 @@ def cmd_sync(args):
                         if not workflow_asset:
                             continue
 
-                    asset_id = workflow_asset.get("id")
-                    asset_name = workflow_asset.get("name") or asset_id
-                    if not asset_id:
-                        continue
+                        asset_id = workflow_asset.get("id")
+                        asset_name = workflow_asset.get("name") or asset_id
+                        if not asset_id:
+                            continue
 
                         safe_asset_name = _sanitize_path_part(asset_name) or asset_id
                         asset_dir = Path(safe_asset_name)
                         asset_dir.mkdir(parents=True, exist_ok=True)
 
-                    # Archivo identificador del asset
+                        # Archivo identificador del asset
                         name_file = asset_dir / "name.txt"
                         if not name_file.exists() or args.force:
                             name_file.write_text(str(asset_name), encoding="utf-8")
 
-                    group_assets += 1
+                        group_assets += 1
 
-                    # 4) Buscar versiones del asset
+                        # 4) Buscar versiones del asset
                         versions_url = (
                             f"{api_host.rstrip('/')}/assets/findAllVersions/{asset_id}"
                         )
@@ -709,7 +709,7 @@ def cmd_sync(args):
                             if not version_id:
                                 continue
 
-                        group_versions += 1
+                            group_versions += 1
 
                             file_name = (
                                 f"v{version_num}.py"
@@ -726,9 +726,7 @@ def cmd_sync(args):
                                 )
                                 continue
 
-                            workflow_url = (
-                                f"{api_host.rstrip('/')}/workflows/download/{version_id}"
-                            )
+                            workflow_url = f"{api_host.rstrip('/')}/workflows/download/{version_id}"
                             w_response = requests.get(
                                 workflow_url,
                                 headers=headers,
@@ -746,7 +744,7 @@ def cmd_sync(args):
                                 )
                                 continue
 
-                        # Guardar temporalmente JSON y convertir a Python DSL
+                            # Guardar temporalmente JSON y convertir a Python DSL
                             temp_json = asset_dir / f"{output_file.stem}.json.tmp"
                             temp_json.write_text(
                                 json.dumps(workflow_data, ensure_ascii=False, indent=2),
@@ -754,7 +752,8 @@ def cmd_sync(args):
                             )
                             try:
                                 from_json(
-                                    json_file=str(temp_json), output_file=str(output_file)
+                                    json_file=str(temp_json),
+                                    output_file=str(output_file),
                                 )
                             finally:
                                 try:
