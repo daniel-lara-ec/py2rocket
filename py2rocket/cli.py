@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 import requests
 import traceback
 from tqdm import tqdm
+import urllib3
 
 from py2rocket import create, build, push, run, pull, download, from_json, __version__
 
@@ -116,6 +117,8 @@ def cmd_create(args):
         verify_ssl = _get_verify_ssl_from_env()
         if args.no_verify_ssl:
             verify_ssl = False
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Solicitar parámetros interactivos
         name = _prompt_required("Nombre del pipeline", args.name)
@@ -616,10 +619,10 @@ def cmd_sync(args):
             response.raise_for_status()
             assets = response.json() or []
 
-            # 3) Crear jerarquía local del grupo
+            # 3) Crear jerarquía local del grupo (solo último segmento)
             group_parts = [p for p in name.strip("/\\").split("/") if p]
             if group_parts:
-                group_dir = output_base / Path(*group_parts)
+                group_dir = output_base / _sanitize_path_part(group_parts[-1])
             else:
                 group_dir = output_base / _sanitize_path_part(name)
             group_dir.mkdir(parents=True, exist_ok=True)
@@ -682,9 +685,9 @@ def cmd_sync(args):
                     group_versions += 1
 
                     file_name = (
-                        f"v{version_num}.json"
+                        f"v{version_num}.py"
                         if version_num is not None
-                        else f"{version_id}.json"
+                        else f"{version_id}.py"
                     )
                     output_file = asset_dir / file_name
 
@@ -713,10 +716,22 @@ def cmd_sync(args):
                         )
                         continue
 
-                    output_file.write_text(
+                    # Guardar temporalmente JSON y convertir a Python DSL
+                    temp_json = asset_dir / f"{output_file.stem}.json.tmp"
+                    temp_json.write_text(
                         json.dumps(workflow_data, ensure_ascii=False, indent=2),
                         encoding="utf-8",
                     )
+                    try:
+                        from_json(
+                            json_file=str(temp_json), output_file=str(output_file)
+                        )
+                    finally:
+                        try:
+                            temp_json.unlink(missing_ok=True)
+                        except Exception:
+                            pass
+
                     group_downloaded += 1
                     print(f"✓ Descargado: {output_file}")
 
