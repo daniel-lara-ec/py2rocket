@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py2rocket"
-version = "0.1.27"
+version = "0.1.28"
 description = "DSL para generar pipelines de Stratio Rocket desde Python"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -59,3 +59,6 @@ python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+python_files = ["tests/test_*.py"]

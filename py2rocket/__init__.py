@@ -789,6 +789,7 @@ def pull(
 
 def download(
     workflow_id: str,
+    rocket_url: Optional[str] = None,
     api_token: Optional[str] = None,
     force_overwrite: bool = False,
     verify_ssl: Optional[bool] = None,
@@ -804,6 +805,7 @@ def download(
 
     Args:
         workflow_id: ID del workflow a descargar (UUID)
+        rocket_url: URL de Rocket. Si no se proporciona, usa ROCKET_API_HOST o ROCKET_URL
         api_token: Cookie de autenticación. Si no se proporciona, usa ROCKET_AUTH_COOKIE
         force_overwrite: Si es True, sobrescribe sin preguntar
         verify_ssl: Verificar certificados SSL (default: True)
@@ -830,10 +832,11 @@ def download(
         raise ValueError("workflow_id es requerido")
 
     # 2. Obtener configuración de conexión de variables de entorno
-    rocket_url = os.getenv("ROCKET_API_HOST")
+    if rocket_url is None:
+        rocket_url = os.getenv("ROCKET_API_HOST") or os.getenv("ROCKET_URL")
     if rocket_url is None:
         raise ValueError(
-            "Debe configurar ROCKET_API_HOST en variables de entorno o archivo .env"
+            "Debe configurar ROCKET_API_HOST/ROCKET_URL en variables de entorno o archivo .env"
         )
 
     if api_token is None:
@@ -1281,55 +1284,6 @@ def from_json(
             elif isinstance(value, dict):
                 args.append(f"{snake_key}={value}")
 
-        # ✅ NUEVO: Procesar OutputsWriter si existe
-        # OutputsWriter se aplica SOLO a nodos Output
-        # El OutputsWriter puede estar en el nodo Output MISMO o en los nodos ORIGEN que apuntan a este Output
-        outputs_writers = []
-
-        if node.get("stepType") == "Output":
-            # Primero obtener OutputsWriter del nodo actual
-            outputs_writers = node.get("outputsWriter", [])
-
-            # Si el nodo Output no tiene OutputsWriter directo, buscar en nodos origen
-            if not outputs_writers and node_name in node_inputs:
-                for source_node_name in node_inputs[node_name]:
-                    # Buscar el nodo fuente en la lista de nodos
-                    for source_node in nodes:
-                        if source_node.get("name") == source_node_name:
-                            source_writers = source_node.get("outputsWriter", [])
-                            if source_writers:
-                                # Buscar el OutputsWriter que apunta a este nodo Output
-                                for writer in source_writers:
-                                    if writer.get("outputStepName") == node_name:
-                                        outputs_writers = [writer]
-                                        break
-                            break
-                    if outputs_writers:
-                        break
-
-            # Aplicar OutputsWriter SOLO si el nodo es Output
-            if outputs_writers:
-                for writer in outputs_writers:
-                    save_mode = writer.get("saveMode")
-                    table_name = writer.get("tableName")
-                    extra_opts = writer.get("extraOptions", {})
-
-                    partition_by = extra_opts.get("partitionBy")
-                    partition_overwrite = extra_opts.get("partitionOverwriteEnabled")
-                    check_if_empty = extra_opts.get("checkIfEmpty")
-
-                    # Agregar parámetros extraídos de OutputsWriter
-                    if save_mode and save_mode.lower() != "append":
-                        args.append(f'save_mode="{save_mode}"')
-                    if table_name:
-                        args.append(f'table_name="{table_name}"')
-                    if partition_by:
-                        args.append(f'partition_by="{partition_by}"')
-                    if partition_overwrite is not None:
-                        args.append(f"partition_overwrite={partition_overwrite}")
-                    if check_if_empty is not None:
-                        args.append(f"check_if_empty={check_if_empty}")
-
         # Agregar inputs si existen
         if node_name in node_inputs:
             input_vars = [var_names[inp] for inp in node_inputs[node_name]]
@@ -1344,7 +1298,63 @@ def from_json(
 
         # Generar línea de código
         args_str = ",\n        ".join(args)
-        return f"    {var_name} = {func_name}(\n        {args_str}\n    )"
+        node_line = f"    {var_name} = {func_name}(\n        {args_str}\n    )"
+
+        # Procesar OutputsWriter en el nodo origen usando set_outputs_writer
+        outputs_writers = node.get("outputsWriter", []) or []
+        writer_lines = []
+        for writer in outputs_writers:
+            ow_args = []
+            save_mode = writer.get("saveMode")
+            table_name = writer.get("tableName")
+            discard_table_name = writer.get("discardTableName")
+            extra_opts = writer.get("extraOptions", {}) or {}
+
+            check_if_empty = extra_opts.get("checkIfEmpty")
+            partition_by = extra_opts.get("partitionBy")
+            partition_overwrite = extra_opts.get("partitionOverwriteEnabled")
+            partition_columns = extra_opts.get("partitionColumns")
+            partitions = extra_opts.get("partitions")
+
+            if save_mode:
+                ow_args.append(f'save_mode="{save_mode}"')
+            if table_name:
+                ow_args.append(f'table_name="{table_name}"')
+            if discard_table_name:
+                ow_args.append(f'discard_table_name="{discard_table_name}"')
+            if check_if_empty is not None:
+                ow_args.append(f"check_if_empty={check_if_empty}")
+
+            if isinstance(partition_by, str):
+                parts = [p.strip() for p in partition_by.split(",") if p.strip()]
+                if parts:
+                    ow_args.append(f"partition_by={parts}")
+            elif isinstance(partition_by, list) and partition_by:
+                ow_args.append(f"partition_by={partition_by}")
+
+            if partition_overwrite is not None:
+                ow_args.append(f"partition_overwrite_enabled={partition_overwrite}")
+
+            if isinstance(partition_columns, str):
+                cols = [p.strip() for p in partition_columns.split(",") if p.strip()]
+                if cols:
+                    ow_args.append(f"partition_columns={cols}")
+            elif isinstance(partition_columns, list) and partition_columns:
+                ow_args.append(f"partition_columns={partition_columns}")
+
+            if partitions not in (None, ""):
+                if isinstance(partitions, str) and partitions.isdigit():
+                    partitions = int(partitions)
+                ow_args.append(f"partitions={partitions}")
+
+            if ow_args:
+                writer_lines.append(
+                    f"    {var_name}.set_outputs_writer({', '.join(ow_args)})"
+                )
+
+        if writer_lines:
+            return node_line + "\n" + "\n".join(writer_lines)
+        return node_line
 
     # Pre-procesar todos los nodos para llenar var_names
     # Primero, recopilar todos los nombres de funciones que se importarán
