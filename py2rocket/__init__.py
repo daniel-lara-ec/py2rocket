@@ -28,6 +28,7 @@ __version__ = "0.1.0"
 __all__ = [
     "create",
     "build",
+    "render",
     "push",
     "run",
     "pull",
@@ -227,31 +228,7 @@ def build(
 
     # Cargar pipeline desde archivo si es necesario
     if workflow_file is not None:
-        workflow_path = Path(workflow_file)
-        if not workflow_path.exists():
-            raise FileNotFoundError(f"Archivo no encontrado: {workflow_file}")
-
-        # Ejecutar el archivo para obtener el pipeline
-        import importlib.util
-
-        spec = importlib.util.spec_from_file_location("workflow_module", workflow_path)
-        if spec is None or spec.loader is None:
-            raise ValueError(f"No se pudo cargar el módulo: {workflow_file}")
-
-        module = importlib.util.module_from_spec(spec)
-        sys.modules["workflow_module"] = module
-        spec.loader.exec_module(module)
-
-        # Buscar la función de workflow y ejecutarla
-        for item_name in dir(module):
-            item = getattr(module, item_name)
-            if callable(item) and hasattr(item, "__wrapped__"):
-                # Es una función decorada, ejecutarla para obtener el pipeline
-                pipeline_obj = item()
-                break
-
-        if pipeline_obj is None:
-            raise ValueError(f"No se encontró un pipeline válido en {workflow_file}")
+        pipeline_obj = _load_pipeline_from_workflow(workflow_file)
 
     # Determinar ruta de salida
     if output_path is None:
@@ -329,6 +306,132 @@ def build(
     print(f"  - Motor: {pipeline_obj.execution_engine.value}")
 
     return str(output_path)
+
+
+def render(
+    pipeline_obj: Any = None,
+    workflow_file: Optional[str] = None,
+    output_path: Optional[str] = None,
+    indent: int = 2,
+) -> Dict[str, Any]:
+    """
+    Renderiza un JSON compacto del grafo (nodes/edges) para graficación.
+
+    Args:
+        pipeline_obj: Objeto Pipeline ya construido.
+        workflow_file: Ruta a archivo .py o .json del workflow.
+        output_path: Ruta donde guardar el JSON del grafo (opcional).
+        indent: Indentación del JSON (default: 2)
+
+    Returns:
+        Diccionario con la estructura del grafo: {"nodes": [...], "edges": [...]}.
+    """
+    if pipeline_obj is None and workflow_file is None:
+        raise ValueError("Debe proporcionar 'pipeline_obj' o 'workflow_file'")
+
+    graph: Dict[str, Any]
+
+    if pipeline_obj is None and workflow_file is not None:
+        input_path = Path(workflow_file)
+        if not input_path.exists():
+            raise FileNotFoundError(f"Archivo no encontrado: {workflow_file}")
+
+        if input_path.suffix.lower() == ".json":
+            graph = _graph_from_json(input_path)
+        else:
+            pipeline_obj = _load_pipeline_from_workflow(workflow_file)
+            graph = _graph_from_pipeline(pipeline_obj)
+    else:
+        graph = _graph_from_pipeline(pipeline_obj)
+
+    if output_path:
+        output_file = Path(output_path)
+        output_file.write_text(
+            json.dumps(graph, ensure_ascii=False, indent=indent), encoding="utf-8"
+        )
+
+    return graph
+
+
+def _load_pipeline_from_workflow(workflow_file: str) -> Any:
+    """Carga y ejecuta un archivo .py para extraer el Pipeline decorado."""
+    workflow_path = Path(workflow_file)
+    if not workflow_path.exists():
+        raise FileNotFoundError(f"Archivo no encontrado: {workflow_file}")
+
+    # Ejecutar el archivo para obtener el pipeline
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("workflow_module", workflow_path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"No se pudo cargar el módulo: {workflow_file}")
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["workflow_module"] = module
+    spec.loader.exec_module(module)
+
+    # Buscar la función de workflow y ejecutarla
+    pipeline_obj = None
+    for item_name in dir(module):
+        item = getattr(module, item_name)
+        if callable(item) and hasattr(item, "__wrapped__"):
+            pipeline_obj = item()
+            break
+
+    if pipeline_obj is None:
+        raise ValueError(f"No se encontró un pipeline válido en {workflow_file}")
+
+    return pipeline_obj
+
+
+def _step_type_to_graph_type(step_type: Optional[str]) -> str:
+    if not step_type:
+        return "unknown"
+    mapping = {
+        "Input": "reader",
+        "Transformation": "map",
+        "Output": "writer",
+    }
+    return mapping.get(step_type, str(step_type).lower())
+
+
+def _graph_from_pipeline(pipeline_obj: Any) -> Dict[str, Any]:
+    nodes = []
+    for node in pipeline_obj.nodes:
+        step_type = getattr(node.step_type, "value", str(node.step_type))
+        nodes.append({"id": node.name, "type": _step_type_to_graph_type(step_type)})
+
+    edges = [
+        {"source": edge.origin, "target": edge.destination}
+        for edge in pipeline_obj.edges
+    ]
+
+    return {"nodes": nodes, "edges": edges}
+
+
+def _graph_from_json(json_path: Path) -> Dict[str, Any]:
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    pipeline_graph = payload.get("pipelineGraph", {})
+    nodes_payload = pipeline_graph.get("nodes", [])
+    edges_payload = pipeline_graph.get("edges", [])
+
+    nodes = []
+    for node in nodes_payload:
+        node_id = node.get("name") or node.get("id")
+        if not node_id:
+            continue
+        step_type = node.get("stepType")
+        nodes.append({"id": node_id, "type": _step_type_to_graph_type(step_type)})
+
+    edges = []
+    for edge in edges_payload:
+        origin = edge.get("origin")
+        destination = edge.get("destination")
+        if not origin or not destination:
+            continue
+        edges.append({"source": origin, "target": destination})
+
+    return {"nodes": nodes, "edges": edges}
 
 
 def push(

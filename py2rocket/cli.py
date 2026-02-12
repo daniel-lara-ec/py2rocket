@@ -4,6 +4,7 @@ CLI para py2rocket - Herramienta de línea de comandos
 Comandos disponibles:
     py2rocket create <nombre> [opciones]   - Crea un nuevo workflow
     py2rocket build <archivo.py>           - Compila workflow a JSON
+    py2rocket render <archivo>             - Imprime JSON con grafo (nodes/edges)
     py2rocket push <archivo.json>          - Despliega a Rocket
     py2rocket run <archivo.json>           - Ejecuta un workflow en Rocket
     py2rocket pull <archivo>               - Descarga workflow desde Rocket
@@ -26,7 +27,17 @@ import traceback
 from tqdm import tqdm
 import urllib3
 
-from py2rocket import create, build, push, run, pull, download, from_json, __version__
+from py2rocket import (
+    create,
+    build,
+    render,
+    push,
+    run,
+    pull,
+    download,
+    from_json,
+    __version__,
+)
 
 # Cargar variables de entorno
 load_dotenv()
@@ -322,6 +333,24 @@ def cmd_build(args):
         print(
             f"\n👉 Siguiente paso: revisa {output_path} o despliega con 'py2rocket push'"
         )
+
+    except (FileNotFoundError, ValueError) as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        sys.exit(1)
+
+
+def cmd_render(args):
+    """Comando: render - Genera JSON de grafo (nodes/edges)"""
+    try:
+        graph = render(
+            workflow_file=args.workflow_file,
+            output_path=args.output,
+            indent=args.indent,
+        )
+        print(json.dumps(graph, ensure_ascii=False, indent=args.indent))
 
     except (FileNotFoundError, ValueError) as e:
         print(f"❌ Error: {e}")
@@ -1187,6 +1216,19 @@ def main():
         "-i", "--indent", type=int, default=2, help="Indentación del JSON (default: 2)"
     )
     parser_build.set_defaults(func=cmd_build)
+
+    # Comando: render
+    parser_render = subparsers.add_parser(
+        "render", help="Imprime JSON del grafo (nodes/edges)"
+    )
+    parser_render.add_argument("workflow_file", help="Archivo .py o .json del workflow")
+    parser_render.add_argument(
+        "-o", "--output", help="Ruta del archivo JSON de salida (opcional)"
+    )
+    parser_render.add_argument(
+        "-i", "--indent", type=int, default=2, help="Indentación del JSON (default: 2)"
+    )
+    parser_render.set_defaults(func=cmd_render)
 
     # Comando: push
     parser_push = subparsers.add_parser(
