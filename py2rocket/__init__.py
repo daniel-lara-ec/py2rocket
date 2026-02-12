@@ -983,6 +983,7 @@ def _sanitize_var_name(name: str, imported_functions: Optional[set] = None) -> s
 def from_json(
     json_file: str,
     output_file: Optional[str] = None,
+    asset_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Convierte un JSON de Rocket a código Python DSL.
@@ -993,6 +994,7 @@ def from_json(
     Args:
         json_file: Ruta al archivo JSON del pipeline
         output_file: Ruta del archivo .py de salida (opcional, default: mismo nombre con .py)
+        asset_id: ID del asset asociado al workflow (opcional)
 
     Returns:
         Diccionario con el resultado de la operación
@@ -1030,6 +1032,9 @@ def from_json(
     name = workflow_data.get("name", "imported_workflow")
     execution_engine = workflow_data.get("executionEngine", "Hybrid")
     workflow_id = workflow_data.get("id")
+    # Usar el asset_id pasado como parámetro, o intentar obtenerlo del JSON
+    if not asset_id:
+        asset_id = workflow_data.get("workflowMasterId") or workflow_data.get("assetId")
 
     # Extraer parámetros desde settings
     params = {}
@@ -1405,6 +1410,8 @@ def from_json(
         decorator_args.append(f"params={params}")
     if workflow_id:
         decorator_args.append(f'workflow_id="{workflow_id}"')
+    if asset_id:
+        decorator_args.append(f'asset_id="{asset_id}"')
     if parameters_lists and parameters_lists != [
         "Environment",
         "SparkResources",

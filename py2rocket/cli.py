@@ -800,6 +800,7 @@ def cmd_sync(args):
                                 from_json(
                                     json_file=str(temp_json),
                                     output_file=str(output_file),
+                                    asset_id=asset_id,
                                 )
                             finally:
                                 try:
