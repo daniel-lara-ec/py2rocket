@@ -1011,3 +1011,61 @@ def union(
             pipeline.add_edge(edge)
 
     return StepResult(node, pipeline)
+
+
+def ml_model(
+    name: str,
+    inputs: Optional[Union[StepResult, List[StepResult]]] = None,
+    ml_model_loading_from_type: str = "MlModelFromAsset",
+    prediction_column_name: str = "",
+    prediction_column_type: str = "StringType",
+    ml_model_aux: str = "",
+    ml_project_model_settings: bool = False,
+    postgres_timeout_seconds: str = "180",
+    enable_post_processing: bool = False,
+    priority: int = 50,
+    description: str = "",
+) -> StepResult:
+    """
+    Define un paso de transformación MlModel.
+    """
+    pipeline = get_current_pipeline()
+
+    node = Node(
+        name=name,
+        step_type=StepType.TRANSFORMATION,
+        class_name="MlModelTransformStep",
+        class_pretty_name="MlModel",
+        arity=["UnaryOrBinaryToNary"],
+        execution_engine=ExecutionEngine.HYBRID,
+        priority=priority,
+        description=description,
+        configuration={
+            "mlModelLoadingFromType": ml_model_loading_from_type,
+            "predictionColumnName": prediction_column_name,
+            "predictionColumnType": prediction_column_type,
+            "MlModelAux": ml_model_aux,
+            "mlProjectModelSettings": ml_project_model_settings,
+            "postgresTimeoutSeconds": postgres_timeout_seconds,
+            "enablePostProcessing": enable_post_processing,
+            "genAIMetadataTableDescription": "",
+            "inputSchemas": "",
+            "genAIMetadataColumns": "",
+        },
+        supported_engines=["Batch", "Hybrid", "Streaming"],
+    )
+
+    pipeline.add_node(node)
+
+    if inputs is not None:
+        input_list = inputs if isinstance(inputs, list) else [inputs]
+        for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
+            edge = Edge(
+                origin=origin_name,
+                destination=name,
+                data_type=data_relation,
+            )
+            pipeline.add_edge(edge)
+
+    return StepResult(node, pipeline)

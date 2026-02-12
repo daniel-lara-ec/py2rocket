@@ -11,6 +11,7 @@ El compiler:
 
 import json
 import uuid
+from copy import deepcopy
 from datetime import datetime
 from typing import Dict, Any
 from py2rocket.core.pipeline import Pipeline
@@ -231,10 +232,12 @@ class RocketCompiler:
         x_spacing = 170
 
         for i, node in enumerate(nodes):
-            node["uiConfiguration"] = {
-                "position": {"x": x_start + (i * x_spacing), "y": y_base}
-            }
-            node["lastModified"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            if "uiConfiguration" not in node:
+                node["uiConfiguration"] = {
+                    "position": {"x": x_start + (i * x_spacing), "y": y_base}
+                }
+            if "lastModified" not in node:
+                node["lastModified"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
         return nodes
 
@@ -248,23 +251,73 @@ class RocketCompiler:
         # Obtener la estructura base del pipeline
         pipeline_dict = self.pipeline.to_dict()
 
-        # Añadir posiciones UI a los nodos
+        # Añadir posiciones UI a los nodos (solo si no existen)
         pipeline_dict["pipelineGraph"]["nodes"] = self._add_ui_positions(
             pipeline_dict["pipelineGraph"]["nodes"]
         )
 
+        # Reordenar nodos y edges si se proporcionó orden original
+        if getattr(self.pipeline, "raw_nodes_order", None):
+            node_map = {
+                n.get("name"): n for n in pipeline_dict["pipelineGraph"]["nodes"]
+            }
+            ordered_nodes = [
+                node_map[name]
+                for name in self.pipeline.raw_nodes_order
+                if name in node_map
+            ]
+            remaining = [
+                n
+                for n in pipeline_dict["pipelineGraph"]["nodes"]
+                if n.get("name") not in self.pipeline.raw_nodes_order
+            ]
+            pipeline_dict["pipelineGraph"]["nodes"] = ordered_nodes + remaining
+
+        if getattr(self.pipeline, "raw_edges_order", None):
+            edge_map = {
+                (e.get("origin"), e.get("destination"), e.get("dataType")): e
+                for e in pipeline_dict["pipelineGraph"]["edges"]
+            }
+            ordered_edges = []
+            for edge in self.pipeline.raw_edges_order:
+                key = (
+                    edge.get("origin"),
+                    edge.get("destination"),
+                    edge.get("dataType"),
+                )
+                if key in edge_map:
+                    ordered_edges.append(edge_map[key])
+            remaining_edges = [
+                e
+                for e in pipeline_dict["pipelineGraph"]["edges"]
+                if (e.get("origin"), e.get("destination"), e.get("dataType"))
+                not in {
+                    (ed.get("origin"), ed.get("destination"), ed.get("dataType"))
+                    for ed in self.pipeline.raw_edges_order
+                }
+            ]
+            pipeline_dict["pipelineGraph"]["edges"] = ordered_edges + remaining_edges
+
         # Construir el JSON completo
         now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        use_raw_settings = bool(getattr(self.pipeline, "raw_settings", None))
+        settings = (
+            deepcopy(self.pipeline.raw_settings)
+            if use_raw_settings
+            else deepcopy(self.STANDARD_SETTINGS)
+        )
 
         rocket_json = {
             "id": self.pipeline.workflow_id or str(uuid.uuid4()),
             "name": self.pipeline.name,
             "description": self.pipeline.description,
-            "settings": self.STANDARD_SETTINGS.copy(),
+            "settings": settings,
             "pipelineGraph": pipeline_dict["pipelineGraph"],
             "executionEngine": self.pipeline.execution_engine.value,
             "workflowType": "SpartaWorkflow",
-            "uiSettings": {
+            "uiSettings": getattr(self.pipeline, "raw_ui_settings", None)
+            or {
                 "position": {"x": -2083.536303142103, "y": -859.7024044750958, "k": 4.0}
             },
             "creationDate": now,
@@ -280,16 +333,18 @@ class RocketCompiler:
             "isHybridStreaming": False,
         }
 
-        # Añadir listas de parámetros adicionales
-        if getattr(self.pipeline, "parameters_lists", None):
+        # Añadir listas de parámetros adicionales (solo si no hay settings crudos)
+        if not use_raw_settings and getattr(self.pipeline, "parameters_lists", None):
             base_lists = rocket_json["settings"]["global"]["parametersLists"]
             extra_lists = [p for p in self.pipeline.parameters_lists if p]
             rocket_json["settings"]["global"]["parametersLists"] = list(
                 dict.fromkeys(base_lists + extra_lists)
             )
 
-        # Agregar sentencias SQL de pre-ejecución
-        if getattr(self.pipeline, "pre_execution_sql_sentences", None):
+        # Agregar sentencias SQL de pre-ejecución (solo si no hay settings crudos)
+        if not use_raw_settings and getattr(
+            self.pipeline, "pre_execution_sql_sentences", None
+        ):
             sql_sentences = [
                 {"sentence": sentence}
                 for sentence in self.pipeline.pre_execution_sql_sentences
@@ -299,18 +354,18 @@ class RocketCompiler:
                 "preExecutionSqlSentences"
             ] = sql_sentences
 
-        # Agregar UDFs a registrar
-        if getattr(self.pipeline, "udfs_to_register", None):
+        # Agregar UDFs a registrar (solo si no hay settings crudos)
+        if not use_raw_settings and getattr(self.pipeline, "udfs_to_register", None):
             udfs = [{"name": udf} for udf in self.pipeline.udfs_to_register if udf]
             rocket_json["settings"]["global"]["sqlSettings"]["udfsToRegister"] = udfs
 
-        # Agregar UDAFs a registrar
-        if getattr(self.pipeline, "udafs_to_register", None):
+        # Agregar UDAFs a registrar (solo si no hay settings crudos)
+        if not use_raw_settings and getattr(self.pipeline, "udafs_to_register", None):
             udafs = [{"name": udaf} for udaf in self.pipeline.udafs_to_register if udaf]
             rocket_json["settings"]["global"]["sqlSettings"]["udafsToRegister"] = udafs
 
-        # Agregar configuraciones Spark personalizadas
-        if getattr(self.pipeline, "user_spark_conf", None):
+        # Agregar configuraciones Spark personalizadas (solo si no hay settings crudos)
+        if not use_raw_settings and getattr(self.pipeline, "user_spark_conf", None):
             spark_conf = [
                 {"sparkConfKey": key, "sparkConfValue": value}
                 for key, value in self.pipeline.user_spark_conf.items()
@@ -329,13 +384,39 @@ class RocketCompiler:
         if getattr(self.pipeline, "asset_id", None):
             rocket_json["workflowMasterId"] = self.pipeline.asset_id
 
-        # Añadir parámetros usados
-        rocket_json["settings"]["global"][
-            "parametersUsed"
-        ] = self._extract_parameters_used()
-        rocket_json["settings"]["global"]["parametersSettings"] = {
-            "userDefinedParameters": self._build_user_parameters()
-        }
+        # Añadir parámetros usados (solo si no hay settings crudos)
+        if not use_raw_settings:
+            rocket_json["settings"]["global"][
+                "parametersUsed"
+            ] = self._extract_parameters_used()
+            rocket_json["settings"]["global"]["parametersSettings"] = {
+                "userDefinedParameters": self._build_user_parameters()
+            }
+
+        # Incluir metadatos crudos si existen
+        raw_metadata = getattr(self.pipeline, "raw_metadata", None) or {}
+        if raw_metadata:
+            allowed_keys = {
+                "group",
+                "groupId",
+                "projectId",
+                "versionSparta",
+                "creationDate",
+                "lastUpdateDate",
+                "version",
+                "readOnly",
+                "releaseInProgress",
+                "tags",
+                "debugMode",
+                "debugAsExecutionMaybe",
+                "normalizedName",
+                "isHybridStreaming",
+                "workflowType",
+                "workflowMasterId",
+            }
+            for key, value in raw_metadata.items():
+                if key in allowed_keys:
+                    rocket_json[key] = value
 
         return rocket_json
 

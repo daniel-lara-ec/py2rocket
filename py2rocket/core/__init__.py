@@ -25,6 +25,8 @@ from py2rocket.core.input import (
     filesystem,
     pyspark_input,
     custom_lite_xd,
+    sftp_input,
+    test_input,
 )
 
 # Importar operaciones de los módulos específicos - Transformation
@@ -40,6 +42,7 @@ from py2rocket.core.transformation import (
     trigger,
     filter,
     custom_lite_xd_transform,
+    ml_model,
 )
 
 # Importar operaciones de los módulos específicos - Output
@@ -85,6 +88,9 @@ __all__ = [
     "pyspark_input",
     # Input operations - CustomMade
     "custom_lite_xd",
+    # Input operations - Special
+    "sftp_input",
+    "test_input",
     # Transformation operations - Column operations
     "add_columns",
     "drop_columns",
@@ -101,6 +107,8 @@ __all__ = [
     "trigger",
     # Transformation operations - CustomMade
     "custom_lite_xd_transform",
+    # Transformation operations - MlModel
+    "ml_model",
     # Output operations - Database
     "jdbc_output",
     "postgres_output",

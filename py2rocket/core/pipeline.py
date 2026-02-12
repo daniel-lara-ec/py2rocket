@@ -71,27 +71,48 @@ class Node:
     supported_data_relations: List[str] = field(default_factory=lambda: ["ValidData"])
     description: str = ""
     outputs_writer: List[Dict[str, Any]] = field(default_factory=list)
+    ui_configuration: Optional[Dict[str, Any]] = None
+    lineage_properties: List[Any] = field(default_factory=list)
+    last_modified: Optional[str] = None
+    include_debug_options: bool = True
+    include_supported_data_relations: bool = True
+    include_description: bool = True
 
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el nodo a formato diccionario para serialización JSON"""
-        return {
+        config = {
+            "priority": str(self.priority),
+            **self.configuration,
+        }
+        if self.include_debug_options and "debugOptions" not in config:
+            config["debugOptions"] = '{"executeStepAutoDebug":true}'
+
+        node_dict = {
             "name": self.name,
             "stepType": self.step_type.value,
             "className": self.class_name,
             "classPrettyName": self.class_pretty_name,
             "arity": self.arity,
             "description": self.description,
-            "configuration": {
-                "priority": str(self.priority),
-                "debugOptions": '{"executeStepAutoDebug":true}',
-                **self.configuration,
-            },
+            "configuration": config,
             "supportedEngines": self.supported_engines,
             "executionEngine": self.execution_engine.value,
             "supportedDataRelations": self.supported_data_relations,
-            "lineageProperties": [],
+            "lineageProperties": self.lineage_properties,
             "outputsWriter": self.outputs_writer,
         }
+
+        if not self.include_supported_data_relations:
+            node_dict.pop("supportedDataRelations", None)
+        if not self.include_description:
+            node_dict.pop("description", None)
+
+        if self.ui_configuration is not None:
+            node_dict["uiConfiguration"] = self.ui_configuration
+        if self.last_modified:
+            node_dict["lastModified"] = self.last_modified
+
+        return node_dict
 
 
 @dataclass
@@ -164,6 +185,13 @@ class Pipeline:
     user_spark_conf: Dict[str, str] = field(default_factory=dict)
     plugins: List[str] = field(default_factory=list)
     user_plugins_jars: List[Dict[str, str]] = field(default_factory=list)
+    raw_settings: Optional[Dict[str, Any]] = None
+    raw_ui_settings: Optional[Dict[str, Any]] = None
+    raw_metadata: Dict[str, Any] = field(default_factory=dict)
+    annotations: List[Any] = field(default_factory=list)
+    node_groups: List[Any] = field(default_factory=list)
+    raw_nodes_order: Optional[List[str]] = None
+    raw_edges_order: Optional[List[Dict[str, Any]]] = None
 
     def add_node(self, node: Node) -> None:
         """Añade un nodo al pipeline"""
@@ -232,8 +260,8 @@ class Pipeline:
             "pipelineGraph": {
                 "nodes": [node.to_dict() for node in self.nodes],
                 "edges": [edge.to_dict() for edge in self.edges],
-                "annotations": [],
-                "nodeGroups": [],
+                "annotations": self.annotations,
+                "nodeGroups": self.node_groups,
             },
             "parameters": self.parameters,
         }

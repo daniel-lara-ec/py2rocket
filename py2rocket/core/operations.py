@@ -29,6 +29,9 @@ from py2rocket.core.input import (
     pyspark_input,
     # CustomMade inputs
     custom_lite_xd,
+    # Special inputs
+    sftp_input,
+    test_input,
     get_current_pipeline as _get_current_pipeline_input,
     set_current_pipeline as _set_current_pipeline_input,
 )
@@ -50,6 +53,8 @@ from py2rocket.core.transformation import (
     trigger,
     # CustomMade operations
     custom_lite_xd_transform,
+    # MlModel operations
+    ml_model,
     get_current_pipeline as _get_current_pipeline_transform,
     set_current_pipeline as _set_current_pipeline_transform,
 )
@@ -124,6 +129,9 @@ __all__ = [
     "pyspark_input",
     # Input operations - CustomMade
     "custom_lite_xd",
+    # Input operations - Special
+    "sftp_input",
+    "test_input",
     # Transformation operations - Column operations
     "add_columns",
     "drop_columns",
@@ -140,6 +148,8 @@ __all__ = [
     "trigger",
     # Transformation operations - CustomMade
     "custom_lite_xd_transform",
+    # Transformation operations - MlModel
+    "ml_model",
     # Output operations - Database
     "jdbc_output",
     "postgres_output",

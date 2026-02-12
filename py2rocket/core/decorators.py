@@ -45,6 +45,14 @@ def pipeline(
     udafs_to_register: Optional[list] = None,
     user_spark_conf: Optional[dict] = None,
     plugins: Optional[list] = None,
+    raw_settings: Optional[Dict[str, Any]] = None,
+    raw_ui_settings: Optional[Dict[str, Any]] = None,
+    raw_metadata: Optional[Dict[str, Any]] = None,
+    annotations: Optional[list] = None,
+    node_groups: Optional[list] = None,
+    raw_nodes_order: Optional[list] = None,
+    raw_edges_order: Optional[list] = None,
+    skip_validation: bool = False,
 ) -> Callable:
     """
     Decorator para definir un pipeline de Stratio Rocket.
@@ -66,6 +74,14 @@ def pipeline(
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
         user_spark_conf: Diccionario de configuraciones Spark personalizadas
         plugins: Lista de nombres de plugins a incluir en el build
+        raw_settings: Settings completos del JSON original (opcional)
+        raw_ui_settings: uiSettings del JSON original (opcional)
+        raw_metadata: Metadatos de primer nivel del JSON original (opcional)
+        annotations: Annotations del pipelineGraph (opcional)
+        node_groups: NodeGroups del pipelineGraph (opcional)
+        raw_nodes_order: Orden original de nodos (opcional)
+        raw_edges_order: Orden original de edges (opcional)
+        skip_validation: Omitir validación del pipeline (opcional)
 
     Returns:
         Función decorada que retorna un objeto Pipeline
@@ -116,6 +132,13 @@ def pipeline(
                 udafs_to_register=udafs_to_register or [],
                 user_spark_conf=user_spark_conf or {},
                 plugins=plugins or [],
+                raw_settings=raw_settings,
+                raw_ui_settings=raw_ui_settings,
+                raw_metadata=raw_metadata or {},
+                annotations=annotations or [],
+                node_groups=node_groups or [],
+                raw_nodes_order=raw_nodes_order,
+                raw_edges_order=raw_edges_order,
             )
 
             # Establecer como pipeline activo
@@ -125,7 +148,8 @@ def pipeline(
             func(*args, **kwargs)
 
             # Validar el pipeline
-            pipe.validate()
+            if not skip_validation:
+                pipe.validate()
 
             return pipe
 

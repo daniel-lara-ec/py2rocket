@@ -597,8 +597,18 @@ def run(
     rocket_url: Optional[str] = None,
     api_token: Optional[str] = None,
     instance: str = "XS",
+    params_lists: Optional[list] = None,
+    params_lists_file: Optional[str] = None,
     extra_params_file: Optional[str] = None,
     extra_params: Optional[list] = None,
+    execution_name: str = "",
+    execution_description: str = "",
+    execution_priority: int = 0,
+    force_execution_if_available_resources: bool = False,
+    retry_unsuccessful_writes: bool = False,
+    max_attempts: int = 0,
+    attempts_conditions: Optional[list] = None,
+    extended_audit_info: bool = False,
     verify_ssl: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
@@ -614,8 +624,18 @@ def run(
         rocket_url: URL base de Rocket (ej: https://rocket.example.com)
         api_token: Cookie de autenticación. Si no se proporciona, usa ROCKET_AUTH_COOKIE
         instance: Instancia de ejecución a añadir a paramsLists (default: XS)
+        params_lists: Lista explícita de paramsLists (sobrescribe el JSON)
+        params_lists_file: Ruta a JSON con lista de paramsLists
         extra_params_file: Ruta a un JSON con lista de parámetros extra
         extra_params: Lista de parámetros extra (sobrescribe extra_params_file si se provee)
+        execution_name: Nombre de ejecución
+        execution_description: Descripción de ejecución
+        execution_priority: Prioridad de ejecución (int)
+        force_execution_if_available_resources: Forzar ejecución si hay recursos disponibles
+        retry_unsuccessful_writes: Reintentar escrituras fallidas
+        max_attempts: Máximo de intentos
+        attempts_conditions: Lista de condiciones de reintento
+        extended_audit_info: Activar auditoría extendida
         verify_ssl: Verificar certificados SSL (default: True)
 
     Returns:
@@ -637,12 +657,29 @@ def run(
     except json.JSONDecodeError as exc:
         raise ValueError(f"JSON inválido en {json_file}: {exc}") from exc
 
-    # 2. Obtener parametersLists del JSON
-    parameters_lists = (
-        pipeline_data.get("settings", {}).get("global", {}).get("parametersLists", [])
-    )
+    # 2. Obtener paramsLists
+    parameters_lists = None
+    if params_lists is not None:
+        parameters_lists = params_lists
+    elif params_lists_file:
+        params_path = Path(params_lists_file)
+        if not params_path.exists():
+            raise FileNotFoundError(
+                f"Archivo de paramsLists no encontrado: {params_lists_file}"
+            )
+        try:
+            parameters_lists = json.loads(params_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"JSON inválido en {params_lists_file}: {exc}") from exc
+    else:
+        parameters_lists = (
+            pipeline_data.get("settings", {})
+            .get("global", {})
+            .get("parametersLists", [])
+        )
+
     if not isinstance(parameters_lists, list):
-        parameters_lists = []
+        raise ValueError("paramsLists debe ser una lista de strings")
 
     if instance:
         parameters_lists = list(parameters_lists)
@@ -656,10 +693,27 @@ def run(
     if project_id is None:
         project_id = os.getenv("PROJECT_ID")
 
+    missing_required = []
     if not project_id:
-        raise ValueError("Debe proporcionar 'project_id' o configurar PROJECT_ID")
+        missing_required.append("project_id")
     if not workflow_id:
-        raise ValueError("Debe proporcionar 'workflow_id' o que exista 'id' en el JSON")
+        missing_required.append("workflow_id")
+
+    # 5. Validar configuración de API
+    if rocket_url is None:
+        rocket_url = os.getenv("ROCKET_API_HOST", "")
+    if api_token is None:
+        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+
+    if not rocket_url:
+        missing_required.append("rocket_url")
+    if not api_token:
+        missing_required.append("api_token")
+
+    if missing_required:
+        raise ValueError(
+            "Faltan parámetros requeridos para ejecutar: " + ", ".join(missing_required)
+        )
 
     # 4. extra_params
     if extra_params is None:
@@ -681,18 +735,17 @@ def run(
     if not isinstance(extra_params, list):
         raise ValueError("extraParams debe ser una lista de diccionarios")
 
-    # 5. Validar configuración de API
-    if rocket_url is None:
-        rocket_url = os.getenv("ROCKET_API_HOST", "")
-    if api_token is None:
-        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+    for item in extra_params:
+        if not isinstance(item, dict) or "name" not in item or "value" not in item:
+            raise ValueError(
+                "Cada item de extraParams debe ser un dict con 'name' y 'value'"
+            )
 
-    if not rocket_url:
-        raise ValueError("Debe proporcionar 'rocket_url' o configurar ROCKET_API_HOST")
-    if not api_token:
-        raise ValueError(
-            "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
-        )
+    if attempts_conditions is None:
+        attempts_conditions = []
+    if not isinstance(attempts_conditions, list):
+        raise ValueError("attemptsConditions debe ser una lista")
+
     if verify_ssl is None:
         verify_ssl = _get_verify_ssl_from_env()
 
@@ -722,14 +775,18 @@ def run(
             "extraParams": extra_params,
         },
         "executionSettings": {
-            "name": "",
-            "description": "",
-            "executionPriority": 0,
-            "forceExecutionIfAvailableResources": False,
-            "retryUnsuccessfulWrites": False,
-            "maxAttempts": 0,
-            "attemptsConditions": [],
-            "governanceSettings": {"qualityRuleSettings": {"extendedAuditInfo": False}},
+            "name": execution_name or "",
+            "description": execution_description or "",
+            "executionPriority": int(execution_priority),
+            "forceExecutionIfAvailableResources": bool(
+                force_execution_if_available_resources
+            ),
+            "retryUnsuccessfulWrites": bool(retry_unsuccessful_writes),
+            "maxAttempts": int(max_attempts),
+            "attemptsConditions": attempts_conditions,
+            "governanceSettings": {
+                "qualityRuleSettings": {"extendedAuditInfo": bool(extended_audit_info)}
+            },
         },
     }
 
@@ -1024,6 +1081,8 @@ CLASS_TO_FUNCTION = {
     "JsonInputStep": ("json", "py2rocket.core.input"),
     "CsvInputStep": ("csv", "py2rocket.core.input"),
     "FileSystemInputStep": ("filesystem", "py2rocket.core.input"),
+    "SFTPInputStep": ("sftp_input", "py2rocket.core.input"),
+    "TestInputStep": ("test_input", "py2rocket.core.input"),
     # Transformations
     "TriggerTransformStep": ("trigger", "py2rocket.core.transformation"),
     "PySparkTransformStep": ("pyspark", "py2rocket.core.transformation"),
@@ -1041,6 +1100,7 @@ CLASS_TO_FUNCTION = {
     "ByPassStep": ("bypass", "py2rocket.core.transformation"),
     "FilterTransformStep": ("filter", "py2rocket.core.transformation"),
     "UnionTransformStep": ("union", "py2rocket.core.transformation"),
+    "MlModelTransformStep": ("ml_model", "py2rocket.core.transformation"),
     "CustomLiteXDTransformStep": (
         "custom_lite_xd_transform",
         "py2rocket.core.transformation",
@@ -1144,12 +1204,46 @@ def from_json(
     settings = workflow_data.get("settings", {})
     global_settings = settings.get("global", {})
     parameters_lists = global_settings.get("parametersLists", [])
+    user_defined_params = global_settings.get("parametersSettings", {}).get(
+        "userDefinedParameters", []
+    )
+    if isinstance(user_defined_params, list):
+        for entry in user_defined_params:
+            if isinstance(entry, dict):
+                key = entry.get("customParameterName")
+                val = entry.get("customParameterValue")
+                if key:
+                    params[key] = val
     project_id = (
         workflow_data.get("projectId")
         or workflow_data.get("project_id")
         or global_settings.get("projectId")
         or global_settings.get("project_id")
     )
+    group_id = workflow_data.get("groupId")
+
+    raw_ui_settings = workflow_data.get("uiSettings")
+    raw_metadata_keys = [
+        "group",
+        "groupId",
+        "projectId",
+        "versionSparta",
+        "creationDate",
+        "lastUpdateDate",
+        "version",
+        "readOnly",
+        "releaseInProgress",
+        "tags",
+        "debugMode",
+        "debugAsExecutionMaybe",
+        "normalizedName",
+        "isHybridStreaming",
+        "workflowType",
+        "workflowMasterId",
+    ]
+    raw_metadata = {
+        k: workflow_data.get(k) for k in raw_metadata_keys if k in workflow_data
+    }
     user_plugins_jars = global_settings.get("userPluginsJars", [])
     plugins = []
     if project_id and user_plugins_jars:
@@ -1229,14 +1323,14 @@ def from_json(
         if data_type == "ValidData":
             if dest not in node_inputs:
                 node_inputs[dest] = []
-            node_inputs[dest].append(origin)
+            node_inputs[dest].append((origin, data_type))
 
         # Procesar DiscardedData (datos rechazados por filtros, etc.)
         elif data_type == "DiscardedData":
             # Los datos descartados también son inputs válidos para nodos como Union
             if dest not in node_inputs:
                 node_inputs[dest] = []
-            node_inputs[dest].append(origin)
+            node_inputs[dest].append((origin, data_type))
 
     # 5.5 Función de ordenamiento topológico
     def topological_sort(nodes_to_sort):
@@ -1256,8 +1350,8 @@ def from_json(
 
             # Primero visitar las dependencias
             if node_name in node_inputs:
-                for dep in node_inputs[node_name]:
-                    visit(dep)
+                for dep_name, _ in node_inputs[node_name]:
+                    visit(dep_name)
 
             visiting.remove(node_name)
             visited.add(node_name)
@@ -1286,6 +1380,7 @@ def from_json(
     # 6. Generar código Python
     imports = set()
     imports.add("from py2rocket import pipeline, build")
+    imports.add("from py2rocket.core.pipeline import ExecutionEngine, StepType")
 
     code_lines = []
     var_names = {}  # Map node name -> variable name
@@ -1315,36 +1410,25 @@ def from_json(
         # Construir argumentos
         args = [f'name="{node_name}"']
 
-        # Agregar configuración relevante (filtrar debugOptions y defaults)
-        skip_keys = {
-            "priority",
-            "debugOptions",
-            "genAIMetadataTableDescription",
-            "genAIMetadataColumns",
-            "inputSchemas",
-            "genAIMetadataTablesDescription",
-            "isSaved",
-            "dataAsJsonEnabled",
-            "inputOptions",
-            "excludeGlobFilter",
-            "excludeRegexFilter",
-            "subdirGlobFilter",
-            "subdirRegexFilter",
-            "readMode",
+        # Detectar argumentos válidos de la función DSL
+        import importlib
+        import inspect
+
+        func_obj = getattr(importlib.import_module(module), func_name)
+        sig = inspect.signature(func_obj)
+        valid_params = set(sig.parameters.keys())
+        valid_params.discard("name")
+        valid_params.discard("inputs")
+        valid_params.discard("priority")
+        valid_params.discard("description")
+
+        required_params = {
+            k
+            for k, p in sig.parameters.items()
+            if p.default is inspect._empty and k not in {"name", "inputs"}
         }
 
         for key, value in config.items():
-            # Saltar parámetros con puntos (schema.*, etc.)
-            if "." in key:
-                continue
-            if key in skip_keys:
-                continue
-            if value == "" or value == [] or value == {}:
-                continue
-            # Omitir valores por defecto conocidos
-            if key in DEFAULT_VALUES and value == DEFAULT_VALUES[key]:
-                continue
-
             # Convertir clave de camelCase a snake_case
             import re
 
@@ -1352,9 +1436,23 @@ def from_json(
             snake_key = re.sub("([a-z0-9])([A-Z])", r"\1_\2", snake_key)
             snake_key = snake_key.lower()
 
+            # Omitir valores vacíos excepto si son obligatorios
+            if value == "" or value == [] or value == {}:
+                if snake_key not in required_params:
+                    continue
+
+            alias_map = {
+                "user_pass_enable": "user_pass_enabled",
+            }
+            if snake_key not in valid_params and snake_key in alias_map:
+                snake_key = alias_map[snake_key]
+
             # Renombrar campos específicos según el tipo de función
             if func_name == "pyspark" and snake_key == "python_code":
                 snake_key = "code"
+
+            if snake_key not in valid_params:
+                continue
 
             # Formatear valor
             if isinstance(value, str):
@@ -1394,11 +1492,28 @@ def from_json(
 
         # Agregar inputs si existen
         if node_name in node_inputs:
-            input_vars = [var_names[inp] for inp in node_inputs[node_name]]
+            input_vars = []
+            for inp_name, inp_type in node_inputs[node_name]:
+                base = var_names[inp_name]
+                if inp_type == "DiscardedData":
+                    input_vars.append(f"{base}.discarded")
+                else:
+                    input_vars.append(base)
             if len(input_vars) == 1:
                 args.append(f"inputs={input_vars[0]}")
             else:
                 args.append(f"inputs=[{', '.join(input_vars)}]")
+        else:
+            if (
+                "inputs" in sig.parameters
+                and sig.parameters["inputs"].default is inspect._empty
+            ):
+                args.append("inputs=[]")
+
+        # Agregar description si existe
+        node_description = node.get("description", "")
+        if node_description:
+            args.append(f'description="{node_description}"')
 
         # Agregar priority
         priority = config.get("priority", "50")
@@ -1408,61 +1523,102 @@ def from_json(
         args_str = ",\n        ".join(args)
         node_line = f"    {var_name} = {func_name}(\n        {args_str}\n    )"
 
-        # Procesar OutputsWriter en el nodo origen usando set_outputs_writer
+        # Aplicar configuración cruda y metadatos del nodo
+        post_lines = []
+        post_lines.append(f"    {var_name}.node.configuration = {repr(config)}")
+
+        # Priority numérico
+        try:
+            priority_int = int(str(priority))
+        except Exception:
+            priority_int = 50
+        post_lines.append(f"    {var_name}.node.priority = {priority_int}")
+
+        node_step_type = node.get("stepType")
+        if node_step_type:
+            post_lines.append(
+                f"    {var_name}.node.step_type = StepType.{node_step_type.upper()}"
+            )
+
+        node_class_name = node.get("className")
+        if node_class_name:
+            post_lines.append(f'    {var_name}.node.class_name = "{node_class_name}"')
+
+        node_class_pretty = node.get("classPrettyName")
+        if node_class_pretty is not None:
+            post_lines.append(
+                f'    {var_name}.node.class_pretty_name = "{node_class_pretty}"'
+            )
+
+        supported_engines = node.get("supportedEngines")
+        if supported_engines:
+            post_lines.append(
+                f"    {var_name}.node.supported_engines = {supported_engines}"
+            )
+
+        supported_data_relations = node.get("supportedDataRelations")
+        if supported_data_relations is not None:
+            post_lines.append(
+                f"    {var_name}.node.supported_data_relations = {supported_data_relations}"
+            )
+
+        exec_engine = node.get("executionEngine")
+        if exec_engine:
+            post_lines.append(
+                f"    {var_name}.node.execution_engine = ExecutionEngine.{exec_engine.upper()}"
+            )
+
+        arity = node.get("arity")
+        if arity is not None:
+            post_lines.append(f"    {var_name}.node.arity = {arity}")
+
+        ui_configuration = node.get("uiConfiguration")
+        if ui_configuration is not None:
+            post_lines.append(
+                f"    {var_name}.node.ui_configuration = {ui_configuration}"
+            )
+
+        lineage_properties = node.get("lineageProperties")
+        if lineage_properties:
+            post_lines.append(
+                f"    {var_name}.node.lineage_properties = {lineage_properties}"
+            )
+
+        last_modified = node.get("lastModified")
+        if last_modified:
+            post_lines.append(f'    {var_name}.node.last_modified = "{last_modified}"')
+
+        if "debugOptions" in config:
+            post_lines.append(f"    {var_name}.node.include_debug_options = True")
+        else:
+            post_lines.append(f"    {var_name}.node.include_debug_options = False")
+
+        if "supportedDataRelations" in node:
+            post_lines.append(
+                f"    {var_name}.node.include_supported_data_relations = True"
+            )
+        else:
+            post_lines.append(
+                f"    {var_name}.node.include_supported_data_relations = False"
+            )
+
+        if "description" in node:
+            post_lines.append(f"    {var_name}.node.include_description = True")
+        else:
+            post_lines.append(f"    {var_name}.node.include_description = False")
+
+        # Preservar outputsWriter exactamente como en el JSON
         outputs_writers = node.get("outputsWriter", []) or []
         writer_lines = []
-        for writer in outputs_writers:
-            ow_args = []
-            save_mode = writer.get("saveMode")
-            table_name = writer.get("tableName")
-            discard_table_name = writer.get("discardTableName")
-            extra_opts = writer.get("extraOptions", {}) or {}
+        if outputs_writers:
+            writer_lines.append(
+                f"    {var_name}.node.outputs_writer = {outputs_writers}"
+            )
 
-            check_if_empty = extra_opts.get("checkIfEmpty")
-            partition_by = extra_opts.get("partitionBy")
-            partition_overwrite = extra_opts.get("partitionOverwriteEnabled")
-            partition_columns = extra_opts.get("partitionColumns")
-            partitions = extra_opts.get("partitions")
-
-            if save_mode:
-                ow_args.append(f'save_mode="{save_mode}"')
-            if table_name:
-                ow_args.append(f'table_name="{table_name}"')
-            if discard_table_name:
-                ow_args.append(f'discard_table_name="{discard_table_name}"')
-            if check_if_empty is not None:
-                ow_args.append(f"check_if_empty={check_if_empty}")
-
-            if isinstance(partition_by, str):
-                parts = [p.strip() for p in partition_by.split(",") if p.strip()]
-                if parts:
-                    ow_args.append(f"partition_by={parts}")
-            elif isinstance(partition_by, list) and partition_by:
-                ow_args.append(f"partition_by={partition_by}")
-
-            if partition_overwrite is not None:
-                ow_args.append(f"partition_overwrite_enabled={partition_overwrite}")
-
-            if isinstance(partition_columns, str):
-                cols = [p.strip() for p in partition_columns.split(",") if p.strip()]
-                if cols:
-                    ow_args.append(f"partition_columns={cols}")
-            elif isinstance(partition_columns, list) and partition_columns:
-                ow_args.append(f"partition_columns={partition_columns}")
-
-            if partitions not in (None, ""):
-                if isinstance(partitions, str) and partitions.isdigit():
-                    partitions = int(partitions)
-                ow_args.append(f"partitions={partitions}")
-
-            if ow_args:
-                writer_lines.append(
-                    f"    {var_name}.set_outputs_writer({', '.join(ow_args)})"
-                )
-
+        combined_lines = [node_line] + post_lines
         if writer_lines:
-            return node_line + "\n" + "\n".join(writer_lines)
-        return node_line
+            combined_lines.extend(writer_lines)
+        return "\n".join(combined_lines)
 
     # Pre-procesar todos los nodos para llenar var_names
     # Primero, recopilar todos los nombres de funciones que se importarán
@@ -1511,18 +1667,35 @@ def from_json(
     decorator_args = [f'name="{name}"', f'execution_engine="{execution_engine}"']
     if params:
         decorator_args.append(f"params={params}")
+    if workflow_data.get("description"):
+        decorator_args.append(f"description={repr(workflow_data.get('description'))}")
     if workflow_id:
         decorator_args.append(f'workflow_id="{workflow_id}"')
+    if project_id:
+        decorator_args.append(f"project_id={repr(project_id)}")
+    if group_id:
+        decorator_args.append(f"group_id={repr(group_id)}")
     if asset_id:
         decorator_args.append(f'asset_id="{asset_id}"')
-    if parameters_lists and parameters_lists != [
-        "Environment",
-        "SparkResources",
-        "SparkConfigurations",
-    ]:
+    if parameters_lists is not None:
         decorator_args.append(f"parameters_lists={parameters_lists}")
     if plugins:
         decorator_args.append(f"plugins={plugins}")
+    if settings:
+        decorator_args.append(f"raw_settings={settings}")
+    if raw_ui_settings is not None:
+        decorator_args.append(f"raw_ui_settings={raw_ui_settings}")
+    if raw_metadata:
+        decorator_args.append(f"raw_metadata={raw_metadata}")
+    if pipeline_graph.get("annotations") is not None:
+        decorator_args.append(f"annotations={pipeline_graph.get('annotations', [])}")
+    if pipeline_graph.get("nodeGroups") is not None:
+        decorator_args.append(f"node_groups={pipeline_graph.get('nodeGroups', [])}")
+    if nodes:
+        decorator_args.append(f"raw_nodes_order={[n.get('name') for n in nodes]}")
+    if edges:
+        decorator_args.append(f"raw_edges_order={edges}")
+    decorator_args.append("skip_validation=True")
 
     decorator_str = ",\n    ".join(decorator_args)
     python_code += f"@pipeline(\n    {decorator_str}\n)\n"

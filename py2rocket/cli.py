@@ -407,6 +407,18 @@ def cmd_push(args):
 def cmd_run(args):
     """Comando: run - Ejecuta workflow en Rocket"""
     try:
+
+        def _parse_json_list(value: Optional[str], label: str) -> Optional[list]:
+            if value is None:
+                return None
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"JSON inválido en {label}: {exc}") from exc
+            if not isinstance(parsed, list):
+                raise ValueError(f"{label} debe ser una lista JSON")
+            return parsed
+
         # Determinar el archivo JSON real (soporta .py, .json o sin extensión)
         from pathlib import Path
 
@@ -419,6 +431,12 @@ def cmd_run(args):
         verify_ssl = _get_verify_ssl_from_env()
         if args.no_verify_ssl:
             verify_ssl = False
+
+        params_lists = _parse_json_list(args.params_lists, "paramsLists")
+        attempts_conditions = _parse_json_list(
+            args.attempts_conditions, "attemptsConditions"
+        )
+
         result = run(
             json_file=args.json_file,
             workflow_id=args.workflow_id,
@@ -426,7 +444,17 @@ def cmd_run(args):
             rocket_url=args.url,
             api_token=args.token,
             instance=args.instance,
+            params_lists=params_lists,
+            params_lists_file=args.params_lists_file,
             extra_params_file=args.extra_params,
+            execution_name=args.execution_name,
+            execution_description=args.execution_description,
+            execution_priority=args.execution_priority,
+            force_execution_if_available_resources=args.force_execution_if_available_resources,
+            retry_unsuccessful_writes=args.retry_unsuccessful_writes,
+            max_attempts=args.max_attempts,
+            attempts_conditions=attempts_conditions,
+            extended_audit_info=args.extended_audit_info,
             verify_ssl=verify_ssl,
         )
 
@@ -1271,8 +1299,57 @@ def main():
         help="Instancia a añadir en paramsLists (default: XS)",
     )
     parser_run.add_argument(
+        "--params-lists",
+        help='Lista JSON para paramsLists (ej: "["Environment", "SparkConfigurations"]")',
+    )
+    parser_run.add_argument(
+        "--params-lists-file",
+        help="Ruta a JSON con lista de paramsLists",
+    )
+    parser_run.add_argument(
         "--extra-params",
         help="Ruta a JSON con lista de extraParams",
+    )
+    parser_run.add_argument(
+        "--execution-name",
+        default="",
+        help="Nombre de ejecución",
+    )
+    parser_run.add_argument(
+        "--execution-description",
+        default="",
+        help="Descripción de ejecución",
+    )
+    parser_run.add_argument(
+        "--execution-priority",
+        type=int,
+        default=0,
+        help="Prioridad de ejecución (default: 0)",
+    )
+    parser_run.add_argument(
+        "--force-execution-if-available-resources",
+        action="store_true",
+        help="Forzar ejecución si hay recursos disponibles",
+    )
+    parser_run.add_argument(
+        "--retry-unsuccessful-writes",
+        action="store_true",
+        help="Reintentar escrituras fallidas",
+    )
+    parser_run.add_argument(
+        "--max-attempts",
+        type=int,
+        default=0,
+        help="Máximo de intentos (default: 0)",
+    )
+    parser_run.add_argument(
+        "--attempts-conditions",
+        help='Lista JSON con condiciones de reintento (ej: "[]")',
+    )
+    parser_run.add_argument(
+        "--extended-audit-info",
+        action="store_true",
+        help="Habilitar auditoría extendida",
     )
     parser_run.add_argument(
         "--no-verify-ssl", action="store_true", help="No verificar SSL"

@@ -117,6 +117,138 @@ def custom_lite_xd(
 
 
 # ============================================================================
+# SPECIAL INPUTS
+# ============================================================================
+
+
+def sftp_input(
+    name: str,
+    path: str = "",
+    host: str = "",
+    port: str = "22",
+    username: str = "",
+    password: str = "",
+    file_type: str = "txt",
+    avoid_hdfs_files: bool = False,
+    tls_enabled: bool = False,
+    vault_secret_name: str = "",
+    vault_user_pass_enabled: bool = False,
+    data_source_class: str = "",
+    input_options: str = "",
+    schema_spark_schema: str = "",
+    priority: int = 50,
+    description: str = "",
+) -> StepResult:
+    """
+    Define un paso de entrada SFTP.
+
+    Args:
+        name: Nombre único del paso
+        path: Ruta del archivo remoto
+        host: Host del servidor SFTP
+        port: Puerto SFTP (defecto 22)
+        username: Usuario SFTP
+        password: Contraseña SFTP
+        file_type: Tipo de archivo (txt, csv, etc.)
+        avoid_hdfs_files: Evitar archivos HDFS
+        tls_enabled: Habilitar TLS
+        vault_secret_name: Nombre de secreto en vault
+        vault_user_pass_enabled: Habilitar credenciales de vault
+        data_source_class: Clase datasource
+        input_options: Opciones adicionales
+        schema_spark_schema: Schema Spark
+        priority: Prioridad de ejecución
+        description: Descripción del paso
+    """
+    pipeline = get_current_pipeline()
+
+    node = Node(
+        name=name,
+        step_type=StepType.INPUT,
+        class_name="SFTPInputStep",
+        class_pretty_name="SFTP",
+        arity=["NullaryToNary"],
+        execution_engine=ExecutionEngine.HYBRID,
+        priority=priority,
+        description=description,
+        configuration={
+            "inputOptions": input_options,
+            "path": path,
+            "username": username,
+            "password": password,
+            "host": host,
+            "port": port,
+            "fileType": file_type,
+            "avoidHdfsFiles": avoid_hdfs_files,
+            "tlsEnabled": tls_enabled,
+            "vaultSecretName": vault_secret_name,
+            "vaultUserPassEnabled": vault_user_pass_enabled,
+            "dataSourceClass": data_source_class,
+            "schema.sparkSchema": schema_spark_schema,
+            "genAIMetadataTableDescription": "",
+            "genAIMetadataColumns": "",
+        },
+        supported_engines=["Batch", "Hybrid", "Streaming"],
+    )
+
+    pipeline.add_node(node)
+    return StepResult(node, pipeline)
+
+
+def test_input(
+    name: str,
+    event_type: str = "STRING",
+    event: str = "",
+    output_field: str = "raw",
+    num_events: str = "10",
+    max_number: str = "",
+    explode_event: bool = False,
+    priority: int = 50,
+    description: str = "",
+) -> StepResult:
+    """
+    Define un paso de entrada Test.
+
+    Args:
+        name: Nombre único del paso
+        event_type: Tipo de evento
+        event: Evento
+        output_field: Campo de salida
+        num_events: Número de eventos
+        max_number: Máximo número
+        explode_event: Si explotar el evento
+        priority: Prioridad de ejecución
+        description: Descripción del paso
+    """
+    pipeline = get_current_pipeline()
+
+    node = Node(
+        name=name,
+        step_type=StepType.INPUT,
+        class_name="TestInputStep",
+        class_pretty_name="Test",
+        arity=["NullaryToNary"],
+        execution_engine=ExecutionEngine.HYBRID,
+        priority=priority,
+        description=description,
+        configuration={
+            "eventType": event_type,
+            "event": event,
+            "outputField": output_field,
+            "numEvents": num_events,
+            "maxNumber": max_number,
+            "explodeEvent": explode_event,
+            "genAIMetadataTableDescription": "",
+            "genAIMetadataColumns": "",
+        },
+        supported_engines=["Batch", "Hybrid", "Streaming"],
+    )
+
+    pipeline.add_node(node)
+    return StepResult(node, pipeline)
+
+
+# ============================================================================
 # DATABASE INPUTS
 # ============================================================================
 
