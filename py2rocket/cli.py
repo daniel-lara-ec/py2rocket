@@ -541,6 +541,48 @@ def cmd_download(args):
         sys.exit(1)
 
 
+def _create_py2rocket_metadata(
+    output_path: Path,
+    project_name: Optional[str] = None,
+    project_code: Optional[str] = None,
+    group_name: Optional[str] = None,
+    group_id: Optional[str] = None,
+) -> None:
+    """
+    Crea un archivo .py2rocket con metadatos del proyecto de sincronización.
+
+    Args:
+        output_path: Ruta donde crear el archivo .py2rocket
+        project_name: Nombre del proyecto
+        project_code: Código del proyecto
+        group_name: Nombre del grupo base
+        group_id: ID del grupo utilizado
+    """
+    metadata = {
+        "sync_info": {
+            "project_name": project_name or "",
+            "project_code": project_code or "",
+            "group_name": group_name or "",
+            "group_id": group_id or "",
+            "sync_date": None,
+        }
+    }
+
+    # Agregar fecha de sincronización
+    from datetime import datetime
+
+    metadata["sync_info"]["sync_date"] = datetime.now().isoformat()
+
+    metadata_file = output_path / ".py2rocket"
+    try:
+        metadata_file.write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"✓ Metadatos guardados en: {metadata_file.resolve()}")
+    except Exception as exc:
+        print(f"⚠️  No se pudo escribir el archivo .py2rocket: {exc}")
+
+
 def cmd_sync(args):
     """Comando: sync - Sincroniza assets/workflows de un grupo hacia una ruta local"""
     try:
@@ -572,6 +614,10 @@ def cmd_sync(args):
             "User-Agent": "py2rocket/" + __version__,
         }
         cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
+
+        # Variables para almacenar información del proyecto
+        project_name = None
+        project_code = None
 
         def _get_group_by_name(name: str) -> Optional[dict]:
             group_url = f"{api_host.rstrip('/')}/groups/findByName"
@@ -787,6 +833,16 @@ def cmd_sync(args):
 
         print(f"✓ Grupo encontrado: {group_id}")
 
+        # Extraer información del proyecto si está disponible
+        if group_data.get("project"):
+            project_info = group_data.get("project")
+            project_name = project_info.get("name")
+            project_code = project_info.get("code") or project_info.get("id")
+            if project_name:
+                print(
+                    f"✓ Proyecto asociado: {project_name} ({project_code or 'sin código'})"
+                )
+
         # 1.1) Buscar subgrupos (recursivo si la API lo permite)
         group_targets = [{"name": group_name, "id": group_id}]
         try:
@@ -871,6 +927,15 @@ def cmd_sync(args):
             print(f"✓ Log guardado en: {log_path.resolve()}")
         except Exception as exc:
             print(f"⚠️  No se pudo escribir el log: {exc}")
+
+        # Crear archivo .py2rocket con metadatos del proyecto
+        _create_py2rocket_metadata(
+            output_path=output_base,
+            project_name=project_name,
+            project_code=project_code,
+            group_name=group_name,
+            group_id=group_id,
+        )
 
     except requests.exceptions.RequestException as e:
         print(f"❌ Error al consultar Rocket: {e}")

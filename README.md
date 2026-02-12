@@ -177,6 +177,42 @@ Características:
 - Filtra valores por defecto conocidos
 - Convierte nombres de parámetros de camelCase a snake_case
 
+### `sync` - Sincronizar grupo desde Rocket
+
+```bash
+py2rocket sync <nombre-grupo> [opciones]
+
+Opciones:
+  -o, --output PATH         Carpeta de salida (default: directorio actual)
+  --url URL                 URL de Rocket
+  --token TOKEN             Cookie de autenticación
+  --no-verify-ssl           No verificar SSL
+  -f, --force               Forzar sobrescritura de archivos existentes
+```
+
+Sincroniza todos los assets/workflows de un grupo (y sus subgrupos) desde Rocket hacia una estructura de carpetas local.
+
+Características:
+
+- Descarga todos los workflows del grupo especificado
+- Incluye automáticamente todos los subgrupos
+- Crea una estructura de carpetas organizada por grupo y asset
+- Descarga todas las versiones de cada asset
+- Convierte automáticamente los workflows JSON a Python DSL
+- Genera un archivo `.py2rocket` con metadatos del proyecto para identificación
+
+**Archivo .py2rocket:**
+El comando `sync` crea automáticamente un archivo `.py2rocket` en la carpeta de salida con información sobre:
+
+- Nombre del proyecto
+- Código del proyecto
+- Nombre del grupo base sincronizado
+- ID del grupo
+- Fecha de sincronización
+
+Este archivo permite que extensiones y herramientas identifiquen que la carpeta fue creada mediante sincronización.
+Para más información, consulta [docs/ARCHIVO_PY2ROCKET.md](docs/ARCHIVO_PY2ROCKET.md).
+
 ---
 
 ## 💻 Uso Programático
