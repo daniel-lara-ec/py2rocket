@@ -6,12 +6,11 @@ ID: 67d9dbbc-3d7b-4611-ba2f-aaefdb431a10
 """
 
 from py2rocket import pipeline, build
-from py2rocket.core.input import parquet
-from py2rocket.core.input import sql
-from py2rocket.core.output import parquet_output
-from py2rocket.core.pipeline import ExecutionEngine, StepType
-from py2rocket.core.transformation import filter
-from py2rocket.core.transformation import trigger
+from py2rocket.core.operations import filter
+from py2rocket.core.operations import parquet
+from py2rocket.core.operations import parquet_output
+from py2rocket.core.operations import sql
+from py2rocket.core.operations import trigger
 
 @pipeline(
     name="pl-transformacion-Zp-Mdp-capa",
@@ -43,22 +42,11 @@ FROM {{{TD_GEO_DPA_PARROQUIA}}}
 """,
         force_native_query=False,
         cache_table=False,
-        priority=10
+        description='',
+        priority=10,
+        config_override={'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT DISTINCT dpaParroquia\nFROM {{{TD_GEO_DPA_PARROQUIA}}}\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 612, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    load_catalogo_cantones.node.configuration = {'priority': '10', 'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT DISTINCT dpaParroquia\nFROM {{{TD_GEO_DPA_PARROQUIA}}}\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''}
-    load_catalogo_cantones.node.priority = 10
-    load_catalogo_cantones.node.step_type = StepType.INPUT
-    load_catalogo_cantones.node.class_name = "SQLInputStep"
-    load_catalogo_cantones.node.class_pretty_name = "SQL"
-    load_catalogo_cantones.node.supported_engines = ['Batch', 'Hybrid']
-    load_catalogo_cantones.node.supported_data_relations = ['ValidData']
-    load_catalogo_cantones.node.execution_engine = ExecutionEngine.HYBRID
-    load_catalogo_cantones.node.arity = ['NullaryToNary']
-    load_catalogo_cantones.node.ui_configuration = {'position': {'x': 612, 'y': 289}}
-    load_catalogo_cantones.node.last_modified = "2026-02-12T21:21:30Z"
-    load_catalogo_cantones.node.include_debug_options = True
-    load_catalogo_cantones.node.include_supported_data_relations = True
-    load_catalogo_cantones.node.include_description = True
     load_emigracion = sql(
         name="Load_Emigracion",
         query="""
@@ -74,22 +62,10 @@ GROUP BY parroq
 """,
         force_native_query=False,
         cache_table=False,
-        priority=50
+        description='',
+        config_override={'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT\n    parroq AS dpaParroquia\n    ,COUNT(1) AS conteoMigrantes\nFROM {{{TD_CENSO_EMIGRACION}}}\nWHERE e03 + (2025-e01) >= 18\nAND e03 != 999\nGROUP BY parroq\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 782, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    load_emigracion.node.configuration = {'priority': '50', 'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT\n    parroq AS dpaParroquia\n    ,COUNT(1) AS conteoMigrantes\nFROM {{{TD_CENSO_EMIGRACION}}}\nWHERE e03 + (2025-e01) >= 18\nAND e03 != 999\nGROUP BY parroq\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''}
-    load_emigracion.node.priority = 50
-    load_emigracion.node.step_type = StepType.INPUT
-    load_emigracion.node.class_name = "SQLInputStep"
-    load_emigracion.node.class_pretty_name = "SQL"
-    load_emigracion.node.supported_engines = ['Batch', 'Hybrid']
-    load_emigracion.node.supported_data_relations = ['ValidData']
-    load_emigracion.node.execution_engine = ExecutionEngine.HYBRID
-    load_emigracion.node.arity = ['NullaryToNary']
-    load_emigracion.node.ui_configuration = {'position': {'x': 782, 'y': 289}}
-    load_emigracion.node.last_modified = "2026-02-12T21:21:30Z"
-    load_emigracion.node.include_debug_options = True
-    load_emigracion.node.include_supported_data_relations = True
-    load_emigracion.node.include_description = True
     load_localizacion = sql(
         name="Load_Localizacion",
         query="""
@@ -116,22 +92,11 @@ WHERE
 """,
         force_native_query=False,
         cache_table=False,
-        priority=100
+        description='',
+        priority=100,
+        config_override={'debugOptions': '{"executeStepAutoDebug":true}', 'query': "\nSELECT\n    codigoIdentificacionInternoCliente,\n    provinciaDomicilioCliente AS provincia,\n    codigoParroquiaDomicilioCliente,\n    ROW_NUMBER() OVER (\n        PARTITION BY\n            codigoIdentificacionInternoCliente\n        ORDER BY\n            codigoParroquiaDomicilioCliente\n    ) AS conteoDatos\nFROM\n    {{{PX_SDX}}}{{{TN_LOCALIZACION}}}\nWHERE\n    tipoDireccion = 'Domicilio'\n    AND codigoPaisDomicilioCliente = 'EC'\n    AND UPPER(TRIM(codigoProvinciaDomicilioCliente)) IN (\n        '01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24'\n    )\n", 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 952, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    load_localizacion.node.configuration = {'priority': '100', 'debugOptions': '{"executeStepAutoDebug":true}', 'query': "\nSELECT\n    codigoIdentificacionInternoCliente,\n    provinciaDomicilioCliente AS provincia,\n    codigoParroquiaDomicilioCliente,\n    ROW_NUMBER() OVER (\n        PARTITION BY\n            codigoIdentificacionInternoCliente\n        ORDER BY\n            codigoParroquiaDomicilioCliente\n    ) AS conteoDatos\nFROM\n    {{{PX_SDX}}}{{{TN_LOCALIZACION}}}\nWHERE\n    tipoDireccion = 'Domicilio'\n    AND codigoPaisDomicilioCliente = 'EC'\n    AND UPPER(TRIM(codigoProvinciaDomicilioCliente)) IN (\n        '01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24'\n    )\n", 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''}
-    load_localizacion.node.priority = 100
-    load_localizacion.node.step_type = StepType.INPUT
-    load_localizacion.node.class_name = "SQLInputStep"
-    load_localizacion.node.class_pretty_name = "SQL"
-    load_localizacion.node.supported_engines = ['Batch', 'Hybrid']
-    load_localizacion.node.supported_data_relations = ['ValidData']
-    load_localizacion.node.execution_engine = ExecutionEngine.HYBRID
-    load_localizacion.node.arity = ['NullaryToNary']
-    load_localizacion.node.ui_configuration = {'position': {'x': 952, 'y': 289}}
-    load_localizacion.node.last_modified = "2026-02-12T21:21:30Z"
-    load_localizacion.node.include_debug_options = True
-    load_localizacion.node.include_supported_data_relations = True
-    load_localizacion.node.include_description = True
     load_poblacion = sql(
         name="Load_Poblacion",
         query="""
@@ -146,22 +111,10 @@ GROUP BY parroq
 """,
         force_native_query=False,
         cache_table=False,
-        priority=50
+        description='',
+        config_override={'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT\n    parroq AS dpaParroquia\n    ,COUNT(1) AS conteoPoblacion\nFROM {{{TD_CENSO_POBLACION}}}\nWHERE p03 >= 18\nGROUP BY parroq\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 1122, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    load_poblacion.node.configuration = {'priority': '50', 'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT\n    parroq AS dpaParroquia\n    ,COUNT(1) AS conteoPoblacion\nFROM {{{TD_CENSO_POBLACION}}}\nWHERE p03 >= 18\nGROUP BY parroq\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''}
-    load_poblacion.node.priority = 50
-    load_poblacion.node.step_type = StepType.INPUT
-    load_poblacion.node.class_name = "SQLInputStep"
-    load_poblacion.node.class_pretty_name = "SQL"
-    load_poblacion.node.supported_engines = ['Batch', 'Hybrid']
-    load_poblacion.node.supported_data_relations = ['ValidData']
-    load_poblacion.node.execution_engine = ExecutionEngine.HYBRID
-    load_poblacion.node.arity = ['NullaryToNary']
-    load_poblacion.node.ui_configuration = {'position': {'x': 1122, 'y': 289}}
-    load_poblacion.node.last_modified = "2026-02-12T21:21:30Z"
-    load_poblacion.node.include_debug_options = True
-    load_poblacion.node.include_supported_data_relations = True
-    load_poblacion.node.include_description = True
     load_sharedigital = sql(
         name="Load_ShareDigital",
         query="""
@@ -175,22 +128,10 @@ FROM dsc_medios_pago.ZP_BP_Mdp_TM_CapaShareDigital
 """,
         force_native_query=False,
         cache_table=False,
-        priority=50
+        description='',
+        config_override={'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT\n    codigoIdentificacionInternoCliente\n    ,share_dig\n    ,periodo\nFROM dsc_medios_pago.ZP_BP_Mdp_TM_CapaShareDigital\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 1292, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    load_sharedigital.node.configuration = {'priority': '50', 'debugOptions': '{"executeStepAutoDebug":true}', 'query': '\nSELECT\n    codigoIdentificacionInternoCliente\n    ,share_dig\n    ,periodo\nFROM dsc_medios_pago.ZP_BP_Mdp_TM_CapaShareDigital\n', 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''}
-    load_sharedigital.node.priority = 50
-    load_sharedigital.node.step_type = StepType.INPUT
-    load_sharedigital.node.class_name = "SQLInputStep"
-    load_sharedigital.node.class_pretty_name = "SQL"
-    load_sharedigital.node.supported_engines = ['Batch', 'Hybrid']
-    load_sharedigital.node.supported_data_relations = ['ValidData']
-    load_sharedigital.node.execution_engine = ExecutionEngine.HYBRID
-    load_sharedigital.node.arity = ['NullaryToNary']
-    load_sharedigital.node.ui_configuration = {'position': {'x': 1292, 'y': 289}}
-    load_sharedigital.node.last_modified = "2026-02-12T21:21:30Z"
-    load_sharedigital.node.include_debug_options = True
-    load_sharedigital.node.include_supported_data_relations = True
-    load_sharedigital.node.include_description = True
     pi_geolocalizacion = parquet(
         name="Pi_Geolocalizacion",
         path="""
@@ -198,27 +139,15 @@ FROM dsc_medios_pago.ZP_BP_Mdp_TM_CapaShareDigital
 s3a://s3-lagodatos-noprod-04/data/tmp/analitica/20014/layerRemesasGeolocalizacionProvEcu
 
 """,
-        paths=[{'path': None, 'subdirGlobFilter': None, 'subdirRegexFilter': None, 'excludeGlobFilter': None, 'excludeRegexFilter': None}],
-        path_glob_filter="*.parquet",
         is_recursive_enabled=True,
+        paths=[{'path': None, 'subdirGlobFilter': None, 'subdirRegexFilter': None, 'excludeGlobFilter': None, 'excludeRegexFilter': None}],
         metadata_column_enabled=True,
         enable_filter_pattern=True,
-        priority=50
+        path_glob_filter="*.parquet",
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'AutoInfer'}, 'path': '\ns3a://s3-lagodatos-noprod-04/data/tmp/analitica/20014/layerRemesasGeolocalizacionProvEcu\n', 'paths': [{'path': None, 'subdirGlobFilter': None, 'subdirRegexFilter': None, 'excludeGlobFilter': None, 'excludeRegexFilter': None}], 'pathGlobFilter': '*.parquet', 'isRecursiveEnabled': True, 'metadataColumnEnabled': True, 'enableFilterPattern': True, 'readMode': 'DefaultReadMode', 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'ParquetInputStep', 'class_pretty_name': 'Parquet', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 1462, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    pi_geolocalizacion.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'AutoInfer'}, 'path': '\ns3a://s3-lagodatos-noprod-04/data/tmp/analitica/20014/layerRemesasGeolocalizacionProvEcu\n', 'paths': [{'path': None, 'subdirGlobFilter': None, 'subdirRegexFilter': None, 'excludeGlobFilter': None, 'excludeRegexFilter': None}], 'pathGlobFilter': '*.parquet', 'isRecursiveEnabled': True, 'metadataColumnEnabled': True, 'enableFilterPattern': True, 'readMode': 'DefaultReadMode', 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''}
-    pi_geolocalizacion.node.priority = 50
-    pi_geolocalizacion.node.step_type = StepType.INPUT
-    pi_geolocalizacion.node.class_name = "ParquetInputStep"
-    pi_geolocalizacion.node.class_pretty_name = "Parquet"
-    pi_geolocalizacion.node.supported_engines = ['Batch', 'Hybrid']
-    pi_geolocalizacion.node.supported_data_relations = ['ValidData']
-    pi_geolocalizacion.node.execution_engine = ExecutionEngine.HYBRID
-    pi_geolocalizacion.node.arity = ['NullaryToNary']
-    pi_geolocalizacion.node.ui_configuration = {'position': {'x': 1462, 'y': 289}}
-    pi_geolocalizacion.node.last_modified = "2026-02-12T21:21:30Z"
-    pi_geolocalizacion.node.include_debug_options = True
-    pi_geolocalizacion.node.include_supported_data_relations = True
-    pi_geolocalizacion.node.include_description = True
     sql_datosbasicos = sql(
         name="SQL_DatosBasicos",
         query="""
@@ -254,45 +183,22 @@ WHERE
 """,
         force_native_query=False,
         cache_table=False,
-        priority=110
+        description='',
+        priority=110,
+        config_override={'debugOptions': '{"executeStepAutoDebug":true}', 'query': "\nSELECT\n    LPAD(TRIM(codigoIdentificacionInternoCliente),16,'0') AS codigoIdentificacionInternoCliente\n    ,LPAD(TRIM(numeroIdentificacionCliente),14,'0') AS numeroIdentificacionCliente\nFROM {{{PX_SDX}}}{{{TN_CLIENTE_DATOS_BASICOS_SHIST}}}\nWHERE\n    periodo = LAST_DAY('{{{P_FECHA_CORTE}}}')\n    AND numeroIdentificacionCliente not rlike '(?i)\x08eli\x08|\x08el\x08|li|e'\n    AND TRIM(numeroIdentificacionCliente) is not null\n    AND UPPER(TRIM(segmentoCliente)) = 'PERSONAS'\n    AND UPPER(TRIM(estadoCliente)) = 'S'\n    AND UPPER(TRIM(marcaClienteFallecido)) = 'NO FALLECIDO'\n    AND autorizacionTratamientoDatosPersonalesCliente = true\n    AND LPAD(TRIM(numeroIdentificacionCliente),14,'0') NOT IN (\n        SELECT\n            LPAD(TRIM(numeroIdentificacionCliente),14,'0') AS numeroIdentificacionCliente\n        FROM {{{PX_SDX}}}{{{TN_CLIENTE_DATOS_BASICOS_SHIST}}}\n        WHERE\n            periodo = LAST_DAY('{{{P_FECHA_CORTE}}}')\n            AND numeroIdentificacionCliente not rlike '(?i)\x08eli\x08|\x08el\x08|li|e'\n            AND TRIM(numeroIdentificacionCliente) is not null\n            AND UPPER(TRIM(segmentoCliente)) = 'PERSONAS'\n            AND UPPER(TRIM(estadoCliente)) = 'S'\n            AND UPPER(TRIM(marcaClienteFallecido)) = 'NO FALLECIDO'\n            AND autorizacionTratamientoDatosPersonalesCliente = true\n        GROUP BY LPAD(TRIM(numeroIdentificacionCliente),14,'0')\n        HAVING COUNT(*) > 1\n    )\n", 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 1632, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    sql_datosbasicos.node.configuration = {'priority': '110', 'debugOptions': '{"executeStepAutoDebug":true}', 'query': "\nSELECT\n    LPAD(TRIM(codigoIdentificacionInternoCliente),16,'0') AS codigoIdentificacionInternoCliente\n    ,LPAD(TRIM(numeroIdentificacionCliente),14,'0') AS numeroIdentificacionCliente\nFROM {{{PX_SDX}}}{{{TN_CLIENTE_DATOS_BASICOS_SHIST}}}\nWHERE\n    periodo = LAST_DAY('{{{P_FECHA_CORTE}}}')\n    AND numeroIdentificacionCliente not rlike '(?i)\x08eli\x08|\x08el\x08|li|e'\n    AND TRIM(numeroIdentificacionCliente) is not null\n    AND UPPER(TRIM(segmentoCliente)) = 'PERSONAS'\n    AND UPPER(TRIM(estadoCliente)) = 'S'\n    AND UPPER(TRIM(marcaClienteFallecido)) = 'NO FALLECIDO'\n    AND autorizacionTratamientoDatosPersonalesCliente = true\n    AND LPAD(TRIM(numeroIdentificacionCliente),14,'0') NOT IN (\n        SELECT\n            LPAD(TRIM(numeroIdentificacionCliente),14,'0') AS numeroIdentificacionCliente\n        FROM {{{PX_SDX}}}{{{TN_CLIENTE_DATOS_BASICOS_SHIST}}}\n        WHERE\n            periodo = LAST_DAY('{{{P_FECHA_CORTE}}}')\n            AND numeroIdentificacionCliente not rlike '(?i)\x08eli\x08|\x08el\x08|li|e'\n            AND TRIM(numeroIdentificacionCliente) is not null\n            AND UPPER(TRIM(segmentoCliente)) = 'PERSONAS'\n            AND UPPER(TRIM(estadoCliente)) = 'S'\n            AND UPPER(TRIM(marcaClienteFallecido)) = 'NO FALLECIDO'\n            AND autorizacionTratamientoDatosPersonalesCliente = true\n        GROUP BY LPAD(TRIM(numeroIdentificacionCliente),14,'0')\n        HAVING COUNT(*) > 1\n    )\n", 'forceNativeQuery': False, 'cacheTable': False, 'isSaved': True, 'asyncRefresh': False, 'genAIMetadataTableDescription': '', 'genAIMetadataColumns': ''}
-    sql_datosbasicos.node.priority = 110
-    sql_datosbasicos.node.step_type = StepType.INPUT
-    sql_datosbasicos.node.class_name = "SQLInputStep"
-    sql_datosbasicos.node.class_pretty_name = "SQL"
-    sql_datosbasicos.node.supported_engines = ['Batch', 'Hybrid']
-    sql_datosbasicos.node.supported_data_relations = ['ValidData']
-    sql_datosbasicos.node.execution_engine = ExecutionEngine.HYBRID
-    sql_datosbasicos.node.arity = ['NullaryToNary']
-    sql_datosbasicos.node.ui_configuration = {'position': {'x': 1632, 'y': 289}}
-    sql_datosbasicos.node.last_modified = "2026-02-12T21:21:30Z"
-    sql_datosbasicos.node.include_debug_options = True
-    sql_datosbasicos.node.include_supported_data_relations = True
-    sql_datosbasicos.node.include_description = True
 
     # Transformation nodes
     f_localizacionnoecuador = filter(
         name="F_LocalizacionNoEcuador",
-        filter_exp="periodo = '{{{P_FECHA_CORTE}}}'",
         quote_sql=False,
+        filter_exp="periodo = '{{{P_FECHA_CORTE}}}'",
         inputs=pi_geolocalizacion,
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': "periodo = '{{{P_FECHA_CORTE}}}'", 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'FilterTransformStep', 'class_pretty_name': 'Filter', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 1802, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    f_localizacionnoecuador.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': "periodo = '{{{P_FECHA_CORTE}}}'", 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''}
-    f_localizacionnoecuador.node.priority = 50
-    f_localizacionnoecuador.node.step_type = StepType.TRANSFORMATION
-    f_localizacionnoecuador.node.class_name = "FilterTransformStep"
-    f_localizacionnoecuador.node.class_pretty_name = "Filter"
-    f_localizacionnoecuador.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    f_localizacionnoecuador.node.supported_data_relations = ['ValidData']
-    f_localizacionnoecuador.node.execution_engine = ExecutionEngine.HYBRID
-    f_localizacionnoecuador.node.arity = ['UnaryToNary']
-    f_localizacionnoecuador.node.ui_configuration = {'position': {'x': 1802, 'y': 289}}
-    f_localizacionnoecuador.node.last_modified = "2026-02-12T21:21:30Z"
-    f_localizacionnoecuador.node.include_debug_options = True
-    f_localizacionnoecuador.node.include_supported_data_relations = True
-    f_localizacionnoecuador.node.include_description = True
     t_crucedatosparr = trigger(
         name="T_CruceDatosParr",
         sql="""
@@ -310,26 +216,17 @@ ON A.dpaParroquia = C.dpaParroquia
 
 """,
         quote_sql=False,
+        discard_conditions="",
         replace_with_input_dataframe=False,
         inputs=[load_catalogo_cantones, load_poblacion, load_emigracion],
-        priority=60
+        description='',
+        priority=60,
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.dpaParroquia\n    ,B.conteoPoblacion\n    ,C.conteoMigrantes\n    ,C.conteoMigrantes/B.conteoPoblacion*100 AS tasaMigracion\nFROM Load_Catalogo_Cantones AS A\nLEFT JOIN Load_Poblacion AS B\nON A.dpaParroquia = B.dpaParroquia\nLEFT JOIN Load_Emigracion AS C\nON A.dpaParroquia = C.dpaParroquia\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 1972, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    t_crucedatosparr.node.configuration = {'priority': '60', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.dpaParroquia\n    ,B.conteoPoblacion\n    ,C.conteoMigrantes\n    ,C.conteoMigrantes/B.conteoPoblacion*100 AS tasaMigracion\nFROM Load_Catalogo_Cantones AS A\nLEFT JOIN Load_Poblacion AS B\nON A.dpaParroquia = B.dpaParroquia\nLEFT JOIN Load_Emigracion AS C\nON A.dpaParroquia = C.dpaParroquia\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''}
-    t_crucedatosparr.node.priority = 60
-    t_crucedatosparr.node.step_type = StepType.TRANSFORMATION
-    t_crucedatosparr.node.class_name = "TriggerTransformStep"
-    t_crucedatosparr.node.class_pretty_name = "Trigger"
-    t_crucedatosparr.node.supported_engines = ['Hybrid']
-    t_crucedatosparr.node.supported_data_relations = ['ValidData']
-    t_crucedatosparr.node.execution_engine = ExecutionEngine.HYBRID
-    t_crucedatosparr.node.arity = ['NaryToNary']
-    t_crucedatosparr.node.ui_configuration = {'position': {'x': 1972, 'y': 289}}
-    t_crucedatosparr.node.last_modified = "2026-02-12T21:21:30Z"
-    t_crucedatosparr.node.include_debug_options = True
-    t_crucedatosparr.node.include_supported_data_relations = True
-    t_crucedatosparr.node.include_description = True
     f_priorizacionparroquias = filter(
         name="F_PriorizacionParroquias",
+        quote_sql=False,
         filter_exp="""
 
 tasaMigracion > (
@@ -339,47 +236,24 @@ tasaMigracion > (
     )
 
 """,
-        quote_sql=False,
         inputs=t_crucedatosparr,
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': '\ntasaMigracion > (\n        SELECT\n            percentile_approx(tasaMigracion,0.70)\n        FROM T_CruceDatosParr\n    )\n', 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'FilterTransformStep', 'class_pretty_name': 'Filter', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 2142, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    f_priorizacionparroquias.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': '\ntasaMigracion > (\n        SELECT\n            percentile_approx(tasaMigracion,0.70)\n        FROM T_CruceDatosParr\n    )\n', 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''}
-    f_priorizacionparroquias.node.priority = 50
-    f_priorizacionparroquias.node.step_type = StepType.TRANSFORMATION
-    f_priorizacionparroquias.node.class_name = "FilterTransformStep"
-    f_priorizacionparroquias.node.class_pretty_name = "Filter"
-    f_priorizacionparroquias.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    f_priorizacionparroquias.node.supported_data_relations = ['ValidData']
-    f_priorizacionparroquias.node.execution_engine = ExecutionEngine.HYBRID
-    f_priorizacionparroquias.node.arity = ['UnaryToNary']
-    f_priorizacionparroquias.node.ui_configuration = {'position': {'x': 2142, 'y': 289}}
-    f_priorizacionparroquias.node.last_modified = "2026-02-12T21:21:30Z"
-    f_priorizacionparroquias.node.include_debug_options = True
-    f_priorizacionparroquias.node.include_supported_data_relations = True
-    f_priorizacionparroquias.node.include_description = True
     f_registrounico = filter(
         name="F_RegistroUnico",
-        filter_exp="conteoDatos=1",
         quote_sql=False,
+        filter_exp="conteoDatos=1",
         inputs=load_localizacion,
-        priority=110
+        description='',
+        priority=110,
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': 'conteoDatos=1', 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'FilterTransformStep', 'class_pretty_name': 'Filter', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 2312, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    f_registrounico.node.configuration = {'priority': '110', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': 'conteoDatos=1', 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''}
-    f_registrounico.node.priority = 110
-    f_registrounico.node.step_type = StepType.TRANSFORMATION
-    f_registrounico.node.class_name = "FilterTransformStep"
-    f_registrounico.node.class_pretty_name = "Filter"
-    f_registrounico.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    f_registrounico.node.supported_data_relations = ['ValidData']
-    f_registrounico.node.execution_engine = ExecutionEngine.HYBRID
-    f_registrounico.node.arity = ['UnaryToNary']
-    f_registrounico.node.ui_configuration = {'position': {'x': 2312, 'y': 289}}
-    f_registrounico.node.last_modified = "2026-02-12T21:21:30Z"
-    f_registrounico.node.include_debug_options = True
-    f_registrounico.node.include_supported_data_relations = True
-    f_registrounico.node.include_description = True
     f_trx = filter(
         name="F_Trx",
+        quote_sql=False,
         filter_exp="""
 
 periodo = '{{{P_FECHA_CORTE}}}'
@@ -388,24 +262,11 @@ AND (share_dig = 1
     share_dig IS NULL)
 
 """,
-        quote_sql=False,
         inputs=load_sharedigital,
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': "\nperiodo = '{{{P_FECHA_CORTE}}}'\nAND (share_dig = 1\n    OR\n    share_dig IS NULL)\n", 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'FilterTransformStep', 'class_pretty_name': 'Filter', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 2482, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    f_trx.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'filterExp': "\nperiodo = '{{{P_FECHA_CORTE}}}'\nAND (share_dig = 1\n    OR\n    share_dig IS NULL)\n", 'quoteSql': False, 'genAIMetadataTableDescription': '', 'inputSchemas': '', 'genAIMetadataColumns': ''}
-    f_trx.node.priority = 50
-    f_trx.node.step_type = StepType.TRANSFORMATION
-    f_trx.node.class_name = "FilterTransformStep"
-    f_trx.node.class_pretty_name = "Filter"
-    f_trx.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    f_trx.node.supported_data_relations = ['ValidData']
-    f_trx.node.execution_engine = ExecutionEngine.HYBRID
-    f_trx.node.arity = ['UnaryToNary']
-    f_trx.node.ui_configuration = {'position': {'x': 2482, 'y': 289}}
-    f_trx.node.last_modified = "2026-02-12T21:21:30Z"
-    f_trx.node.include_debug_options = True
-    f_trx.node.include_supported_data_relations = True
-    f_trx.node.include_description = True
     t_clientesnoecuador = trigger(
         name="T_ClientesNoEcuador",
         sql="""
@@ -418,24 +279,13 @@ ON A.codigoIdentificacionInternoCliente = B.cifOrdenante
 
 """,
         quote_sql=False,
+        discard_conditions="",
         replace_with_input_dataframe=False,
         inputs=[sql_datosbasicos, f_localizacionnoecuador],
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM SQL_DatosBasicos AS A\nLEFT ANTI JOIN F_LocalizacionNoEcuador AS B\nON A.codigoIdentificacionInternoCliente = B.cifOrdenante\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 2652, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    t_clientesnoecuador.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM SQL_DatosBasicos AS A\nLEFT ANTI JOIN F_LocalizacionNoEcuador AS B\nON A.codigoIdentificacionInternoCliente = B.cifOrdenante\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''}
-    t_clientesnoecuador.node.priority = 50
-    t_clientesnoecuador.node.step_type = StepType.TRANSFORMATION
-    t_clientesnoecuador.node.class_name = "TriggerTransformStep"
-    t_clientesnoecuador.node.class_pretty_name = "Trigger"
-    t_clientesnoecuador.node.supported_engines = ['Hybrid']
-    t_clientesnoecuador.node.supported_data_relations = ['ValidData']
-    t_clientesnoecuador.node.execution_engine = ExecutionEngine.HYBRID
-    t_clientesnoecuador.node.arity = ['NaryToNary']
-    t_clientesnoecuador.node.ui_configuration = {'position': {'x': 2652, 'y': 289}}
-    t_clientesnoecuador.node.last_modified = "2026-02-12T21:21:30Z"
-    t_clientesnoecuador.node.include_debug_options = True
-    t_clientesnoecuador.node.include_supported_data_relations = True
-    t_clientesnoecuador.node.include_description = True
     t_crucepotencialparroquia = trigger(
         name="T_CrucePotencialParroquia",
         sql="""
@@ -448,24 +298,13 @@ ON A.codigoParroquiaDomicilioCliente = B.dpaParroquia
 
 """,
         quote_sql=False,
+        discard_conditions="",
         replace_with_input_dataframe=False,
         inputs=[f_registrounico, f_priorizacionparroquias],
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM F_RegistroUnico AS A\nINNER JOIN F_PriorizacionParroquias  AS B\nON A.codigoParroquiaDomicilioCliente = B.dpaParroquia\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 2822, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    t_crucepotencialparroquia.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM F_RegistroUnico AS A\nINNER JOIN F_PriorizacionParroquias  AS B\nON A.codigoParroquiaDomicilioCliente = B.dpaParroquia\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''}
-    t_crucepotencialparroquia.node.priority = 50
-    t_crucepotencialparroquia.node.step_type = StepType.TRANSFORMATION
-    t_crucepotencialparroquia.node.class_name = "TriggerTransformStep"
-    t_crucepotencialparroquia.node.class_pretty_name = "Trigger"
-    t_crucepotencialparroquia.node.supported_engines = ['Hybrid']
-    t_crucepotencialparroquia.node.supported_data_relations = ['ValidData']
-    t_crucepotencialparroquia.node.execution_engine = ExecutionEngine.HYBRID
-    t_crucepotencialparroquia.node.arity = ['NaryToNary']
-    t_crucepotencialparroquia.node.ui_configuration = {'position': {'x': 2822, 'y': 289}}
-    t_crucepotencialparroquia.node.last_modified = "2026-02-12T21:21:30Z"
-    t_crucepotencialparroquia.node.include_debug_options = True
-    t_crucepotencialparroquia.node.include_supported_data_relations = True
-    t_crucepotencialparroquia.node.include_description = True
     t_filtrotrxnofisicas = trigger(
         name="T_FiltroTrxNoFisicas",
         sql="""
@@ -478,24 +317,13 @@ ON A.codigoIdentificacionInternoCliente = B.codigoIdentificacionInternoCliente
 
 """,
         quote_sql=False,
+        discard_conditions="",
         replace_with_input_dataframe=False,
         inputs=[t_clientesnoecuador, f_trx],
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM T_ClientesNoEcuador AS A\nINNER JOIN F_Trx AS B\nON A.codigoIdentificacionInternoCliente = B.codigoIdentificacionInternoCliente\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 2992, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    t_filtrotrxnofisicas.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM T_ClientesNoEcuador AS A\nINNER JOIN F_Trx AS B\nON A.codigoIdentificacionInternoCliente = B.codigoIdentificacionInternoCliente\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''}
-    t_filtrotrxnofisicas.node.priority = 50
-    t_filtrotrxnofisicas.node.step_type = StepType.TRANSFORMATION
-    t_filtrotrxnofisicas.node.class_name = "TriggerTransformStep"
-    t_filtrotrxnofisicas.node.class_pretty_name = "Trigger"
-    t_filtrotrxnofisicas.node.supported_engines = ['Hybrid']
-    t_filtrotrxnofisicas.node.supported_data_relations = ['ValidData']
-    t_filtrotrxnofisicas.node.execution_engine = ExecutionEngine.HYBRID
-    t_filtrotrxnofisicas.node.arity = ['NaryToNary']
-    t_filtrotrxnofisicas.node.ui_configuration = {'position': {'x': 2992, 'y': 289}}
-    t_filtrotrxnofisicas.node.last_modified = "2026-02-12T21:21:30Z"
-    t_filtrotrxnofisicas.node.include_debug_options = True
-    t_filtrotrxnofisicas.node.include_supported_data_relations = True
-    t_filtrotrxnofisicas.node.include_description = True
     t_origeninmigracion = trigger(
         name="T_OrigenInmigracion",
         sql="""
@@ -508,24 +336,13 @@ ON A.codigoIdentificacionInternoCliente = B.codigoIdentificacionInternoCliente
 
 """,
         quote_sql=False,
+        discard_conditions="",
         replace_with_input_dataframe=False,
         inputs=[t_crucepotencialparroquia, t_filtrotrxnofisicas],
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM T_FiltroTrxNoFisicas AS A\nINNER JOIN T_CrucePotencialParroquia AS B\nON A.codigoIdentificacionInternoCliente = B.codigoIdentificacionInternoCliente\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 3162, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    t_origeninmigracion.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': '\nSELECT\n    A.codigoIdentificacionInternoCliente\nFROM T_FiltroTrxNoFisicas AS A\nINNER JOIN T_CrucePotencialParroquia AS B\nON A.codigoIdentificacionInternoCliente = B.codigoIdentificacionInternoCliente\n', 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''}
-    t_origeninmigracion.node.priority = 50
-    t_origeninmigracion.node.step_type = StepType.TRANSFORMATION
-    t_origeninmigracion.node.class_name = "TriggerTransformStep"
-    t_origeninmigracion.node.class_pretty_name = "Trigger"
-    t_origeninmigracion.node.supported_engines = ['Hybrid']
-    t_origeninmigracion.node.supported_data_relations = ['ValidData']
-    t_origeninmigracion.node.execution_engine = ExecutionEngine.HYBRID
-    t_origeninmigracion.node.arity = ['NaryToNary']
-    t_origeninmigracion.node.ui_configuration = {'position': {'x': 3162, 'y': 289}}
-    t_origeninmigracion.node.last_modified = "2026-02-12T21:21:30Z"
-    t_origeninmigracion.node.include_debug_options = True
-    t_origeninmigracion.node.include_supported_data_relations = True
-    t_origeninmigracion.node.include_description = True
     transformacion = trigger(
         name="Transformacion",
         sql="""
@@ -539,48 +356,25 @@ FROM T_OrigenInmigracion
 
 """,
         quote_sql=False,
+        discard_conditions="",
         replace_with_input_dataframe=False,
         inputs=t_origeninmigracion,
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': "\nSELECT\n    codigoIdentificacionInternoCliente\n    ,CAST('{{{P_FECHA_CORTE}}}' AS DATE) AS periodo\n    ,DATE_FORMAT('{{{P_FECHA_CORTE}}}', 'yyyyMM') AS codigoPeriodo\n    ,from_utc_timestamp(current_timestamp(), 'America/Bogota') AS fechaIngesta\nFROM T_OrigenInmigracion\n", 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [{'saveMode': 'Overwrite', 'outputStepName': 'Po_Guardado', 'tableName': '{{{P_NOMBRE_TABLA}}}', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': True, 'partitionBy': 'periodo', 'partitionOverwriteEnabled': True, 'partitionColumns': '', 'saveMode': 'Overwrite', 'partitions': ''}}], 'ui_configuration': {'position': {'x': 3332, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    transformacion.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'sql': "\nSELECT\n    codigoIdentificacionInternoCliente\n    ,CAST('{{{P_FECHA_CORTE}}}' AS DATE) AS periodo\n    ,DATE_FORMAT('{{{P_FECHA_CORTE}}}', 'yyyyMM') AS codigoPeriodo\n    ,from_utc_timestamp(current_timestamp(), 'America/Bogota') AS fechaIngesta\nFROM T_OrigenInmigracion\n", 'quoteSql': False, 'discardConditions': '', 'replaceWithInputDataframe': False, 'genAIMetadataTablesDescription': '', 'genAIMetadataColumns': ''}
-    transformacion.node.priority = 50
-    transformacion.node.step_type = StepType.TRANSFORMATION
-    transformacion.node.class_name = "TriggerTransformStep"
-    transformacion.node.class_pretty_name = "Trigger"
-    transformacion.node.supported_engines = ['Hybrid']
-    transformacion.node.supported_data_relations = ['ValidData']
-    transformacion.node.execution_engine = ExecutionEngine.HYBRID
-    transformacion.node.arity = ['NaryToNary']
-    transformacion.node.ui_configuration = {'position': {'x': 3332, 'y': 289}}
-    transformacion.node.last_modified = "2026-02-12T21:21:30Z"
-    transformacion.node.include_debug_options = True
-    transformacion.node.include_supported_data_relations = True
-    transformacion.node.include_description = True
-    transformacion.node.outputs_writer = [{'saveMode': 'Overwrite', 'outputStepName': 'Po_Guardado', 'tableName': '{{{P_NOMBRE_TABLA}}}', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': True, 'partitionBy': 'periodo', 'partitionOverwriteEnabled': True, 'partitionColumns': '', 'saveMode': 'Overwrite', 'partitions': ''}}]
 
     # Output nodes
     po_guardado = parquet_output(
         name="Po_Guardado",
         path="s3a://s3-lagodatos-noprod-04/data/tmp/analitica/recepcionremesas/20014/",
+        save_options="",
         save_mode="Overwrite",
         inputs=transformacion,
-        priority=50
+        description='',
+        config_override={'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'path': 's3a://s3-lagodatos-noprod-04/data/tmp/analitica/recepcionremesas/20014/', 'saveMode': 'Overwrite', 'saveOptions': ''},
+        node_overrides={'class_name': 'ParquetOutputStep', 'class_pretty_name': 'Parquet', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 3502, 'y': 289}}, 'lineage_properties': [], 'last_modified': '2026-02-12T21:21:30Z'}
     )
-    po_guardado.node.configuration = {'priority': '50', 'debugOptions': {'executeStepAutoDebug': True, 'executeStepDebug': True, 'mockType': 'NoMock'}, 'path': 's3a://s3-lagodatos-noprod-04/data/tmp/analitica/recepcionremesas/20014/', 'saveMode': 'Overwrite', 'saveOptions': ''}
-    po_guardado.node.priority = 50
-    po_guardado.node.step_type = StepType.OUTPUT
-    po_guardado.node.class_name = "ParquetOutputStep"
-    po_guardado.node.class_pretty_name = "Parquet"
-    po_guardado.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    po_guardado.node.supported_data_relations = ['ValidData']
-    po_guardado.node.execution_engine = ExecutionEngine.HYBRID
-    po_guardado.node.arity = ['NullaryToNullary', 'NaryToNullary']
-    po_guardado.node.ui_configuration = {'position': {'x': 3502, 'y': 289}}
-    po_guardado.node.last_modified = "2026-02-12T21:21:30Z"
-    po_guardado.node.include_debug_options = True
-    po_guardado.node.include_supported_data_relations = True
-    po_guardado.node.include_description = True
 
 if __name__ == "__main__":
     # Construir el pipeline

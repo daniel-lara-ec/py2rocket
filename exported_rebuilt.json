@@ -201,17 +201,34 @@
           "schema.inputMode": "NOSCHEMAPROVIDED",
           "excludeGlobFilter": "",
           "inputOptions": "",
+          "dataAsJsonEnabled": true,
           "path": "/user/rocket.stratio-rocket/practica_episodio.csv",
           "subdirGlobFilter": "",
           "genAIMetadataTableDescription": "",
           "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "isSaved": true,
+          "schema.header": "",
           "subdirRegexFilter": "",
+          "isRecursiveEnabled": true,
           "readMode": "DefaultReadMode",
+          "paths": [
+            {
+              "path": null,
+              "subdirGlobFilter": null,
+              "subdirRegexFilter": null,
+              "excludeGlobFilter": null,
+              "excludeRegexFilter": null
+            }
+          ],
+          "metadataColumnEnabled": true,
           "excludeRegexFilter": "",
           "header": true,
+          "schema.fields": "",
+          "enableFilterPattern": true,
           "genAIMetadataColumns": "",
-          "delimiter": ","
+          "schema.sparkSchema": "",
+          "pathGlobFilter": "*.csv",
+          "delimiter": ",",
+          "isSaved": true
         },
         "supportedEngines": [
           "Batch",
@@ -245,10 +262,10 @@
           "quoteSql": false,
           "genAIMetadataTableDescription": "",
           "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
           "inputSchemas": "",
           "filterExp": "id < 100",
-          "genAIMetadataColumns": ""
+          "genAIMetadataColumns": "",
+          "isSaved": true
         },
         "supportedEngines": [
           "Streaming",
@@ -284,11 +301,12 @@
           "sql": "SELECT *\r\nFROM UnionDatos",
           "quoteSql": false,
           "discardConditions": "",
-          "genAIMetadataTableDescription": "",
+          "genAIMetadataTablesDescription": "",
           "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
           "replaceWithInputDataframe": false,
-          "genAIMetadataColumns": ""
+          "genAIMetadataColumns": "",
+          "genAIMetadataTableDescription": "",
+          "isSaved": true
         },
         "supportedEngines": [
           "Hybrid"
@@ -337,10 +355,10 @@
           "quoteSql": false,
           "genAIMetadataTableDescription": "",
           "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
           "inputSchemas": "",
           "filterExp": "id >= 200",
-          "genAIMetadataColumns": ""
+          "genAIMetadataColumns": "",
+          "isSaved": true
         },
         "supportedEngines": [
           "Streaming",
@@ -409,7 +427,7 @@
         ],
         "description": "",
         "configuration": {
-          "priority": "50",
+          "priority": 50,
           "path": "/user/data/save",
           "saveOptions": "",
           "isSaved": true

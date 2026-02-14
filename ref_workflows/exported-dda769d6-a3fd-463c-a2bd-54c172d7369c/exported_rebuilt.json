@@ -19,6 +19,7 @@
       ],
       "parametersUsed": [
         "SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT",
+        "SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS",
         "SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES",
         "SparkConfigurations.DEBUG_MOCK_DATA_LIMIT",
         "SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES",
@@ -37,6 +38,9 @@
         "SparkConfigurations.SPARK_HISTORY_SERVER_EVENT_LOG_ROTATE_MAX_FILE_SIZE",
         "SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME",
         "SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO",
+        "SparkConfigurations.SPARK_STREAMING_BLOCK_INTERVAL",
+        "SparkConfigurations.SPARK_STREAMING_CHECKPOINT_PATH",
+        "SparkConfigurations.SPARK_STREAMING_WINDOW",
         "SparkResources.SPARK_DRIVER_CORES",
         "SparkResources.SPARK_DRIVER_GPUS",
         "SparkResources.SPARK_DRIVER_MEMORY",
@@ -89,7 +93,7 @@
         "unlimitedRecordsInProcessing": false,
         "autoInferMaxFiles": "{{{SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT}}}",
         "forceRunAsExecution": false,
-        "forceRunAsExecutionWithMaxSteps": "20",
+        "forceRunAsExecutionWithMaxSteps": "{{{SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS}}}",
         "executeWithSameExecutionMode": false,
         "numberOfColumnExamples": "{{{SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES}}}",
         "maxSizeColumnExamples": "{{{SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES}}}",
@@ -110,12 +114,12 @@
       }
     },
     "streamingSettings": {
-      "window": "2s",
+      "window": "{{{SparkConfigurations.SPARK_STREAMING_WINDOW}}}",
       "backpressure": false,
-      "blockInterval": "100ms",
+      "blockInterval": "{{{SparkConfigurations.SPARK_STREAMING_BLOCK_INTERVAL}}}",
       "stopGracefully": true,
       "checkpointSettings": {
-        "checkpointPath": "tmp/checkpoint",
+        "checkpointPath": "{{{SparkConfigurations.SPARK_STREAMING_CHECKPOINT_PATH}}}",
         "enableCheckpointing": true,
         "autoDeleteCheckpoint": true,
         "addTimeToCheckpointPath": false,
@@ -173,12 +177,9 @@
       }
     },
     "pythonEnvDefinition": {
-      "vEnvManagementMode": "CondaYamlDescriptor",
-      "condaYamlDefinition": "name: rocket-default\n\nchannels:\n  - conda-forge\n  - nodefaults\n\ndependencies:\n  - python=3.9.*\n  - pip=25.1.*\n  - pip:\n      - mlflow==2.18.*\n      - pyarrow==14.*\n      - scikit-learn==1.*\n      - numpy==1.23.*\n      - scipy==1.*\n      - pandas==1.*\n      - petastorm==0.12.*\n      - langchain==0.3.*\n      - tiktoken==0.9.0\n      - geopandas",
+      "vEnvManagementMode": "DefaultExecutionVirtualEnv",
+      "condaYamlDefinition": "name: rocket-default\n\nchannels:\n  - conda-forge\n  - nodefaults\n\ndependencies:\n  - python=3.9.*\n  - pip=25.1.*\n  - pip:\n      - mlflow==2.18.*\n      - pyarrow==14.*\n      - scikit-learn==1.*\n      - numpy==1.23.*\n      - scipy==1.*\n      - pandas==1.*\n      - petastorm==0.12.*\n      - langchain==0.3.*\n      - tiktoken==0.9.0",
       "freezeAfterDebug": false,
-      "frozenCondaYaml": "",
-      "condaEnvironmentIdentifier": "",
-      "condaPackEnvironmentPath": "",
       "condaPackExtension": [],
       "executeCondaUnpackAfterActivate": false,
       "pySparkNativeExtensions": []
@@ -225,8 +226,8 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 65.05086517333984,
-            "y": 170.35191345214844
+            "x": 271.0,
+            "y": 260.0
           }
         },
         "lastModified": "2026-02-11T01:10:10Z"
@@ -264,8 +265,8 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 310.9101257324219,
-            "y": 74.39373016357422
+            "x": 454.0,
+            "y": 258.0
           }
         },
         "lastModified": "2026-02-11T01:10:36Z"
@@ -281,7 +282,7 @@
         "description": "",
         "configuration": {
           "priority": "50",
-          "sql": "SELECT *\r\nFROM UnionDatos",
+          "sql": "SELECT *\r\nFROM F_Datos",
           "quoteSql": false,
           "discardConditions": "",
           "genAIMetadataTableDescription": "",
@@ -301,118 +302,39 @@
         "lineageProperties": [],
         "outputsWriter": [
           {
-            "saveMode": "Overwrite",
-            "outputStepName": "Parquet",
-            "tableName": "TABLA",
+            "saveMode": "Append",
+            "outputStepName": "Print",
+            "tableName": "",
             "discardTableName": "",
             "extraOptions": {
-              "checkIfEmpty": true,
-              "partitionBy": "tipo",
-              "partitionOverwriteEnabled": true,
-              "partitionColumns": "",
-              "saveMode": "Overwrite",
-              "partitions": ""
+              "checkIfEmpty": false
             }
           }
         ],
         "uiConfiguration": {
           "position": {
-            "x": 665.2021484375,
-            "y": 131.00904083251953
+            "x": 641.0,
+            "y": 262.0
           }
         },
-        "lastModified": "2026-02-11T01:25:15Z"
+        "lastModified": "2026-02-11T01:10:31Z"
       },
       {
-        "name": "F_Datos2",
-        "stepType": "Transformation",
-        "className": "FilterTransformStep",
-        "classPrettyName": "Filter",
-        "arity": [
-          "UnaryToNary"
-        ],
-        "description": "",
-        "configuration": {
-          "priority": "50",
-          "quoteSql": false,
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
-          "inputSchemas": "",
-          "filterExp": "id >= 200",
-          "genAIMetadataColumns": ""
-        },
-        "supportedEngines": [
-          "Streaming",
-          "Batch",
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData",
-          "DiscardedData"
-        ],
-        "lineageProperties": [],
-        "outputsWriter": [],
-        "uiConfiguration": {
-          "position": {
-            "x": 310.46190990595494,
-            "y": 192.7753577036979
-          }
-        },
-        "lastModified": "2026-02-11T01:24:59Z"
-      },
-      {
-        "name": "UnionDatos",
-        "stepType": "Transformation",
-        "className": "UnionTransformStep",
-        "classPrettyName": "Union",
-        "arity": [
-          "NaryToNary"
-        ],
-        "description": "",
-        "configuration": {
-          "priority": "50",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
-          "inputSchemas": "",
-          "genAIMetadataColumns": ""
-        },
-        "supportedEngines": [
-          "Streaming",
-          "Batch",
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData"
-        ],
-        "lineageProperties": [],
-        "outputsWriter": [],
-        "uiConfiguration": {
-          "position": {
-            "x": 496.7720422699663,
-            "y": 129.89663183509563
-          }
-        },
-        "lastModified": "2026-02-11T01:25:05Z"
-      },
-      {
-        "name": "Parquet",
+        "name": "Print",
         "stepType": "Output",
-        "className": "ParquetOutputStep",
-        "classPrettyName": "Parquet",
+        "className": "PrintOutputStep",
+        "classPrettyName": "Print",
         "arity": [
           "NullaryToNullary",
           "NaryToNullary"
         ],
-        "description": "",
         "configuration": {
           "priority": "50",
-          "path": "/user/data/save",
-          "saveOptions": "",
-          "isSaved": true
+          "printData": false,
+          "printSchema": false,
+          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+          "printMetadata": true,
+          "logLevel": "warn"
         },
         "supportedEngines": [
           "Streaming",
@@ -424,11 +346,11 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 829.7469137331135,
-            "y": 131.81577400313077
+            "x": 813.0,
+            "y": 261.0
           }
         },
-        "lastModified": "2026-02-11T01:27:17Z"
+        "lastModified": "2026-02-11T01:10:45Z"
       }
     ],
     "edges": [
@@ -438,28 +360,13 @@
         "dataType": "ValidData"
       },
       {
-        "origin": "Csv",
-        "destination": "F_Datos2",
-        "dataType": "ValidData"
-      },
-      {
         "origin": "F_Datos",
-        "destination": "UnionDatos",
-        "dataType": "DiscardedData"
-      },
-      {
-        "origin": "F_Datos2",
-        "destination": "UnionDatos",
-        "dataType": "ValidData"
-      },
-      {
-        "origin": "UnionDatos",
         "destination": "Transformacion",
         "dataType": "ValidData"
       },
       {
         "origin": "Transformacion",
-        "destination": "Parquet",
+        "destination": "Print",
         "dataType": "ValidData"
       }
     ],
@@ -470,13 +377,13 @@
   "workflowType": "SpartaWorkflow",
   "uiSettings": {
     "position": {
-      "x": 45.30365831624613,
-      "y": 152.6320574523963,
-      "k": 1.0421205719080704
+      "x": 0.0,
+      "y": 0.0,
+      "k": 1.0
     }
   },
   "creationDate": "2026-02-11T01:07:49Z",
-  "lastUpdateDate": "2026-02-11T01:27:13Z",
+  "lastUpdateDate": "2026-02-11T01:09:40Z",
   "version": 0,
   "readOnly": false,
   "releaseInProgress": false,

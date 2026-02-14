@@ -6,8 +6,7 @@ ID: 17dcbc75-c44c-417e-bcaa-b6d07c04df8b
 """
 
 from py2rocket import pipeline, build
-from py2rocket.core.operations import parquet_output
-from py2rocket.core.operations import sql
+from py2rocket.core.operations import raw_step
 
 @pipeline(
     name="prueba",
@@ -31,28 +30,25 @@ def workflow():
     Workflow importado desde JSON de Rocket.
     """
     # Input nodes
-    sql_step = sql(
+    sql = raw_step(
         name="SQL",
-        query="""
-SELECT *
-FROM `AdventureWorksSales`.`Product_csv`
-""",
-        force_native_query=False,
-        cache_table=False,
-        description='',
-        config_override={'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'query': 'SELECT *\r\nFROM `AdventureWorksSales`.`Product_csv`', 'forceNativeQuery': False, 'cacheTable': False, 'genAIMetadataColumns': '', 'asyncRefresh': False},
-        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [{'saveMode': 'Overwrite', 'outputStepName': 'Po_Guardado', 'tableName': 'Tabla', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': False, 'partitionBy': 'Product', 'partitionOverwriteEnabled': True, 'partitionColumns': '', 'saveMode': 'Overwrite', 'partitions': ''}}], 'ui_configuration': {'position': {'x': 286.0, 'y': 221.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T23:24:57Z'}
+        class_name='SQLInputStep',
+        configuration={'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'query': 'SELECT *\r\nFROM `AdventureWorksSales`.`Product_csv`'},
+        outputs_writer=[{'saveMode': 'Overwrite', 'outputStepName': 'Po_Guardado', 'tableName': 'Tabla', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': False, 'partitionBy': 'Product', 'partitionOverwriteEnabled': True, 'partitionColumns': '', 'saveMode': 'Overwrite', 'partitions': ''}}],
+        ui_configuration={'position': {'x': 286.0, 'y': 221.0}},
+        last_modified="2026-02-11T23:24:57Z"
     )
 
     # Output nodes
-    po_guardado = parquet_output(
+    po_guardado = raw_step(
         name="Po_Guardado",
-        path="/users/data",
-        save_options="",
-        inputs=sql_step,
-        description='',
-        config_override={'path': '/users/data', 'saveOptions': '', 'isSaved': True},
-        node_overrides={'class_name': 'ParquetOutputStep', 'class_pretty_name': 'Parquet', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 460.0, 'y': 221.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T23:25:15Z', 'include_supported_data_relations': False, 'include_debug_options': False}
+        class_name='ParquetOutputStep',
+        configuration={'path': '/users/data', 'isSaved': True},
+        inputs=sql,
+        ui_configuration={'position': {'x': 460.0, 'y': 221.0}},
+        last_modified="2026-02-11T23:25:15Z",
+        include_debug_options=False,
+        include_supported_data_relations=False
     )
 
 if __name__ == "__main__":
@@ -60,4 +56,4 @@ if __name__ == "__main__":
     pipe = workflow()
 
     # Compilar a JSON
-    build(pipe, "exported_rebuilt.json")
+    build(pipe, "exported_roundtrip_rebuilt_rebuilt.json")

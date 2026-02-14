@@ -6,11 +6,7 @@ ID: dda769d6-a3fd-463c-a2bd-54c172d7369c
 """
 
 from py2rocket import pipeline, build
-from py2rocket.core.operations import csv
-from py2rocket.core.operations import filter
-from py2rocket.core.operations import parquet_output
-from py2rocket.core.operations import trigger
-from py2rocket.core.operations import union
+from py2rocket.core.operations import raw_step
 
 @pipeline(
     name="demo",
@@ -34,73 +30,68 @@ def workflow():
     Workflow importado desde JSON de Rocket.
     """
     # Input nodes
-    csv_step = csv(
+    csv = raw_step(
         name="Csv",
-        data_as_json_enabled=True,
-        path="/user/rocket.stratio-rocket/practica_episodio.csv",
-        is_recursive_enabled=True,
-        paths=[{'path': None, 'subdirGlobFilter': None, 'subdirRegexFilter': None, 'excludeGlobFilter': None, 'excludeRegexFilter': None}],
-        metadata_column_enabled=True,
-        header=True,
-        enable_filter_pattern=True,
-        path_glob_filter="*.csv",
-        delimiter=",",
-        description='',
-        config_override={'schema.inputMode': 'NOSCHEMAPROVIDED', 'excludeGlobFilter': '', 'inputOptions': '', 'path': '/user/rocket.stratio-rocket/practica_episodio.csv', 'subdirGlobFilter': '', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'subdirRegexFilter': '', 'readMode': 'DefaultReadMode', 'excludeRegexFilter': '', 'header': True, 'genAIMetadataColumns': '', 'delimiter': ','},
-        node_overrides={'class_name': 'CsvInputStep', 'class_pretty_name': 'Csv', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 65.05086517333984, 'y': 170.35191345214844}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:10:10Z'}
+        class_name='CsvInputStep',
+        configuration={'path': '/user/rocket.stratio-rocket/practica_episodio.csv', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'header': True},
+        ui_configuration={'position': {'x': 65.05086517333984, 'y': 170.35191345214844}},
+        last_modified="2026-02-11T01:10:10Z"
     )
 
     # Transformation nodes
-    f_datos = filter(
+    f_datos = raw_step(
         name="F_Datos",
-        quote_sql=False,
-        filter_exp="id < 100",
-        inputs=csv_step,
-        description='',
-        config_override={'quoteSql': False, 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'inputSchemas': '', 'filterExp': 'id < 100', 'genAIMetadataColumns': ''},
-        node_overrides={'class_name': 'FilterTransformStep', 'class_pretty_name': 'Filter', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData', 'DiscardedData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 310.9101257324219, 'y': 74.39373016357422}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:10:36Z'}
+        class_name='FilterTransformStep',
+        configuration={'isSaved': True, 'filterExp': 'id < 100'},
+        inputs=csv,
+        ui_configuration={'position': {'x': 310.9101257324219, 'y': 74.39373016357422}},
+        last_modified="2026-02-11T01:10:36Z"
     )
-    f_datos2 = filter(
+    f_datos2 = raw_step(
         name="F_Datos2",
-        quote_sql=False,
-        filter_exp="id >= 200",
-        inputs=csv_step,
-        description='',
-        config_override={'quoteSql': False, 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'inputSchemas': '', 'filterExp': 'id >= 200', 'genAIMetadataColumns': ''},
-        node_overrides={'class_name': 'FilterTransformStep', 'class_pretty_name': 'Filter', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData', 'DiscardedData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 310.46190990595494, 'y': 192.7753577036979}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:24:59Z'}
+        class_name='FilterTransformStep',
+        configuration={'isSaved': True, 'filterExp': 'id >= 200'},
+        inputs=csv,
+        ui_configuration={'position': {'x': 310.46190990595494, 'y': 192.7753577036979}},
+        last_modified="2026-02-11T01:24:59Z"
     )
-    uniondatos = union(
+    uniondatos = raw_step(
         name="UnionDatos",
+        step_type='Transformation',
+        class_name='UnionTransformStep',
+        class_pretty_name='Union',
+        configuration={'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'inputSchemas': '', 'genAIMetadataColumns': ''},
         inputs=[f_datos.discarded, f_datos2],
-        description='',
         priority=50,
-        config_override={'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'inputSchemas': '', 'genAIMetadataColumns': ''},
-        node_overrides={'class_name': 'UnionTransformStep', 'class_pretty_name': 'Union', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 496.7720422699663, 'y': 129.89663183509563}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:25:05Z'}
+        arity=['NaryToNary'],
+        execution_engine='Hybrid',
+        supported_engines=['Streaming', 'Batch', 'Hybrid'],
+        supported_data_relations=['ValidData'],
+        outputs_writer=[],
+        ui_configuration={'position': {'x': 496.7720422699663, 'y': 129.89663183509563}},
+        lineage_properties=[],
+        last_modified="2026-02-11T01:25:05Z"
     )
-    transformacion = trigger(
+    transformacion = raw_step(
         name="Transformacion",
-        sql="""
-SELECT *
-FROM UnionDatos
-""",
-        quote_sql=False,
-        discard_conditions="",
-        replace_with_input_dataframe=False,
+        class_name='TriggerTransformStep',
+        configuration={'sql': 'SELECT *\r\nFROM UnionDatos', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True},
         inputs=uniondatos,
-        description='',
-        config_override={'sql': 'SELECT *\r\nFROM UnionDatos', 'quoteSql': False, 'discardConditions': '', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'replaceWithInputDataframe': False, 'genAIMetadataColumns': ''},
-        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData', 'DiscardedData'], 'outputs_writer': [{'saveMode': 'Overwrite', 'outputStepName': 'Parquet', 'tableName': 'TABLA', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': True, 'partitionBy': 'tipo', 'partitionOverwriteEnabled': True, 'partitionColumns': '', 'saveMode': 'Overwrite', 'partitions': ''}}], 'ui_configuration': {'position': {'x': 665.2021484375, 'y': 131.00904083251953}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:25:15Z'}
+        outputs_writer=[{'saveMode': 'Overwrite', 'outputStepName': 'Parquet', 'tableName': 'TABLA', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': True, 'partitionBy': 'tipo', 'partitionOverwriteEnabled': True, 'partitionColumns': '', 'saveMode': 'Overwrite', 'partitions': ''}}],
+        ui_configuration={'position': {'x': 665.2021484375, 'y': 131.00904083251953}},
+        last_modified="2026-02-11T01:25:15Z"
     )
 
     # Output nodes
-    parquet = parquet_output(
+    parquet = raw_step(
         name="Parquet",
-        path="/user/data/save",
-        save_options="",
+        class_name='ParquetOutputStep',
+        configuration={'path': '/user/data/save', 'isSaved': True},
         inputs=transformacion,
-        description='',
-        config_override={'path': '/user/data/save', 'saveOptions': '', 'isSaved': True},
-        node_overrides={'class_name': 'ParquetOutputStep', 'class_pretty_name': 'Parquet', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 829.7469137331135, 'y': 131.81577400313077}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:27:17Z', 'include_supported_data_relations': False, 'include_debug_options': False}
+        ui_configuration={'position': {'x': 829.7469137331135, 'y': 131.81577400313077}},
+        last_modified="2026-02-11T01:27:17Z",
+        include_debug_options=False,
+        include_supported_data_relations=False
     )
 
 if __name__ == "__main__":
@@ -108,4 +99,4 @@ if __name__ == "__main__":
     pipe = workflow()
 
     # Compilar a JSON
-    build(pipe, "exported_rebuilt.json")
+    build(pipe, "exported_roundtrip_rebuilt_rebuilt.json")

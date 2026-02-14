@@ -6,11 +6,10 @@ ID: dda769d6-a3fd-463c-a2bd-54c172d7369c
 """
 
 from py2rocket import pipeline, build
-from py2rocket.core.input import csv
-from py2rocket.core.output import print_step
-from py2rocket.core.pipeline import ExecutionEngine, StepType
-from py2rocket.core.transformation import filter
-from py2rocket.core.transformation import trigger
+from py2rocket.core.operations import csv
+from py2rocket.core.operations import filter
+from py2rocket.core.operations import print_step
+from py2rocket.core.operations import trigger
 
 @pipeline(
     name="demo",
@@ -36,25 +35,19 @@ def workflow():
     # Input nodes
     csv_step = csv(
         name="Csv",
+        data_as_json_enabled=True,
         path="/user/rocket.stratio-rocket/practica_episodio.csv",
+        is_recursive_enabled=True,
+        paths=[{'path': None, 'subdirGlobFilter': None, 'subdirRegexFilter': None, 'excludeGlobFilter': None, 'excludeRegexFilter': None}],
+        metadata_column_enabled=True,
         header=True,
+        enable_filter_pattern=True,
+        path_glob_filter="*.csv",
         delimiter=",",
-        priority=50
+        description='',
+        config_override={'schema.inputMode': 'NOSCHEMAPROVIDED', 'excludeGlobFilter': '', 'inputOptions': '', 'path': '/user/rocket.stratio-rocket/practica_episodio.csv', 'subdirGlobFilter': '', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'subdirRegexFilter': '', 'readMode': 'DefaultReadMode', 'excludeRegexFilter': '', 'header': True, 'genAIMetadataColumns': '', 'delimiter': ','},
+        node_overrides={'class_name': 'CsvInputStep', 'class_pretty_name': 'Csv', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 271.0, 'y': 260.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:10:10Z'}
     )
-    csv_step.node.configuration = {'schema.inputMode': 'NOSCHEMAPROVIDED', 'excludeGlobFilter': '', 'inputOptions': '', 'priority': '50', 'path': '/user/rocket.stratio-rocket/practica_episodio.csv', 'subdirGlobFilter': '', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'subdirRegexFilter': '', 'readMode': 'DefaultReadMode', 'excludeRegexFilter': '', 'header': True, 'genAIMetadataColumns': '', 'delimiter': ','}
-    csv_step.node.priority = 50
-    csv_step.node.step_type = StepType.INPUT
-    csv_step.node.class_name = "CsvInputStep"
-    csv_step.node.class_pretty_name = "Csv"
-    csv_step.node.supported_engines = ['Batch', 'Hybrid']
-    csv_step.node.supported_data_relations = ['ValidData']
-    csv_step.node.execution_engine = ExecutionEngine.HYBRID
-    csv_step.node.arity = ['NullaryToNary']
-    csv_step.node.ui_configuration = {'position': {'x': 271.0, 'y': 260.0}}
-    csv_step.node.last_modified = "2026-02-11T01:10:10Z"
-    csv_step.node.include_debug_options = True
-    csv_step.node.include_supported_data_relations = True
-    csv_step.node.include_description = True
 
     # Transformation nodes
     f_datos = filter(
@@ -62,22 +55,10 @@ def workflow():
         quote_sql=False,
         filter_exp="id < 100",
         inputs=csv_step,
-        priority=50
+        description='',
+        config_override={'quoteSql': False, 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'inputSchemas': '', 'filterExp': 'id < 100', 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'FilterTransformStep', 'class_pretty_name': 'Filter', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'supported_data_relations': ['ValidData', 'DiscardedData'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 454.0, 'y': 258.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:10:36Z'}
     )
-    f_datos.node.configuration = {'quoteSql': False, 'priority': '50', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'inputSchemas': '', 'filterExp': 'id < 100', 'genAIMetadataColumns': ''}
-    f_datos.node.priority = 50
-    f_datos.node.step_type = StepType.TRANSFORMATION
-    f_datos.node.class_name = "FilterTransformStep"
-    f_datos.node.class_pretty_name = "Filter"
-    f_datos.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    f_datos.node.supported_data_relations = ['ValidData', 'DiscardedData']
-    f_datos.node.execution_engine = ExecutionEngine.HYBRID
-    f_datos.node.arity = ['UnaryToNary']
-    f_datos.node.ui_configuration = {'position': {'x': 454.0, 'y': 258.0}}
-    f_datos.node.last_modified = "2026-02-11T01:10:36Z"
-    f_datos.node.include_debug_options = True
-    f_datos.node.include_supported_data_relations = True
-    f_datos.node.include_description = True
     transformacion = trigger(
         name="Transformacion",
         sql="""
@@ -85,25 +66,13 @@ SELECT *
 FROM F_Datos
 """,
         quote_sql=False,
+        discard_conditions="",
         replace_with_input_dataframe=False,
         inputs=f_datos,
-        priority=50
+        description='',
+        config_override={'sql': 'SELECT *\r\nFROM F_Datos', 'quoteSql': False, 'discardConditions': '', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'replaceWithInputDataframe': False, 'genAIMetadataColumns': ''},
+        node_overrides={'class_name': 'TriggerTransformStep', 'class_pretty_name': 'Trigger', 'supported_engines': ['Hybrid'], 'supported_data_relations': ['ValidData', 'DiscardedData'], 'outputs_writer': [{'saveMode': 'Append', 'outputStepName': 'Print', 'tableName': '', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': False}}], 'ui_configuration': {'position': {'x': 641.0, 'y': 262.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:10:31Z'}
     )
-    transformacion.node.configuration = {'sql': 'SELECT *\r\nFROM F_Datos', 'quoteSql': False, 'priority': '50', 'discardConditions': '', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'isSaved': True, 'replaceWithInputDataframe': False, 'genAIMetadataColumns': ''}
-    transformacion.node.priority = 50
-    transformacion.node.step_type = StepType.TRANSFORMATION
-    transformacion.node.class_name = "TriggerTransformStep"
-    transformacion.node.class_pretty_name = "Trigger"
-    transformacion.node.supported_engines = ['Hybrid']
-    transformacion.node.supported_data_relations = ['ValidData', 'DiscardedData']
-    transformacion.node.execution_engine = ExecutionEngine.HYBRID
-    transformacion.node.arity = ['NaryToNary']
-    transformacion.node.ui_configuration = {'position': {'x': 641.0, 'y': 262.0}}
-    transformacion.node.last_modified = "2026-02-11T01:10:31Z"
-    transformacion.node.include_debug_options = True
-    transformacion.node.include_supported_data_relations = True
-    transformacion.node.include_description = True
-    transformacion.node.outputs_writer = [{'saveMode': 'Append', 'outputStepName': 'Print', 'tableName': '', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': False}}]
 
     # Output nodes
     print = print_step(
@@ -113,21 +82,10 @@ FROM F_Datos
         print_metadata=True,
         log_level="warn",
         inputs=transformacion,
-        priority=50
+        description='',
+        config_override={'printData': False, 'printSchema': False, 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'printMetadata': True, 'logLevel': 'warn'},
+        node_overrides={'class_name': 'PrintOutputStep', 'class_pretty_name': 'Print', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 813.0, 'y': 261.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T01:10:45Z', 'include_supported_data_relations': False, 'include_description': False}
     )
-    print.node.configuration = {'priority': '50', 'printData': False, 'printSchema': False, 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'printMetadata': True, 'logLevel': 'warn'}
-    print.node.priority = 50
-    print.node.step_type = StepType.OUTPUT
-    print.node.class_name = "PrintOutputStep"
-    print.node.class_pretty_name = "Print"
-    print.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    print.node.execution_engine = ExecutionEngine.HYBRID
-    print.node.arity = ['NullaryToNullary', 'NaryToNullary']
-    print.node.ui_configuration = {'position': {'x': 813.0, 'y': 261.0}}
-    print.node.last_modified = "2026-02-11T01:10:45Z"
-    print.node.include_debug_options = True
-    print.node.include_supported_data_relations = False
-    print.node.include_description = False
 
 if __name__ == "__main__":
     # Construir el pipeline

@@ -6,9 +6,8 @@ ID: 1564a084-6708-4193-a883-e4e9c23d684f
 """
 
 from py2rocket import pipeline, build
-from py2rocket.core.input import sql
-from py2rocket.core.output import print_step
-from py2rocket.core.pipeline import ExecutionEngine, StepType
+from py2rocket.core.operations import print_step
+from py2rocket.core.operations import sql
 
 @pipeline(
     name="prueba",
@@ -40,23 +39,10 @@ SELECT
 """,
         force_native_query=False,
         cache_table=False,
-        priority=50
+        description='',
+        config_override={'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'query': 'SELECT\r\n    1 AS columna', 'forceNativeQuery': False, 'cacheTable': False, 'genAIMetadataColumns': '', 'asyncRefresh': False},
+        node_overrides={'class_name': 'SQLInputStep', 'class_pretty_name': 'SQL', 'supported_engines': ['Batch', 'Hybrid'], 'supported_data_relations': ['ValidData'], 'outputs_writer': [{'saveMode': 'Append', 'outputStepName': 'Print', 'tableName': '', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': False}}], 'ui_configuration': {'position': {'x': 470.0, 'y': 266.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T00:56:25Z'}
     )
-    sql_step.node.configuration = {'priority': '50', 'genAIMetadataTableDescription': '', 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}', 'isSaved': True, 'query': 'SELECT\r\n    1 AS columna', 'forceNativeQuery': False, 'cacheTable': False, 'genAIMetadataColumns': '', 'asyncRefresh': False}
-    sql_step.node.priority = 50
-    sql_step.node.step_type = StepType.INPUT
-    sql_step.node.class_name = "SQLInputStep"
-    sql_step.node.class_pretty_name = "SQL"
-    sql_step.node.supported_engines = ['Batch', 'Hybrid']
-    sql_step.node.supported_data_relations = ['ValidData']
-    sql_step.node.execution_engine = ExecutionEngine.HYBRID
-    sql_step.node.arity = ['NullaryToNary']
-    sql_step.node.ui_configuration = {'position': {'x': 470.0, 'y': 266.0}}
-    sql_step.node.last_modified = "2026-02-11T00:56:25Z"
-    sql_step.node.include_debug_options = True
-    sql_step.node.include_supported_data_relations = True
-    sql_step.node.include_description = True
-    sql_step.node.outputs_writer = [{'saveMode': 'Append', 'outputStepName': 'Print', 'tableName': '', 'discardTableName': '', 'extraOptions': {'checkIfEmpty': False}}]
 
     # Output nodes
     print = print_step(
@@ -66,21 +52,10 @@ SELECT
         print_metadata=True,
         log_level="warn",
         inputs=sql_step,
-        priority=50
+        description='',
+        config_override={'printData': False, 'printSchema': False, 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'printMetadata': True, 'logLevel': 'warn'},
+        node_overrides={'class_name': 'PrintOutputStep', 'class_pretty_name': 'Print', 'supported_engines': ['Streaming', 'Batch', 'Hybrid'], 'outputs_writer': [], 'ui_configuration': {'position': {'x': 639.0, 'y': 267.0}}, 'lineage_properties': [], 'last_modified': '2026-02-11T00:56:07Z', 'include_supported_data_relations': False, 'include_description': False}
     )
-    print.node.configuration = {'priority': '50', 'printData': False, 'printSchema': False, 'debugOptions': '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}', 'printMetadata': True, 'logLevel': 'warn'}
-    print.node.priority = 50
-    print.node.step_type = StepType.OUTPUT
-    print.node.class_name = "PrintOutputStep"
-    print.node.class_pretty_name = "Print"
-    print.node.supported_engines = ['Streaming', 'Batch', 'Hybrid']
-    print.node.execution_engine = ExecutionEngine.HYBRID
-    print.node.arity = ['NullaryToNullary', 'NaryToNullary']
-    print.node.ui_configuration = {'position': {'x': 639.0, 'y': 267.0}}
-    print.node.last_modified = "2026-02-11T00:56:07Z"
-    print.node.include_debug_options = True
-    print.node.include_supported_data_relations = False
-    print.node.include_description = False
 
 if __name__ == "__main__":
     # Construir el pipeline

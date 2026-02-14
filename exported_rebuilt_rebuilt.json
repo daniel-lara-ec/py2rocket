@@ -19,6 +19,7 @@
       ],
       "parametersUsed": [
         "SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT",
+        "SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS",
         "SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES",
         "SparkConfigurations.DEBUG_MOCK_DATA_LIMIT",
         "SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES",
@@ -29,19 +30,14 @@
         "SparkConfigurations.HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES",
         "SparkConfigurations.SPARK_DRIVER_DOCKER_IMAGE",
         "SparkConfigurations.SPARK_DRIVER_DOCKER_VOLUMES",
-        "SparkConfigurations.SPARK_DRIVER_METRICS_SOURCES_WHITELIST",
         "SparkConfigurations.SPARK_EXECUTOR_DOCKER_IMAGE",
         "SparkConfigurations.SPARK_EXECUTOR_DOCKER_VOLUMES",
         "SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS",
-        "SparkConfigurations.SPARK_EXECUTOR_METRICS_SOURCES_WHITELIST",
-        "SparkConfigurations.SPARK_HISTORY_SERVER_EVENT_LOG_ROTATE_MAX_FILE_SIZE",
         "SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME",
         "SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO",
         "SparkResources.SPARK_DRIVER_CORES",
-        "SparkResources.SPARK_DRIVER_GPUS",
         "SparkResources.SPARK_DRIVER_MEMORY",
         "SparkResources.SPARK_EXECUTOR_CORES",
-        "SparkResources.SPARK_EXECUTOR_GPUS",
         "SparkResources.SPARK_EXECUTOR_INSTANCES",
         "SparkResources.SPARK_EXECUTOR_MEMORY",
         "SparkResources.SPARK_KUBERNETES_SHUTDOWN"
@@ -89,7 +85,7 @@
         "unlimitedRecordsInProcessing": false,
         "autoInferMaxFiles": "{{{SparkConfigurations.DEBUG_AUTO_INFER_MAX_FILES_LIMIT}}}",
         "forceRunAsExecution": false,
-        "forceRunAsExecutionWithMaxSteps": "20",
+        "forceRunAsExecutionWithMaxSteps": "{{{SparkConfigurations.DEBUG_FORCE_RUN_AS_EXECUTION_WITH_MAX_STEPS}}}",
         "executeWithSameExecutionMode": false,
         "numberOfColumnExamples": "{{{SparkConfigurations.DEBUG_NUMBER_OF_COLUMN_EXAMPLES}}}",
         "maxSizeColumnExamples": "{{{SparkConfigurations.DEBUG_MAX_SIZE_COLUMN_EXAMPLES}}}",
@@ -110,12 +106,12 @@
       }
     },
     "streamingSettings": {
-      "window": "2s",
+      "window": "{{{SparkConfigurations.SPARK_STREAMING_WINDOW}}}",
       "backpressure": false,
-      "blockInterval": "100ms",
+      "blockInterval": "{{{SparkConfigurations.SPARK_STREAMING_BLOCK_INTERVAL}}}",
       "stopGracefully": true,
       "checkpointSettings": {
-        "checkpointPath": "tmp/checkpoint",
+        "checkpointPath": "{{{SparkConfigurations.SPARK_STREAMING_CHECKPOINT_PATH}}}",
         "enableCheckpointing": true,
         "autoDeleteCheckpoint": true,
         "addTimeToCheckpointPath": false,
@@ -173,12 +169,9 @@
       }
     },
     "pythonEnvDefinition": {
-      "vEnvManagementMode": "CondaYamlDescriptor",
-      "condaYamlDefinition": "name: rocket-default\n\nchannels:\n  - conda-forge\n  - nodefaults\n\ndependencies:\n  - python=3.9.*\n  - pip=25.1.*\n  - pip:\n      - mlflow==2.18.*\n      - pyarrow==14.*\n      - scikit-learn==1.*\n      - numpy==1.23.*\n      - scipy==1.*\n      - pandas==1.*\n      - petastorm==0.12.*\n      - langchain==0.3.*\n      - tiktoken==0.9.0\n      - geopandas",
+      "vEnvManagementMode": "DefaultExecutionVirtualEnv",
+      "condaYamlDefinition": "name: rocket-default\n\nchannels:\n  - conda-forge\n  - nodefaults\n\ndependencies:\n  - python=3.9.*\n  - pip=25.1.*\n  - pip:\n      - mlflow==2.18.*\n      - pyarrow==14.*\n      - scikit-learn==1.*\n      - numpy==1.23.*\n      - scipy==1.*\n      - pandas==1.*\n      - petastorm==0.12.*\n      - langchain==0.3.*\n      - tiktoken==0.9.0",
       "freezeAfterDebug": false,
-      "frozenCondaYaml": "",
-      "condaEnvironmentIdentifier": "",
-      "condaPackEnvironmentPath": "",
       "condaPackExtension": [],
       "executeCondaUnpackAfterActivate": false,
       "pySparkNativeExtensions": []
@@ -201,16 +194,36 @@
           "schema.inputMode": "NOSCHEMAPROVIDED",
           "excludeGlobFilter": "",
           "inputOptions": "",
+          "dataAsJsonEnabled": true,
           "path": "/user/rocket.stratio-rocket/practica_episodio.csv",
           "subdirGlobFilter": "",
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "isSaved": true,
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "AutoInfer"
+          },
+          "schema.header": "",
           "subdirRegexFilter": "",
+          "isRecursiveEnabled": true,
           "readMode": "DefaultReadMode",
+          "paths": [
+            {
+              "path": null,
+              "subdirGlobFilter": null,
+              "subdirRegexFilter": null,
+              "excludeGlobFilter": null,
+              "excludeRegexFilter": null
+            }
+          ],
+          "metadataColumnEnabled": true,
           "excludeRegexFilter": "",
           "header": true,
+          "schema.fields": "",
+          "enableFilterPattern": true,
           "genAIMetadataColumns": "",
+          "schema.sparkSchema": "",
+          "pathGlobFilter": "*.csv",
           "delimiter": ","
         },
         "supportedEngines": [
@@ -225,11 +238,11 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 65.05086517333984,
-            "y": 170.35191345214844
+            "x": 612,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-11T01:10:10Z"
+        "lastModified": "2026-02-11T01:45:44Z"
       },
       {
         "name": "F_Datos",
@@ -244,8 +257,11 @@
           "priority": "50",
           "quoteSql": false,
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "NoMock"
+          },
           "inputSchemas": "",
           "filterExp": "id < 100",
           "genAIMetadataColumns": ""
@@ -257,71 +273,17 @@
         ],
         "executionEngine": "Hybrid",
         "supportedDataRelations": [
-          "ValidData",
-          "DiscardedData"
+          "ValidData"
         ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 310.9101257324219,
-            "y": 74.39373016357422
+            "x": 782,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-11T01:10:36Z"
-      },
-      {
-        "name": "Transformacion",
-        "stepType": "Transformation",
-        "className": "TriggerTransformStep",
-        "classPrettyName": "Trigger",
-        "arity": [
-          "NaryToNary"
-        ],
-        "description": "",
-        "configuration": {
-          "priority": "50",
-          "sql": "SELECT *\r\nFROM UnionDatos",
-          "quoteSql": false,
-          "discardConditions": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
-          "replaceWithInputDataframe": false,
-          "genAIMetadataColumns": ""
-        },
-        "supportedEngines": [
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData",
-          "DiscardedData"
-        ],
-        "lineageProperties": [],
-        "outputsWriter": [
-          {
-            "saveMode": "Overwrite",
-            "outputStepName": "Parquet",
-            "tableName": "TABLA",
-            "discardTableName": "",
-            "extraOptions": {
-              "checkIfEmpty": true,
-              "partitionBy": "tipo",
-              "partitionOverwriteEnabled": true,
-              "partitionColumns": "",
-              "saveMode": "Overwrite",
-              "partitions": ""
-            }
-          }
-        ],
-        "uiConfiguration": {
-          "position": {
-            "x": 665.2021484375,
-            "y": 131.00904083251953
-          }
-        },
-        "lastModified": "2026-02-11T01:25:15Z"
+        "lastModified": "2026-02-11T01:45:44Z"
       },
       {
         "name": "F_Datos2",
@@ -336,8 +298,11 @@
           "priority": "50",
           "quoteSql": false,
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "NoMock"
+          },
           "inputSchemas": "",
           "filterExp": "id >= 200",
           "genAIMetadataColumns": ""
@@ -349,18 +314,17 @@
         ],
         "executionEngine": "Hybrid",
         "supportedDataRelations": [
-          "ValidData",
-          "DiscardedData"
+          "ValidData"
         ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 310.46190990595494,
-            "y": 192.7753577036979
+            "x": 952,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-11T01:24:59Z"
+        "lastModified": "2026-02-11T01:45:44Z"
       },
       {
         "name": "UnionDatos",
@@ -373,9 +337,12 @@
         "description": "",
         "configuration": {
           "priority": "50",
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "NoMock"
+          },
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
           "inputSchemas": "",
           "genAIMetadataColumns": ""
         },
@@ -392,11 +359,66 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 496.7720422699663,
-            "y": 129.89663183509563
+            "x": 1122,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-11T01:25:05Z"
+        "lastModified": "2026-02-11T01:45:44Z"
+      },
+      {
+        "name": "Transformacion",
+        "stepType": "Transformation",
+        "className": "TriggerTransformStep",
+        "classPrettyName": "Trigger",
+        "arity": [
+          "NaryToNary"
+        ],
+        "description": "",
+        "configuration": {
+          "priority": "50",
+          "sql": "\nSELECT *\nFROM UnionDatos\n",
+          "quoteSql": false,
+          "discardConditions": "",
+          "genAIMetadataTablesDescription": "",
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "NoMock"
+          },
+          "replaceWithInputDataframe": false,
+          "genAIMetadataColumns": ""
+        },
+        "supportedEngines": [
+          "Hybrid"
+        ],
+        "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
+        "lineageProperties": [],
+        "outputsWriter": [
+          {
+            "saveMode": "Overwrite",
+            "outputStepName": "Parquet",
+            "tableName": "",
+            "discardTableName": "",
+            "extraOptions": {
+              "checkIfEmpty": false,
+              "partitionBy": "overwrite",
+              "partitionOverwriteEnabled": true,
+              "partitionColumns": "",
+              "saveMode": "Overwrite",
+              "partitions": ""
+            }
+          }
+        ],
+        "uiConfiguration": {
+          "position": {
+            "x": 1292,
+            "y": 289
+          }
+        },
+        "lastModified": "2026-02-11T01:45:44Z"
       },
       {
         "name": "Parquet",
@@ -409,10 +431,19 @@
         ],
         "description": "",
         "configuration": {
-          "priority": "50",
+          "priority": 50,
           "path": "/user/data/save",
           "saveOptions": "",
-          "isSaved": true
+          "debugOptions": {
+            "executeStepAutoDebug": true,
+            "executeStepDebug": true,
+            "mockType": "NoMock"
+          },
+          "saveMode": "Overwrite",
+          "partitionBy": "tipo",
+          "partitionOverwriteEnabled": true,
+          "tableName": "TABLA",
+          "checkIfEmpty": true
         },
         "supportedEngines": [
           "Streaming",
@@ -420,15 +451,18 @@
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 829.7469137331135,
-            "y": 131.81577400313077
+            "x": 1462,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-11T01:27:17Z"
+        "lastModified": "2026-02-11T01:45:44Z"
       }
     ],
     "edges": [
@@ -445,7 +479,7 @@
       {
         "origin": "F_Datos",
         "destination": "UnionDatos",
-        "dataType": "DiscardedData"
+        "dataType": "ValidData"
       },
       {
         "origin": "F_Datos2",
@@ -470,27 +504,20 @@
   "workflowType": "SpartaWorkflow",
   "uiSettings": {
     "position": {
-      "x": 45.30365831624613,
-      "y": 152.6320574523963,
-      "k": 1.0421205719080704
+      "x": -2083.536303142103,
+      "y": -859.7024044750958,
+      "k": 4.0
     }
   },
-  "creationDate": "2026-02-11T01:07:49Z",
-  "lastUpdateDate": "2026-02-11T01:27:13Z",
+  "creationDate": "2026-02-11T01:45:44Z",
+  "lastUpdateDate": "2026-02-11T01:45:44Z",
   "version": 0,
   "readOnly": false,
   "releaseInProgress": false,
   "tags": [],
   "debugMode": false,
   "debugAsExecutionMaybe": false,
-  "versionSparta": "3.6.1",
+  "versionSparta": "3.6.3",
   "normalizedName": "demo",
-  "isHybridStreaming": false,
-  "workflowMasterId": "5c1d1353-a2b7-4067-88e1-0bce2c5adbe8",
-  "group": {
-    "id": "4e71db55-7545-4bbf-958e-46247706885f",
-    "name": "/home/system/workspace"
-  },
-  "groupId": "4e71db55-7545-4bbf-958e-46247706885f",
-  "projectId": "7gj83a6q-t894-20ld2-45et-a4o433g4h6d1"
+  "isHybridStreaming": false
 }

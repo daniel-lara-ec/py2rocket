@@ -1380,7 +1380,6 @@ def from_json(
     # 6. Generar código Python
     imports = set()
     imports.add("from py2rocket import pipeline, build")
-    imports.add("from py2rocket.core.pipeline import ExecutionEngine, StepType")
 
     code_lines = []
     var_names = {}  # Map node name -> variable name
@@ -1389,20 +1388,30 @@ def from_json(
         """Genera código para un nodo"""
         node_name = node.get("name")
         class_name = node.get("className")
+        class_pretty_name = node.get("classPrettyName")
         config = node.get("configuration", {})
+
+        from py2rocket.core.operations import _get_step_defaults
 
         if class_name not in CLASS_TO_FUNCTION:
             return f"    # TODO: Unsupported node type: {class_name} ({node_name})"
 
         try:
             func_name, module = CLASS_TO_FUNCTION[class_name]
-            imports.add(f"from {module} import {func_name}")
+            imports.add(f"from py2rocket.core.operations import {func_name}")
         except Exception as e:
             print(
                 f"ERROR: No se pudo procesar el nodo '{node_name}' de tipo '{class_name}'"
             )
             print(f"Detalles: {e}")
             raise
+
+        defaults = _get_step_defaults(
+            class_name=class_name,
+            step_type=node.get("stepType"),
+            class_pretty_name=class_pretty_name,
+        )
+        default_config = defaults.get("configuration", {}) if defaults else {}
 
         # Obtener variable del nodo (ya debe estar en var_names)
         var_name = var_names[node_name]
@@ -1422,24 +1431,26 @@ def from_json(
         valid_params.discard("priority")
         valid_params.discard("description")
 
-        required_params = {
-            k
-            for k, p in sig.parameters.items()
-            if p.default is inspect._empty and k not in {"name", "inputs"}
-        }
+        # Config completo (defaults + overrides del JSON)
+        config_args = dict(default_config) if isinstance(default_config, dict) else {}
+        if isinstance(config, dict):
+            config_args.update(config)
 
-        for key, value in config.items():
+        config_override = dict(config) if isinstance(config, dict) else {}
+        config_override.pop("priority", None)
+
+        added_params = set()
+
+        for key, value in config_args.items():
+            if key == "priority":
+                continue
+
             # Convertir clave de camelCase a snake_case
             import re
 
             snake_key = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", key)
             snake_key = re.sub("([a-z0-9])([A-Z])", r"\1_\2", snake_key)
             snake_key = snake_key.lower()
-
-            # Omitir valores vacíos excepto si son obligatorios
-            if value == "" or value == [] or value == {}:
-                if snake_key not in required_params:
-                    continue
 
             alias_map = {
                 "user_pass_enable": "user_pass_enabled",
@@ -1451,44 +1462,48 @@ def from_json(
             if func_name == "pyspark" and snake_key == "python_code":
                 snake_key = "code"
 
-            if snake_key not in valid_params:
+            if snake_key in valid_params:
+                if snake_key in added_params:
+                    continue
+                added_params.add(snake_key)
+                # Formatear valor
+                if isinstance(value, str):
+                    # Detectar si es contenido multilínea (SQL, código Python, etc.)
+                    is_multiline = "\n" in value or len(value) > 80
+
+                    # Campos que típicamente contienen SQL o código multilínea
+                    multiline_fields = {
+                        "query",
+                        "python_code",
+                        "code",
+                        "sql",
+                        "add_column_expression_list",
+                        "trigger_sql",
+                        "filterExp",
+                        "filter_exp",
+                        "select_expression",
+                    }
+
+                    if (
+                        is_multiline
+                        or snake_key in multiline_fields
+                        and len(value) > 40
+                    ):
+                        value_escaped = value.replace('"""', r"\"\"\"")
+                        args.append(f'{snake_key}="""\n{value_escaped}\n"""')
+                    else:
+                        value_escaped = value.replace('"', '\\"').replace("\\", "\\\\")
+                        args.append(f'{snake_key}="{value_escaped}"')
+                elif isinstance(value, bool):
+                    args.append(f"{snake_key}={value}")
+                elif isinstance(value, (int, float)):
+                    args.append(f"{snake_key}={value}")
+                elif isinstance(value, list):
+                    args.append(f"{snake_key}={value}")
+                elif isinstance(value, dict):
+                    args.append(f"{snake_key}={value}")
+            else:
                 continue
-
-            # Formatear valor
-            if isinstance(value, str):
-                # Detectar si es contenido multilínea (SQL, código Python, etc.)
-                is_multiline = "\n" in value or len(value) > 80
-
-                # Campos que típicamente contienen SQL o código multilínea
-                multiline_fields = {
-                    "query",
-                    "python_code",
-                    "code",
-                    "sql",
-                    "add_column_expression_list",
-                    "trigger_sql",
-                    "filterExp",
-                    "filter_exp",
-                    "select_expression",
-                }
-
-                if is_multiline or snake_key in multiline_fields and len(value) > 40:
-                    # Usar triple comillas para contenido multilínea
-                    # Escapar solo las triple comillas si existen en el contenido
-                    value_escaped = value.replace('"""', r"\"\"\"")
-                    args.append(f'{snake_key}="""\n{value_escaped}\n"""')
-                else:
-                    # Escapar comillas en el string
-                    value_escaped = value.replace('"', '\\"').replace("\\", "\\\\")
-                    args.append(f'{snake_key}="{value_escaped}"')
-            elif isinstance(value, bool):
-                args.append(f"{snake_key}={value}")
-            elif isinstance(value, (int, float)):
-                args.append(f"{snake_key}={value}")
-            elif isinstance(value, list):
-                args.append(f"{snake_key}={value}")
-            elif isinstance(value, dict):
-                args.append(f"{snake_key}={value}")
 
         # Agregar inputs si existen
         if node_name in node_inputs:
@@ -1510,118 +1525,73 @@ def from_json(
             ):
                 args.append("inputs=[]")
 
-        # Agregar description si existe
-        node_description = node.get("description", "")
-        if node_description:
-            args.append(f'description="{node_description}"')
+        # Agregar description
+        if "description" in sig.parameters:
+            args.append(f"description={repr(node.get('description', ''))}")
 
         # Agregar priority
-        priority = config.get("priority", "50")
-        args.append(f"priority={priority}")
+        priority = config_args.get("priority", 50)
+        try:
+            priority_int = int(str(priority))
+        except Exception:
+            priority_int = 50
+        default_priority = (
+            default_config.get("priority") if isinstance(default_config, dict) else None
+        )
+        try:
+            default_priority_int = (
+                int(str(default_priority)) if default_priority is not None else None
+            )
+        except Exception:
+            default_priority_int = None
+        if "priority" in sig.parameters and (
+            default_priority_int is None or priority_int != default_priority_int
+        ):
+            args.append(f"priority={priority_int}")
+
+        # Config override para preservar exactamente el JSON
+        if config_override:
+            args.append(f"config_override={config_override}")
+
+        # Node overrides (metadatos fuera de config)
+        node_overrides = {}
+        # Tomar valores del JSON (excepto arity)
+        if node.get("className"):
+            node_overrides["class_name"] = node.get("className")
+        if node.get("classPrettyName") is not None:
+            node_overrides["class_pretty_name"] = node.get("classPrettyName")
+        if node.get("supportedEngines") is not None:
+            node_overrides["supported_engines"] = node.get("supportedEngines")
+        if node.get("supportedDataRelations") is not None:
+            node_overrides["supported_data_relations"] = node.get(
+                "supportedDataRelations"
+            )
+        if node.get("outputsWriter") is not None:
+            node_overrides["outputs_writer"] = node.get("outputsWriter")
+        if node.get("uiConfiguration") is not None:
+            node_overrides["ui_configuration"] = node.get("uiConfiguration")
+        if node.get("lineageProperties") is not None:
+            node_overrides["lineage_properties"] = node.get("lineageProperties")
+        if node.get("lastModified"):
+            node_overrides["last_modified"] = node.get("lastModified")
+
+        if "supportedDataRelations" not in node:
+            node_overrides["include_supported_data_relations"] = False
+        if "description" not in node:
+            node_overrides["include_description"] = False
+        if "debugOptions" not in config_override:
+            node_overrides["include_debug_options"] = False
+
+        if node_overrides:
+            args.append(f"node_overrides={node_overrides}")
 
         # Generar línea de código
         args_str = ",\n        ".join(args)
         node_line = f"    {var_name} = {func_name}(\n        {args_str}\n    )"
 
-        # Aplicar configuración cruda y metadatos del nodo
-        post_lines = []
-        post_lines.append(f"    {var_name}.node.configuration = {repr(config)}")
-
-        # Priority numérico
-        try:
-            priority_int = int(str(priority))
-        except Exception:
-            priority_int = 50
-        post_lines.append(f"    {var_name}.node.priority = {priority_int}")
-
-        node_step_type = node.get("stepType")
-        if node_step_type:
-            post_lines.append(
-                f"    {var_name}.node.step_type = StepType.{node_step_type.upper()}"
-            )
-
-        node_class_name = node.get("className")
-        if node_class_name:
-            post_lines.append(f'    {var_name}.node.class_name = "{node_class_name}"')
-
-        node_class_pretty = node.get("classPrettyName")
-        if node_class_pretty is not None:
-            post_lines.append(
-                f'    {var_name}.node.class_pretty_name = "{node_class_pretty}"'
-            )
-
-        supported_engines = node.get("supportedEngines")
-        if supported_engines:
-            post_lines.append(
-                f"    {var_name}.node.supported_engines = {supported_engines}"
-            )
-
-        supported_data_relations = node.get("supportedDataRelations")
-        if supported_data_relations is not None:
-            post_lines.append(
-                f"    {var_name}.node.supported_data_relations = {supported_data_relations}"
-            )
-
-        exec_engine = node.get("executionEngine")
-        if exec_engine:
-            post_lines.append(
-                f"    {var_name}.node.execution_engine = ExecutionEngine.{exec_engine.upper()}"
-            )
-
-        arity = node.get("arity")
-        if arity is not None:
-            post_lines.append(f"    {var_name}.node.arity = {arity}")
-
-        ui_configuration = node.get("uiConfiguration")
-        if ui_configuration is not None:
-            post_lines.append(
-                f"    {var_name}.node.ui_configuration = {ui_configuration}"
-            )
-
-        lineage_properties = node.get("lineageProperties")
-        if lineage_properties:
-            post_lines.append(
-                f"    {var_name}.node.lineage_properties = {lineage_properties}"
-            )
-
-        last_modified = node.get("lastModified")
-        if last_modified:
-            post_lines.append(f'    {var_name}.node.last_modified = "{last_modified}"')
-
-        if "debugOptions" in config:
-            post_lines.append(f"    {var_name}.node.include_debug_options = True")
-        else:
-            post_lines.append(f"    {var_name}.node.include_debug_options = False")
-
-        if "supportedDataRelations" in node:
-            post_lines.append(
-                f"    {var_name}.node.include_supported_data_relations = True"
-            )
-        else:
-            post_lines.append(
-                f"    {var_name}.node.include_supported_data_relations = False"
-            )
-
-        if "description" in node:
-            post_lines.append(f"    {var_name}.node.include_description = True")
-        else:
-            post_lines.append(f"    {var_name}.node.include_description = False")
-
-        # Preservar outputsWriter exactamente como en el JSON
-        outputs_writers = node.get("outputsWriter", []) or []
-        writer_lines = []
-        if outputs_writers:
-            writer_lines.append(
-                f"    {var_name}.node.outputs_writer = {outputs_writers}"
-            )
-
-        combined_lines = [node_line] + post_lines
-        if writer_lines:
-            combined_lines.extend(writer_lines)
-        return "\n".join(combined_lines)
+        return node_line
 
     # Pre-procesar todos los nodos para llenar var_names
-    # Primero, recopilar todos los nombres de funciones que se importarán
     imported_functions = set()
     for node in input_nodes + transform_nodes + output_nodes:
         class_name = node.get("className")
@@ -1629,7 +1599,6 @@ def from_json(
             func_name, _ = CLASS_TO_FUNCTION[class_name]
             imported_functions.add(func_name)
 
-    # Ahora sanitizar nombres de variables evitando conflictos
     for node in input_nodes + transform_nodes + output_nodes:
         node_name = node.get("name")
         var_name = _sanitize_var_name(node_name, imported_functions)
