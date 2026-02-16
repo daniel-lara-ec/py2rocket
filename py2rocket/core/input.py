@@ -59,6 +59,19 @@ def _apply_ui_position(
         elif isinstance(ui_position, dict):
             node.ui_configuration = ui_position
         else:
+            raise TypeError(f"ui_position debe ser UIPosition o dict, recibido: {type(ui_position)}")
+
+
+def _apply_include_description(node: Node, include_description: bool) -> None:
+    """Aplica el flag include_description al nodo si es False.
+
+    Args:
+        node: El nodo al que aplicar el flag
+        include_description: Si incluir descripción en la serialización
+    """
+    if not include_description:
+        node.include_description = False
+        else:
             raise TypeError(
                 f"ui_position debe ser UIPosition o dict, recibido {type(ui_position)}"
             )
@@ -82,6 +95,7 @@ def custom_lite_xd(
     is_legacy_batch_step: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada CustomLiteXD personalizado.
@@ -137,6 +151,7 @@ def custom_lite_xd(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -164,6 +179,7 @@ def sftp_input(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada SFTP.
@@ -218,6 +234,7 @@ def sftp_input(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -233,6 +250,7 @@ def test_input(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada Test.
@@ -273,6 +291,7 @@ def test_input(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -290,6 +309,7 @@ def sql(
     force_native_query: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada SQL.
@@ -339,6 +359,7 @@ def sql(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -356,6 +377,7 @@ def jdbc(
     input_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada JDBC.
@@ -419,6 +441,7 @@ def jdbc(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -435,6 +458,7 @@ def postgres(
     case_sensitive_enabled: bool = True,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada PostgreSQL.
@@ -494,6 +518,7 @@ def postgres(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -510,6 +535,7 @@ def pyspark_input(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada PySpark personalizado.
@@ -559,6 +585,7 @@ def pyspark_input(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -579,6 +606,7 @@ def parquet(
     enable_filter_pattern: bool = True,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada Parquet.
@@ -641,6 +669,7 @@ def parquet(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -655,6 +684,7 @@ def delta(
     timestamp_as_of: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada Delta Lake.
@@ -712,6 +742,7 @@ def delta(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -728,6 +759,7 @@ def json(
     multiline_enabled: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada JSON.
@@ -793,6 +825,7 @@ def json(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -914,6 +947,7 @@ def filesystem(
     input_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada Filesystem.
@@ -966,5 +1000,6 @@ def filesystem(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)

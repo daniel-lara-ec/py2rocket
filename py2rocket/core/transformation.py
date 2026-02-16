@@ -92,6 +92,17 @@ def _apply_ui_position(
             )
 
 
+def _apply_include_description(node: Node, include_description: bool) -> None:
+    """Aplica el flag include_description al nodo si es False.
+
+    Args:
+        node: El nodo al que aplicar el flag
+        include_description: Si incluir descripción en la serialización
+    """
+    if not include_description:
+        node.include_description = False
+
+
 # ============================================================================
 # COLUMN OPERATION TRANSFORMATIONS
 # ============================================================================
@@ -106,6 +117,7 @@ def add_columns(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de transformación para agregar columnas.
@@ -186,6 +198,7 @@ def drop_columns(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de transformación para eliminar columnas.
@@ -241,6 +254,9 @@ def drop_columns(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -265,6 +281,7 @@ def rename_columns(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de transformación para renombrar columnas.
@@ -320,6 +337,9 @@ def rename_columns(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -358,6 +378,7 @@ def custom_lite_xd_transform(
     outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define una transformación CustomLiteXD personalizada.
@@ -410,6 +431,9 @@ def custom_lite_xd_transform(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Procesar outputs_writer si se proporcionó
@@ -442,6 +466,7 @@ def coalesce(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define una transformación de coalescencia de particiones.
@@ -493,6 +518,9 @@ def coalesce(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -517,6 +545,7 @@ def persist(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de persistencia de datos en caché.
@@ -568,6 +597,9 @@ def persist(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -593,6 +625,7 @@ def repartition(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de reparticionamiento.
@@ -647,6 +680,9 @@ def repartition(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -675,6 +711,7 @@ def bypass(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de bypass/paso a través.
@@ -723,6 +760,9 @@ def bypass(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -752,6 +792,7 @@ def pyspark(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de transformación PySpark.
@@ -802,6 +843,9 @@ def pyspark(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -835,6 +879,7 @@ def trigger(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define una transformación Trigger con SQL condicional.
@@ -892,6 +937,9 @@ def trigger(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Procesar outputs_writer si se proporcionó
@@ -920,6 +968,7 @@ def filter(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de transformación para filtrar datos.
@@ -978,6 +1027,9 @@ def filter(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -1004,6 +1056,7 @@ def union(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Combina múltiples flujos de datos usando UNION ALL.
@@ -1056,6 +1109,9 @@ def union(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -1088,6 +1144,7 @@ def ml_model(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de transformación MlModel.
@@ -1119,6 +1176,9 @@ def ml_model(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     if inputs is not None:
