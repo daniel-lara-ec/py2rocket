@@ -25,7 +25,7 @@ from py2rocket.core import pipeline, RocketCompiler
 from py2rocket.core.pipeline import UIPosition
 from py2rocket.templates.workflow_template import WORKFLOW_TEMPLATE
 
-__version__ = "0.4.6"
+__version__ = "0.4.7"
 __all__ = [
     "create",
     "build",

@@ -52,14 +52,15 @@ def _apply_ui_position(
         ui_position: Diccionario con claves 'x' e 'y', o UIPosition object, o None
     """
     if ui_position is not None:
-        from py2rocket.core.pipeline import UIPosition
 
         if isinstance(ui_position, UIPosition):
             node.ui_configuration = ui_position.to_dict()
         elif isinstance(ui_position, dict):
             node.ui_configuration = ui_position
         else:
-            raise TypeError(f"ui_position debe ser UIPosition o dict, recibido: {type(ui_position)}")
+            raise TypeError(
+                f"ui_position debe ser UIPosition o dict, recibido: {type(ui_position)}"
+            )
 
 
 def _apply_include_description(node: Node, include_description: bool) -> None:
@@ -71,10 +72,6 @@ def _apply_include_description(node: Node, include_description: bool) -> None:
     """
     if not include_description:
         node.include_description = False
-        else:
-            raise TypeError(
-                f"ui_position debe ser UIPosition o dict, recibido {type(ui_position)}"
-            )
 
 
 # ============================================================================

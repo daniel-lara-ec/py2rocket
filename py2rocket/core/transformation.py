@@ -174,6 +174,8 @@ def add_columns(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs

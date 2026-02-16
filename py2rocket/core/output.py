@@ -127,6 +127,17 @@ def _apply_ui_position(
             )
 
 
+def _apply_include_description(node: Node, include_description: bool) -> None:
+    """Aplica el flag include_description al nodo si es False.
+
+    Args:
+        node: El nodo al que aplicar el flag
+        include_description: Si incluir descripción en la serialización
+    """
+    if not include_description:
+        node.include_description = False
+
+
 # ============================================================================
 # CUSTOMMADE OUTPUTS
 # ============================================================================
@@ -144,6 +155,7 @@ def custom_lite_xd_output(
     vault_custom_property_enabled: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -200,6 +212,9 @@ def custom_lite_xd_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -250,6 +265,7 @@ def jdbc_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -317,6 +333,9 @@ def jdbc_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -358,6 +377,7 @@ def postgres_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -413,6 +433,9 @@ def postgres_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -459,6 +482,7 @@ def sftp_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -528,6 +552,9 @@ def sftp_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -569,6 +596,7 @@ def print_step(
     log_level: str = "warn",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -625,6 +653,9 @@ def print_step(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -673,6 +704,7 @@ def run_workflow(
     use_latest_version: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -760,6 +792,9 @@ def run_workflow(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -788,6 +823,7 @@ def pyspark_output(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -831,6 +867,9 @@ def pyspark_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -869,6 +908,7 @@ def delta_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -916,6 +956,9 @@ def delta_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -955,6 +998,7 @@ def parquet_output(
     check_if_empty: Optional[bool] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -1008,6 +1052,9 @@ def parquet_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Construir extra_options para outputsWriter
@@ -1074,6 +1121,7 @@ def json_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida JSON.
@@ -1117,6 +1165,9 @@ def json_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -1158,6 +1209,7 @@ def csv_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -1211,6 +1263,9 @@ def csv_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -1245,6 +1300,7 @@ def text_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
     include_supported_data_relations: bool = True,
     include_debug_options: bool = True,
 ) -> StepResult:
@@ -1294,6 +1350,9 @@ def text_output(
     )
 
     _apply_ui_position(node, ui_position)
+
+
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
