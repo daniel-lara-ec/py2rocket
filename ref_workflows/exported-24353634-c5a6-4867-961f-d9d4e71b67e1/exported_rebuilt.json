@@ -197,21 +197,21 @@
         "arity": [
           "NullaryToNary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
+          "customLiteClassType": "",
           "vaultDbName": "",
           "inputOptions": "",
-          "customLiteClassType": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "lineage_custom": "",
-          "userPassEnable": false,
-          "isLegacyBatchStep": false,
+          "userPassEnabled": false,
           "tlsEnabled": false,
           "vaultCustomPropertyEnabled": false,
           "isStreaming": false,
+          "isLegacyBatchStep": false,
+          "genAIMetadataTableDescription": "",
           "genAIMetadataColumns": "",
-          "vaultCustomPropertyName": ""
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
+          "isSaved": true
         },
         "supportedEngines": [
           "Hybrid"
@@ -224,11 +224,11 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 60.0
+            "x": 90,
+            "y": 60
           }
         },
-        "lastModified": "2026-02-11T01:05:22Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Jdbc",
@@ -238,19 +238,21 @@
         "arity": [
           "NullaryToNary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
-          "vaultDbName": "",
-          "inputOptions": "",
           "url": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "userPassEnable": false,
+          "dbtable": "",
+          "driver": "org.postgresql.Driver",
           "isolationLevel": "READ_UNCOMMITTED",
           "tlsEnabled": false,
-          "driver": "org.postgresql.Driver",
-          "dbtable": "",
-          "genAIMetadataColumns": ""
+          "userPassEnabled": false,
+          "vaultDbName": "",
+          "inputOptions": "",
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
+          "isSaved": true
         },
         "supportedEngines": [
           "Batch",
@@ -264,11 +266,11 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 170.0
+            "x": 90,
+            "y": 170
           }
         },
-        "lastModified": "2026-02-11T01:05:47Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Union",
@@ -278,12 +280,14 @@
         "arity": [
           "NaryToNary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
           "inputSchemas": "",
-          "genAIMetadataColumns": ""
+          "genAIMetadataColumns": "",
+          "isSaved": true
         },
         "supportedEngines": [
           "Streaming",
@@ -298,11 +302,11 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 280.0
+            "x": 90,
+            "y": 280
           }
         },
-        "lastModified": "2026-02-11T01:06:02Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Parquet",
@@ -312,18 +316,10 @@
         "arity": [
           "NullaryToNary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
-          "excludeGlobFilter": "",
-          "inputOptions": "",
-          "dataAsJsonEnabled": true,
           "path": "",
-          "subdirGlobFilter": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "subdirRegexFilter": "",
-          "isRecursiveEnabled": true,
-          "readMode": "DefaultReadMode",
           "paths": [
             {
               "path": null,
@@ -333,12 +329,15 @@
               "excludeRegexFilter": null
             }
           ],
+          "pathGlobFilter": "*.parquet",
+          "isRecursiveEnabled": true,
           "metadataColumnEnabled": true,
-          "excludeRegexFilter": "",
           "enableFilterPattern": true,
+          "readMode": "DefaultReadMode",
+          "genAIMetadataTableDescription": "",
           "genAIMetadataColumns": "",
-          "schema.sparkSchema": "",
-          "pathGlobFilter": "*.parquet"
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
+          "isSaved": true
         },
         "supportedEngines": [
           "Batch",
@@ -352,11 +351,11 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 390.0
+            "x": 90,
+            "y": 390
           }
         },
-        "lastModified": "2026-02-11T01:06:08Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Parquet_1",
@@ -367,11 +366,15 @@
           "NullaryToNullary",
           "NaryToNullary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
           "path": "",
           "saveOptions": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}"
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": ""
         },
         "supportedEngines": [
           "Streaming",
@@ -379,15 +382,18 @@
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 500.0
+            "x": 90,
+            "y": 500
           }
         },
-        "lastModified": "2026-02-11T01:06:11Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "PySpark",
@@ -397,13 +403,15 @@
         "arity": [
           "NullaryToNary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
+          "pythonCode": "\nfrom pyspark.sql import *\nfrom pyspark.sql.functions import *\nfrom pyspark.sql.types import *\n\ndef pyspark_input(spark, param_dict):\n    \"\"\"\n    :param spark: SparkSession\n    :param param_dict: Input dictionary\n    :return: Valid DataFrame\n    \"\"\"\n\n    # Insert your pySpark code here\n    # ...\n\n    return output_df\n",
+          "pythonInputDictionary": "",
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "pythonCode": "from pyspark.sql import *\nfrom pyspark.sql.functions import *\nfrom pyspark.sql.types import *\n\ndef pyspark_input(spark, param_dict):\n    \"\"\"\n    :param spark: SparkSession\n    :param param_dict: Input dictionary\n    :return: Valid DataFrame\n    \"\"\"\n\n    # Insert your pySpark code here\n    # ...\n\n    return output_df",
           "genAIMetadataColumns": "",
-          "pythonInputDictionary": ""
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
+          "isSaved": true
         },
         "supportedEngines": [
           "Batch",
@@ -417,47 +425,47 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 610.0
+            "x": 90,
+            "y": 610
           }
         },
-        "lastModified": "2026-02-11T01:06:16Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "PySpark_1",
         "stepType": "Transformation",
-        "className": "PySparkTransformerStep",
+        "className": "PySparkTransformStep",
         "classPrettyName": "PySpark",
         "arity": [
           "NaryToNary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
+          "code": "\nfrom pyspark.sql import *\nfrom pyspark.sql.functions import *\nfrom pyspark.sql.types import *\n\n#If the step contains a single input and output\n#def pyspark_transform(spark, df, param_dict):\n    #:param spark: SparkSession\n    #:param df: Input DataFrame\n    #:param param_dict: Input dictionary\n    #:return: Transformed DataFrame OR (Valid, discarded) dataframe tuple\n\n    # Insert your pySpark code here\n    # ...\n\n#    return # output_df OR (valid_df, discarded_df)\n\n#If the step contains multiple inputs and outputs\n#def pyspark_transform(spark, dict_df, param_dict):\n    #:param spark: SparkSession\n    #:param dict_df: Input DataFrames Dictionary [\"stepName\", step_df]\n    #:param param_dict: Input dictionary\n    #:return: Transformed DataFrame OR (Valid, discarded) dataframe tuple\n\n    # Insert your pySpark code here\n    # ...\n\n#    return # output_df OR (valid_df, discarded_df)\n",
+          "isSaved": true,
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "pythonCode": "from pyspark.sql import *\nfrom pyspark.sql.functions import *\nfrom pyspark.sql.types import *\n\n#If the step contains a single input and output \n#def pyspark_transform(spark, df, param_dict):\n    #:param spark: SparkSession\n    #:param df: Input DataFrame\n    #:param param_dict: Input dictionary\n    #:return: Transformed DataFrame OR (Valid, discarded) dataframe tuple\n\n    # Insert your pySpark code here\n    # ...\n\n#    return # output_df OR (valid_df, discarded_df)\n\n#If the step contains multiple inputs and outputs \n#def pyspark_transform(spark, dict_df, param_dict):\n    #:param spark: SparkSession\n    #:param dict_df: Input DataFrames Dictionary [\"stepName\", step_df]\n    #:param param_dict: Input dictionary\n    #:return: Transformed DataFrame OR (Valid, discarded) dataframe tuple\n\n    # Insert your pySpark code here\n    # ...\n\n#    return # output_df OR (valid_df, discarded_df)",
           "genAIMetadataColumns": "",
-          "pythonInputDictionary": ""
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}"
         },
         "supportedEngines": [
-          "Streaming",
           "Batch",
+          "Streaming",
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
         "supportedDataRelations": [
-          "ValidData",
-          "DiscardedData"
+          "ValidData"
         ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 720.0
+            "x": 90,
+            "y": 720
           }
         },
-        "lastModified": "2026-02-11T01:06:19Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "PySpark_2",
@@ -468,56 +476,17 @@
           "NullaryToNullary",
           "NaryToNullary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
-          "pythonCode": "from pyspark.sql import *\nfrom pyspark.sql.functions import *\nfrom pyspark.sql.types import *\n\ndef pyspark_output(spark, df, write_options_dict, param_dict):\n    '''\n    :param spark: SparkSession\n    :param df: Input DataFrame\n    :param write_options_dict: Write options defined in previous step\n    :param param_dict: Key-value dictionary defined in this step\n    '''\n\n    # Insert your pySpark code here\n    # ...\n\n    return",
-          "pythonInputDictionary": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}"
-        },
-        "supportedEngines": [
-          "Batch",
-          "Hybrid",
-          "Streaming"
-        ],
-        "executionEngine": "Hybrid",
-        "lineageProperties": [],
-        "outputsWriter": [],
-        "uiConfiguration": {
-          "position": {
-            "x": 90.0,
-            "y": 830.0
-          }
-        },
-        "lastModified": "2026-02-11T01:06:24Z"
-      },
-      {
-        "name": "SFTP",
-        "stepType": "Input",
-        "className": "SFTPInputStep",
-        "classPrettyName": "SFTP",
-        "arity": [
-          "NullaryToNary"
-        ],
-        "configuration": {
-          "priority": "50",
-          "inputOptions": "",
-          "path": "",
-          "username": "",
+          "pythonCode": "\nfrom pyspark.sql import *\nfrom pyspark.sql.functions import *\nfrom pyspark.sql.types import *\n\ndef pyspark_output(spark, df, write_options_dict, param_dict):\n    '''\n    :param spark: SparkSession\n    :param df: Input DataFrame\n    :param write_options_dict: Write options defined in previous step\n    :param param_dict: Key-value dictionary defined in this step\n    '''\n\n    # Insert your pySpark code here\n    # ...\n\n    return\n",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "avoidHdfsFiles": false,
-          "host": "",
-          "tlsEnabled": false,
-          "fileType": "txt",
-          "dataSourceClass": "",
-          "port": "22",
-          "vaultSecretName": "",
-          "genAIMetadataColumns": "",
-          "vaultUserPassEnabled": false,
-          "schema.sparkSchema": "",
-          "password": ""
+          "genAIMetadataColumns": ""
         },
         "supportedEngines": [
+          "Streaming",
           "Batch",
           "Hybrid"
         ],
@@ -529,11 +498,59 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 940.0
+            "x": 90,
+            "y": 830
           }
         },
-        "lastModified": "2026-02-11T01:06:26Z"
+        "lastModified": "2026-02-16T16:34:08Z"
+      },
+      {
+        "name": "SFTP",
+        "stepType": "Input",
+        "className": "SFTPInputStep",
+        "classPrettyName": "SFTP",
+        "arity": [
+          "NullaryToNary"
+        ],
+        "description": "",
+        "configuration": {
+          "priority": "50",
+          "inputOptions": "",
+          "path": "",
+          "username": "",
+          "password": "",
+          "host": "",
+          "port": "22",
+          "fileType": "txt",
+          "avoidHdfsFiles": false,
+          "tlsEnabled": false,
+          "vaultSecretName": "",
+          "vaultUserPassEnabled": false,
+          "dataSourceClass": "",
+          "schema.sparkSchema": "",
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": "",
+          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
+          "isSaved": true
+        },
+        "supportedEngines": [
+          "Batch",
+          "Hybrid",
+          "Streaming"
+        ],
+        "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
+        "lineageProperties": [],
+        "outputsWriter": [],
+        "uiConfiguration": {
+          "position": {
+            "x": 90,
+            "y": 940
+          }
+        },
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "SFTP_1",
@@ -544,23 +561,27 @@
           "NullaryToNullary",
           "NaryToNullary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
-          "path": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "avoidHdfsFiles": false,
           "host": "",
-          "customFileType": "",
-          "preserveWriterFileExtension": false,
-          "tlsEnabled": false,
-          "fileType": "txt",
-          "dataSourceClass": "",
           "port": "22",
-          "vaultSecretName": "",
+          "path": "",
+          "fileType": "txt",
+          "customFileType": "",
           "sftpServerUsername": "",
-          "saveOptions": "",
+          "password": "",
+          "tlsEnabled": false,
+          "preserveWriterFileExtension": false,
+          "avoidHdfsFiles": false,
+          "vaultSecretName": "",
           "vaultUserPassEnabled": false,
-          "password": ""
+          "dataSourceClass": "",
+          "saveOptions": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": ""
         },
         "supportedEngines": [
           "Streaming",
@@ -568,15 +589,18 @@
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 1050.0
+            "x": 90,
+            "y": 1050
           }
         },
-        "lastModified": "2026-02-11T01:06:29Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Test",
@@ -586,205 +610,19 @@
         "arity": [
           "NullaryToNary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
           "eventType": "STRING",
-          "maxNumber": "",
-          "outputField": "raw",
           "event": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
+          "outputField": "raw",
           "numEvents": "10",
+          "maxNumber": "",
           "explodeEvent": false,
-          "genAIMetadataColumns": ""
-        },
-        "supportedEngines": [
-          "Batch",
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData"
-        ],
-        "lineageProperties": [],
-        "outputsWriter": [],
-        "uiConfiguration": {
-          "position": {
-            "x": 90.0,
-            "y": 1160.0
-          }
-        },
-        "lastModified": "2026-02-11T01:06:37Z"
-      },
-      {
-        "name": "Json",
-        "stepType": "Input",
-        "className": "JsonInputStep",
-        "classPrettyName": "Json",
-        "arity": [
-          "NullaryToNary"
-        ],
-        "configuration": {
-          "priority": "50",
-          "schema.inputMode": "NOSCHEMAPROVIDED",
-          "excludeGlobFilter": "",
-          "inputOptions": "",
-          "dataAsJsonEnabled": true,
-          "path": "",
-          "subdirGlobFilter": "",
           "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": "",
           "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "subdirRegexFilter": "",
-          "isRecursiveEnabled": true,
-          "readMode": "DefaultReadMode",
-          "paths": [
-            {
-              "path": null,
-              "subdirGlobFilter": null,
-              "subdirRegexFilter": null,
-              "excludeGlobFilter": null,
-              "excludeRegexFilter": null
-            }
-          ],
-          "metadataColumnEnabled": true,
-          "excludeRegexFilter": "",
-          "schema.provided": "",
-          "enableFilterPattern": true,
-          "genAIMetadataColumns": "",
-          "pathGlobFilter": "*.json"
-        },
-        "supportedEngines": [
-          "Batch",
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData"
-        ],
-        "lineageProperties": [],
-        "outputsWriter": [],
-        "uiConfiguration": {
-          "position": {
-            "x": 90.0,
-            "y": 1270.0
-          }
-        },
-        "lastModified": "2026-02-11T01:06:54Z"
-      },
-      {
-        "name": "Csv",
-        "stepType": "Input",
-        "className": "CsvInputStep",
-        "classPrettyName": "Csv",
-        "arity": [
-          "NullaryToNary"
-        ],
-        "configuration": {
-          "priority": "50",
-          "schema.inputMode": "NOSCHEMAPROVIDED",
-          "excludeGlobFilter": "",
-          "inputOptions": "",
-          "dataAsJsonEnabled": true,
-          "path": "",
-          "subdirGlobFilter": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "schema.header": "",
-          "subdirRegexFilter": "",
-          "isRecursiveEnabled": true,
-          "readMode": "DefaultReadMode",
-          "paths": [
-            {
-              "path": null,
-              "subdirGlobFilter": null,
-              "subdirRegexFilter": null,
-              "excludeGlobFilter": null,
-              "excludeRegexFilter": null
-            }
-          ],
-          "metadataColumnEnabled": true,
-          "excludeRegexFilter": "",
-          "header": false,
-          "schema.fields": "",
-          "enableFilterPattern": true,
-          "genAIMetadataColumns": "",
-          "schema.sparkSchema": "",
-          "pathGlobFilter": "*.csv",
-          "delimiter": ","
-        },
-        "supportedEngines": [
-          "Batch",
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData"
-        ],
-        "lineageProperties": [],
-        "outputsWriter": [],
-        "uiConfiguration": {
-          "position": {
-            "x": 90.0,
-            "y": 1380.0
-          }
-        },
-        "lastModified": "2026-02-11T01:06:56Z"
-      },
-      {
-        "name": "Csv_1",
-        "stepType": "Output",
-        "className": "CsvOutputStep",
-        "classPrettyName": "Csv",
-        "arity": [
-          "NullaryToNullary",
-          "NaryToNullary"
-        ],
-        "configuration": {
-          "priority": "50",
-          "path": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "inferSchema": false,
-          "header": false,
-          "saveOptions": "",
-          "delimiter": "{{{Environment.DEFAULT_DELIMITER}}}"
-        },
-        "supportedEngines": [
-          "Streaming",
-          "Batch",
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "lineageProperties": [],
-        "outputsWriter": [],
-        "uiConfiguration": {
-          "position": {
-            "x": 90.0,
-            "y": 1490.0
-          }
-        },
-        "lastModified": "2026-02-11T01:06:59Z"
-      },
-      {
-        "name": "MlModel",
-        "stepType": "Transformation",
-        "className": "MlModelTransformStep",
-        "classPrettyName": "MlModel",
-        "arity": [
-          "UnaryOrBinaryToNary"
-        ],
-        "configuration": {
-          "priority": "50",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "mlModelLoadingFromType": "MlModelFromAsset",
-          "inputSchemas": "",
-          "predictionColumnName": "",
-          "MlModelAux": "",
-          "mlProjectModelSettings": false,
-          "postgresTimeoutSeconds": "180",
-          "predictionColumnType": "StringType",
-          "genAIMetadataColumns": "",
-          "enablePostProcessing": false
+          "isSaved": true
         },
         "supportedEngines": [
           "Batch",
@@ -799,11 +637,207 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 1600.0
+            "x": 90,
+            "y": 1160
           }
         },
-        "lastModified": "2026-02-11T01:07:05Z"
+        "lastModified": "2026-02-16T16:34:08Z"
+      },
+      {
+        "name": "Json",
+        "stepType": "Input",
+        "className": "JsonInputStep",
+        "classPrettyName": "Json",
+        "arity": [
+          "NullaryToNary"
+        ],
+        "description": "",
+        "configuration": {
+          "priority": "50",
+          "path": "",
+          "paths": [
+            {
+              "path": null,
+              "subdirGlobFilter": null,
+              "subdirRegexFilter": null,
+              "excludeGlobFilter": null,
+              "excludeRegexFilter": null
+            }
+          ],
+          "pathGlobFilter": "*.json",
+          "isRecursiveEnabled": true,
+          "metadataColumnEnabled": true,
+          "enableFilterPattern": true,
+          "multilineEnabled": false,
+          "readMode": "DefaultReadMode",
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
+          "isSaved": true
+        },
+        "supportedEngines": [
+          "Batch",
+          "Hybrid"
+        ],
+        "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
+        "lineageProperties": [],
+        "outputsWriter": [],
+        "uiConfiguration": {
+          "position": {
+            "x": 90,
+            "y": 1270
+          }
+        },
+        "lastModified": "2026-02-16T16:34:08Z"
+      },
+      {
+        "name": "Csv",
+        "stepType": "Input",
+        "className": "CsvInputStep",
+        "classPrettyName": "Csv",
+        "arity": [
+          "NullaryToNary"
+        ],
+        "description": "",
+        "configuration": {
+          "priority": "50",
+          "path": "",
+          "paths": [
+            {
+              "path": null,
+              "subdirGlobFilter": null,
+              "subdirRegexFilter": null,
+              "excludeGlobFilter": null,
+              "excludeRegexFilter": null
+            }
+          ],
+          "delimiter": ",",
+          "header": false,
+          "pathGlobFilter": "*.csv",
+          "isRecursiveEnabled": true,
+          "metadataColumnEnabled": true,
+          "dataAsJsonEnabled": true,
+          "enableFilterPattern": true,
+          "readMode": "DefaultReadMode",
+          "excludeGlobFilter": "",
+          "excludeRegexFilter": "",
+          "subdirGlobFilter": "",
+          "subdirRegexFilter": "",
+          "inputOptions": "",
+          "schema.inputMode": "NOSCHEMAPROVIDED",
+          "schema.header": "",
+          "schema.fields": "",
+          "schema.sparkSchema": "",
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
+          "isSaved": true
+        },
+        "supportedEngines": [
+          "Batch",
+          "Hybrid"
+        ],
+        "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
+        "lineageProperties": [],
+        "outputsWriter": [],
+        "uiConfiguration": {
+          "position": {
+            "x": 90,
+            "y": 1380
+          }
+        },
+        "lastModified": "2026-02-16T16:34:08Z"
+      },
+      {
+        "name": "Csv_1",
+        "stepType": "Output",
+        "className": "CsvOutputStep",
+        "classPrettyName": "Csv",
+        "arity": [
+          "NullaryToNullary",
+          "NaryToNullary"
+        ],
+        "description": "",
+        "configuration": {
+          "priority": "50",
+          "path": "",
+          "delimiter": "{{{Environment.DEFAULT_DELIMITER}}}",
+          "header": false,
+          "inferSchema": false,
+          "saveMode": "Overwrite",
+          "saveOptions": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": ""
+        },
+        "supportedEngines": [
+          "Streaming",
+          "Batch",
+          "Hybrid"
+        ],
+        "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
+        "lineageProperties": [],
+        "outputsWriter": [],
+        "uiConfiguration": {
+          "position": {
+            "x": 90,
+            "y": 1490
+          }
+        },
+        "lastModified": "2026-02-16T16:34:08Z"
+      },
+      {
+        "name": "MlModel",
+        "stepType": "Transformation",
+        "className": "MlModelTransformStep",
+        "classPrettyName": "MlModel",
+        "arity": [
+          "UnaryOrBinaryToNary"
+        ],
+        "description": "",
+        "configuration": {
+          "priority": "50",
+          "mlModelLoadingFromType": "MlModelFromAsset",
+          "predictionColumnName": "",
+          "predictionColumnType": "StringType",
+          "MlModelAux": "",
+          "mlProjectModelSettings": false,
+          "postgresTimeoutSeconds": "180",
+          "enablePostProcessing": false,
+          "genAIMetadataTableDescription": "",
+          "inputSchemas": "",
+          "genAIMetadataColumns": "",
+          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
+          "isSaved": true
+        },
+        "supportedEngines": [
+          "Batch",
+          "Hybrid",
+          "Streaming"
+        ],
+        "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
+        "lineageProperties": [],
+        "outputsWriter": [],
+        "uiConfiguration": {
+          "position": {
+            "x": 90,
+            "y": 1600
+          }
+        },
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Custom_1",
@@ -814,33 +848,37 @@
           "NullaryToNullary",
           "NaryToNullary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
-          "vaultDbName": "",
           "customLiteClassType": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "lineage_custom": "",
-          "userPassEnable": false,
+          "vaultDbName": "",
+          "outputOptions": "",
+          "userPassEnabled": false,
           "tlsEnabled": false,
           "vaultCustomPropertyEnabled": false,
-          "saveOptions": "",
-          "vaultCustomPropertyName": ""
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true
         },
         "supportedEngines": [
-          "Streaming",
           "Batch",
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 1710.0
+            "x": 90,
+            "y": 1710
           }
         },
-        "lastModified": "2026-02-11T01:07:23Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Jdbc_1",
@@ -851,22 +889,26 @@
           "NullaryToNullary",
           "NaryToNullary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
-          "vaultDbName": "",
           "url": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "createSchemaIfNotExists": false,
-          "batchsize": "1000",
-          "userPassEnable": false,
-          "isolationLevel": "READ_UNCOMMITTED",
-          "failFast": true,
-          "tlsEnabled": false,
+          "dbtable": "",
           "driver": "",
+          "batchsize": "1000",
+          "isolationLevel": "READ_UNCOMMITTED",
+          "tlsEnabled": false,
+          "userPassEnable": false,
+          "failFast": true,
           "caseSensitiveEnabled": true,
-          "schemaFromDatabase": false,
+          "createSchemaIfNotExists": false,
           "jdbcSaveMode": "STATEMENT",
-          "saveOptions": ""
+          "schemaFromDatabase": false,
+          "saveOptions": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": ""
         },
         "supportedEngines": [
           "Streaming",
@@ -874,15 +916,18 @@
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 90.0,
-            "y": 1820.0
+            "x": 90,
+            "y": 1820
           }
         },
-        "lastModified": "2026-02-11T01:07:31Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       }
     ],
     "edges": [],

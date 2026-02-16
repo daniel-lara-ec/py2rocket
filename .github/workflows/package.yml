@@ -1,0 +1,94 @@
+name: Package Module
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Extract version
+        id: version
+        run: |
+          python -c "import re; content = open('pyproject.toml').read(); match = re.search(r'version\s*=\s*[\"\'](.*?)[\"\']', content); print(f'VERSION={match.group(1)}' if match else 'VERSION=unknown')" >> $GITHUB_OUTPUT
+
+      - name: Create requirements.txt
+        run: |
+          cat > requirements.txt << 'EOF'
+          requests>=2.31.0
+          python-dotenv>=1.0.0
+          tqdm>=4.66.0
+          EOF
+
+      - name: Create package directory
+        run: |
+          mkdir -p py2rocket_package/py2rocket
+          cp -r py2rocket/* py2rocket_package/py2rocket/
+          cp requirements.txt py2rocket_package/
+          [ -f README.md ] && cp README.md py2rocket_package/ || echo "README.md not found"
+          [ -f LICENSE ] && cp LICENSE py2rocket_package/ || echo "LICENSE not found"
+          [ -f DISCLAIMER.md ] && cp DISCLAIMER.md py2rocket_package/ || true
+
+      - name: Create archive
+        run: |
+          zip -r py2rocket-${{ steps.version.outputs.VERSION }}.zip py2rocket_package/ -x "*/tests/*" "*/__pycache__/*" "*/.git/*" "*.pyc" "*.egg-info/*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: py2rocket-${{ steps.version.outputs.VERSION }}
+          path: py2rocket-${{ steps.version.outputs.VERSION }}.zip
+          retention-days: 30
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          release_name: Release v${{ steps.version.outputs.VERSION }}
+          body: |
+            # py2rocket v${{ steps.version.outputs.VERSION }}
+
+            Este paquete contiene el módulo py2rocket listo para instalación.
+
+            ## Contenido
+            - Código del módulo (`py2rocket/`)
+            - Dependencias (`requirements.txt`)
+            - Documentación (`README.md`, `LICENSE`)
+
+            ## Instalación
+
+            ```bash
+            unzip py2rocket-${{ steps.version.outputs.VERSION }}.zip
+            cd py2rocket_package
+            pip install -r requirements.txt
+            ```
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./py2rocket-${{ steps.version.outputs.VERSION }}.zip
+          asset_name: py2rocket-${{ steps.version.outputs.VERSION }}.zip
+          asset_content_type: application/zip

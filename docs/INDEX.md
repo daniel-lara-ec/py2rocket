@@ -38,6 +38,15 @@
   - Importaciones recomendadas
   - Consejos y FAQ
 
+### Para Desplegar en Rocket
+
+- **[COMANDOS_CREACION.md](COMANDOS_CREACION.md)** - Comandos de creación de workflows
+  - Diferencia entre asset y versión
+  - `create_asset()`: Crear nuevo asset
+  - `create_workflow_version()`: Crear versión en asset existente
+  - Flujo completo de desarrollo
+  - Configuración y mejores prácticas
+
 ## 💻 Código de Ejemplo
 
 Ver: `ejemplo_nuevas_operaciones.py`

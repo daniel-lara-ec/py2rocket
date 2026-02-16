@@ -58,6 +58,7 @@ class RocketCompiler:
                 "imagePullPolicy": "IfNotPresent",
                 "userEnvVariables": [],
                 "userLabels": [],
+                "logLevel": "",
                 "includePostgresHealthCheck": True,
                 "includeHdfsHealthCheck": True,
                 "includeSparkHealthCheck": True,
@@ -98,12 +99,12 @@ class RocketCompiler:
             "executionMetricsSettings": {"customMetricLabels": []},
         },
         "streamingSettings": {
-            "window": "{{{SparkConfigurations.SPARK_STREAMING_WINDOW}}}",
+            "window": "2s",
             "backpressure": False,
-            "blockInterval": "{{{SparkConfigurations.SPARK_STREAMING_BLOCK_INTERVAL}}}",
+            "blockInterval": "100ms",
             "stopGracefully": True,
             "checkpointSettings": {
-                "checkpointPath": "{{{SparkConfigurations.SPARK_STREAMING_CHECKPOINT_PATH}}}",
+                "checkpointPath": "tmp/checkpoint",
                 "enableCheckpointing": True,
                 "autoDeleteCheckpoint": True,
                 "addTimeToCheckpointPath": False,
@@ -124,20 +125,22 @@ class RocketCompiler:
                     "limitModeDriverCores": "SOFT",
                     "limitModeDriverMemory": "GUARANTEED",
                     "limitModeExecutorCores": "SOFT",
+                    "executorTaskParallelism": "",
+                    "sparkParallelism": "",
                     "executorInstances": "{{{SparkResources.SPARK_EXECUTOR_INSTANCES}}}",
                     "enableDriverGpus": False,
-                    "driverGpus": "{{{SparkResources.SPARK_DRIVER_GPUS}}}",
+                    "driverGpus": "1",
                     "enableExecutorGpus": False,
-                    "executorGpus": "{{{SparkResources.SPARK_EXECUTOR_GPUS}}}",
+                    "executorGpus": "1",
                 },
                 "sparkHistoryServerConf": {
                     "enableHistoryServerMonitoring": False,
                     "sparkHistoryServerEventLogRotateEnable": False,
-                    "sparkHistoryServerEventLogRotateMaxFileSize": "{{{SparkConfigurations.SPARK_HISTORY_SERVER_EVENT_LOG_ROTATE_MAX_FILE_SIZE}}}",
+                    "sparkHistoryServerEventLogRotateMaxFileSize": "128m",
                 },
                 "userSparkConf": [],
                 "sparkUser": "root",
-                "logStagesProgress": False,
+                "logStagesProgress": True,
                 "hdfsTokenCache": True,
                 "executorExtraJavaOptions": "{{{SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS}}}",
                 "stopGracefullyTimeout": "{{{SparkResources.SPARK_KUBERNETES_SHUTDOWN}}}",
@@ -147,9 +150,9 @@ class RocketCompiler:
                 },
                 "sparkMetricsConf": {
                     "sparkMetricsEnabled": False,
-                    "sparkDriverSourcesWhitelist": "{{{SparkConfigurations.SPARK_DRIVER_METRICS_SOURCES_WHITELIST}}}",
+                    "sparkDriverSourcesWhitelist": "System,jvm,DAGScheduler,BlockManager",
                     "sparkDriverUnregisteredMetrics": [],
-                    "sparkExecutorSourcesWhitelist": "{{{SparkConfigurations.SPARK_EXECUTOR_METRICS_SOURCES_WHITELIST}}}",
+                    "sparkExecutorSourcesWhitelist": "System,jvm,executor",
                     "sparkExecutorUnregisteredMetrics": [],
                 },
                 "enableProjectSparkConf": True,
@@ -179,13 +182,36 @@ class RocketCompiler:
     def _extract_parameters_used(self) -> list:
         """
         Extrae todos los parámetros referenciados en el pipeline.
-        Busca patrones {{PARAMETRO}} en las queries y configuraciones.
+        Busca patrones {{{PARAMETRO}}} en las queries y configuraciones.
         """
+        import re
+
         params_used = set()
 
         # Parámetros de usuario definidos
         for param_name in self.pipeline.parameters.keys():
             params_used.add(param_name)
+
+        # Extraer parámetros usados en queries y configuraciones de nodos
+        # Patrón para detectar {{{PARAM}}} o {{{List.PARAM}}}
+        param_pattern = re.compile(r"\{\{\{([^}]+)\}\}\}")
+
+        for node in self.pipeline.nodes:
+            # Buscar en el configuration completo (como string JSON)
+            config_str = str(node.configuration)
+            matches = param_pattern.findall(config_str)
+            for match in matches:
+                # Si el parámetro no tiene prefijo de lista (SparkConfigurations, SparkResources, etc.)
+                # considerarlo como parámetro de usuario
+                if not any(
+                    match.startswith(prefix)
+                    for prefix in [
+                        "SparkConfigurations.",
+                        "SparkResources.",
+                        "Environment.",
+                    ]
+                ):
+                    params_used.add(match)
 
         # Parámetros estándar del sistema
         system_params = [
@@ -256,47 +282,7 @@ class RocketCompiler:
             pipeline_dict["pipelineGraph"]["nodes"]
         )
 
-        # Reordenar nodos y edges si se proporcionó orden original
-        if getattr(self.pipeline, "raw_nodes_order", None):
-            node_map = {
-                n.get("name"): n for n in pipeline_dict["pipelineGraph"]["nodes"]
-            }
-            ordered_nodes = [
-                node_map[name]
-                for name in self.pipeline.raw_nodes_order
-                if name in node_map
-            ]
-            remaining = [
-                n
-                for n in pipeline_dict["pipelineGraph"]["nodes"]
-                if n.get("name") not in self.pipeline.raw_nodes_order
-            ]
-            pipeline_dict["pipelineGraph"]["nodes"] = ordered_nodes + remaining
-
-        if getattr(self.pipeline, "raw_edges_order", None):
-            edge_map = {
-                (e.get("origin"), e.get("destination"), e.get("dataType")): e
-                for e in pipeline_dict["pipelineGraph"]["edges"]
-            }
-            ordered_edges = []
-            for edge in self.pipeline.raw_edges_order:
-                key = (
-                    edge.get("origin"),
-                    edge.get("destination"),
-                    edge.get("dataType"),
-                )
-                if key in edge_map:
-                    ordered_edges.append(edge_map[key])
-            remaining_edges = [
-                e
-                for e in pipeline_dict["pipelineGraph"]["edges"]
-                if (e.get("origin"), e.get("destination"), e.get("dataType"))
-                not in {
-                    (ed.get("origin"), ed.get("destination"), ed.get("dataType"))
-                    for ed in self.pipeline.raw_edges_order
-                }
-            ]
-            pipeline_dict["pipelineGraph"]["edges"] = ordered_edges + remaining_edges
+        # No reordenamos nodos ni edges porque el orden no importa, solo el contenido
 
         # Construir el JSON completo
         now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -333,13 +319,81 @@ class RocketCompiler:
             "isHybridStreaming": False,
         }
 
-        # Añadir listas de parámetros adicionales (solo si no hay settings crudos)
-        if not use_raw_settings and getattr(self.pipeline, "parameters_lists", None):
-            base_lists = rocket_json["settings"]["global"]["parametersLists"]
+        # Reconstruir campos que siempre deben estar sincronizados con parámetros del decorador
+        # (estos campos se filtran de raw_settings para evitar duplicación)
+
+        # 1. parametersLists - reconstruir desde parameters_lists del decorador
+        if getattr(self.pipeline, "parameters_lists", None):
+            base_lists = rocket_json["settings"]["global"].get("parametersLists", [])
             extra_lists = [p for p in self.pipeline.parameters_lists if p]
             rocket_json["settings"]["global"]["parametersLists"] = list(
                 dict.fromkeys(base_lists + extra_lists)
             )
+
+        # 2. parametersUsed - siempre reconstruir desde el código
+        rocket_json["settings"]["global"][
+            "parametersUsed"
+        ] = self._extract_parameters_used()
+
+        # 3. parametersSettings.userDefinedParameters - reconstruir desde params
+        rocket_json["settings"]["global"]["parametersSettings"] = {
+            "userDefinedParameters": self._build_user_parameters()
+        }
+
+        # 4. userPluginsJars - reconstruir desde user_plugins_jars
+        if getattr(self.pipeline, "user_plugins_jars", None):
+            jars = [j for j in self.pipeline.user_plugins_jars if j]
+            rocket_json["settings"]["global"]["userPluginsJars"] = jars
+        elif "userPluginsJars" not in rocket_json["settings"]["global"]:
+            rocket_json["settings"]["global"]["userPluginsJars"] = []
+
+        # 5. dockerSettings - siempre reconstruir desde STANDARD_SETTINGS (configuración interna)
+        if "dockerSettings" not in rocket_json["settings"]["global"]:
+            rocket_json["settings"]["global"]["dockerSettings"] = (
+                self.STANDARD_SETTINGS["global"]["dockerSettings"]
+            )
+
+        # 6. kubernetesDeploymentSettings - siempre reconstruir desde STANDARD_SETTINGS (configuración interna)
+        if "kubernetesDeploymentSettings" not in rocket_json["settings"]["global"]:
+            rocket_json["settings"]["global"]["kubernetesDeploymentSettings"] = (
+                self.STANDARD_SETTINGS["global"]["kubernetesDeploymentSettings"]
+            )
+
+        # 7. debugSettings - siempre reconstruir desde STANDARD_SETTINGS (configuración interna)
+        if "debugSettings" not in rocket_json["settings"]["global"]:
+            rocket_json["settings"]["global"]["debugSettings"] = self.STANDARD_SETTINGS[
+                "global"
+            ]["debugSettings"]
+
+        # 8. streamingSettings - siempre reconstruir desde STANDARD_SETTINGS (configuración interna)
+        if "streamingSettings" not in rocket_json["settings"]:
+            rocket_json["settings"]["streamingSettings"] = self.STANDARD_SETTINGS[
+                "streamingSettings"
+            ]
+
+        # 9. sparkSettings - siempre reconstruir desde STANDARD_SETTINGS (configuración interna)
+        if "sparkSettings" not in rocket_json["settings"]:
+            rocket_json["settings"]["sparkSettings"] = deepcopy(
+                self.STANDARD_SETTINGS["sparkSettings"]
+            )
+
+        # Si hay userSparkConf personalizado en el pipeline, inyectarlo
+        user_spark_conf = getattr(self.pipeline, "user_spark_conf", None)
+        if user_spark_conf:
+            # Convertir de diccionario a lista de objetos {key, value}
+            if isinstance(user_spark_conf, dict):
+                user_spark_conf_list = [
+                    {"key": key, "value": value}
+                    for key, value in user_spark_conf.items()
+                ]
+                rocket_json["settings"]["sparkSettings"]["sparkConf"][
+                    "userSparkConf"
+                ] = user_spark_conf_list
+            else:
+                # Si ya es una lista, usarla directamente
+                rocket_json["settings"]["sparkSettings"]["sparkConf"][
+                    "userSparkConf"
+                ] = user_spark_conf
 
         # Agregar sentencias SQL de pre-ejecución (solo si no hay settings crudos)
         if not use_raw_settings and getattr(
@@ -375,23 +429,9 @@ class RocketCompiler:
                 "userSparkConf"
             ] = spark_conf
 
-            # Agregar plugins de usuario si están resueltos
-            if getattr(self.pipeline, "user_plugins_jars", None):
-                jars = [j for j in self.pipeline.user_plugins_jars if j]
-                rocket_json["settings"]["global"]["userPluginsJars"] = jars
-
         # Incluir el workflowMasterId si existe
         if getattr(self.pipeline, "asset_id", None):
             rocket_json["workflowMasterId"] = self.pipeline.asset_id
-
-        # Añadir parámetros usados (solo si no hay settings crudos)
-        if not use_raw_settings:
-            rocket_json["settings"]["global"][
-                "parametersUsed"
-            ] = self._extract_parameters_used()
-            rocket_json["settings"]["global"]["parametersSettings"] = {
-                "userDefinedParameters": self._build_user_parameters()
-            }
 
         # Incluir metadatos crudos si existen
         raw_metadata = getattr(self.pipeline, "raw_metadata", None) or {}
@@ -417,6 +457,35 @@ class RocketCompiler:
             for key, value in raw_metadata.items():
                 if key in allowed_keys:
                     rocket_json[key] = value
+
+        # Reconstruir campos de metadata desde parámetros del decorador si no están en raw_metadata
+        if (
+            getattr(self.pipeline, "project_id", None)
+            and "projectId" not in rocket_json
+        ):
+            rocket_json["projectId"] = self.pipeline.project_id
+
+        if getattr(self.pipeline, "group_id", None) and "groupId" not in rocket_json:
+            rocket_json["groupId"] = self.pipeline.group_id
+
+        # Reconstruir campo 'group' desde group_id y group_name si no está en raw_metadata
+        if "group" not in rocket_json:
+            group_id = getattr(self.pipeline, "group_id", None)
+            group_name = getattr(self.pipeline, "group_name", None)
+            if group_id or group_name:
+                rocket_json["group"] = {}
+                if group_id:
+                    rocket_json["group"]["id"] = group_id
+                if group_name:
+                    rocket_json["group"]["name"] = group_name
+
+        # workflowMasterId ya se agregó arriba desde asset_id
+        # pero verificamos que esté presente
+        if (
+            getattr(self.pipeline, "asset_id", None)
+            and "workflowMasterId" not in rocket_json
+        ):
+            rocket_json["workflowMasterId"] = self.pipeline.asset_id
 
         return rocket_json
 

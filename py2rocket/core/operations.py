@@ -88,6 +88,7 @@ from typing import Optional, Union, List, Dict, Any, Tuple
 from pathlib import Path
 import json as jsonlib
 import inspect
+import functools
 from py2rocket.core.pipeline import (
     Pipeline,
     Node,
@@ -244,6 +245,8 @@ def raw_step(
     include_debug_options: Optional[bool] = None,
     include_supported_data_relations: Optional[bool] = None,
     include_description: Optional[bool] = None,
+    include_node_metadata: Optional[bool] = None,
+    node_metadata: Optional[Any] = None,
 ) -> StepResult:
     """
     Crea un nodo de forma directa a partir de su parametría completa.
@@ -322,6 +325,30 @@ def raw_step(
     if include_description is None:
         include_description = True
 
+    # NodeMetadata: determine include_node_metadata flag
+    if include_node_metadata is None:
+        # Check if any metadata fields exist in config
+        has_metadata = any(
+            k in merged_config
+            for k in [
+                "isSaved",
+                "genAIMetadataTableDescription",
+                "genAIMetadataColumns",
+                "genAIMetadataTablesDescription",
+            ]
+        )
+        include_node_metadata = has_metadata
+
+    # Remove metadata from merged_config as it will be handled separately
+    if not include_node_metadata:
+        for key in [
+            "isSaved",
+            "genAIMetadataTableDescription",
+            "genAIMetadataColumns",
+            "genAIMetadataTablesDescription",
+        ]:
+            merged_config.pop(key, None)
+
     node_kwargs = {
         "name": name,
         "step_type": _normalize_step_type(step_type),
@@ -355,6 +382,10 @@ def raw_step(
         )
     if include_description is not None:
         node_kwargs["include_description"] = include_description
+    if include_node_metadata is not None:
+        node_kwargs["include_node_metadata"] = include_node_metadata
+    if node_metadata is not None:
+        node_kwargs["node_metadata"] = node_metadata
 
     node = Node(**node_kwargs)
     pipeline.add_node(node)
@@ -374,33 +405,48 @@ def raw_step(
 
 
 def _wrap_step(func):
-    """Envuelve operaciones para soportar extra_config y node_overrides."""
+    """Envuelve operaciones para soportar extra_config, ui_position y node_overrides (deprecated).
+
+    Usa @functools.wraps para preservar la firma, type hints y metadatos de la función original,
+    permitiendo autocompletado completo en IDEs.
+    """
     sig = inspect.signature(func)
     valid_params = set(sig.parameters.keys())
 
+    @functools.wraps(func)
     def wrapper(
         *args,
         extra_config=None,
-        node_overrides=None,
+        node_overrides=None,  # Deprecated but kept for compatibility
         config_override=None,
+        ui_position=None,
         **kwargs,
     ):
+        from py2rocket.core.pipeline import UIPosition
+
         filtered_kwargs = {k: v for k, v in kwargs.items() if k in valid_params}
         result = func(*args, **filtered_kwargs)
 
+        # Update configuration with overrides (merge, don't replace)
         if config_override is not None:
-            result.node.configuration = config_override
+            result.node.configuration.update(config_override)
         elif extra_config:
             result.node.configuration.update(extra_config)
 
+        # Handle UI position (new clean way)
+        if ui_position is not None:
+            if isinstance(ui_position, UIPosition):
+                result.node.ui_configuration = ui_position.to_dict()
+            elif isinstance(ui_position, dict):
+                result.node.ui_configuration = ui_position
+
+        # Handle node_overrides (deprecated but kept for backwards compatibility)
         if node_overrides:
             for key, value in node_overrides.items():
                 setattr(result.node, key, value)
 
         return result
 
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
     return wrapper
 
 

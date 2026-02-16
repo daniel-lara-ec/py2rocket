@@ -113,6 +113,19 @@ Opciones:
   -i, --indent NUM          Indentación (default: 2)
 ```
 
+### `render` - Ver estructura del grafo
+
+```bash
+py2rocket render <archivo.py|json> [opciones]
+
+Opciones:
+  -o, --output PATH         Archivo JSON de salida (opcional)
+  -i, --indent NUM          Indentación (default: 2)
+```
+
+Imprime o exporta la estructura del grafo (nodes/edges) sin la configuración completa.
+Útil para visualizar la topología del workflow.
+
 ### `push` - Desplegar a Rocket
 
 ```bash
@@ -128,6 +141,34 @@ Opciones:
 ```
 
 > ⚠️ El comando `push` aún no está implementado
+
+### `run` - Ejecutar workflow en Rocket
+
+```bash
+py2rocket run <archivo.py|json> [opciones]
+
+Opciones:
+  --workflow-id ID          ID del workflow en Rocket (si no se especifica, usa el del archivo)
+  --project-id ID           ID del proyecto en Rocket
+  --url URL                 URL de Rocket (o usar ROCKET_API_HOST env var)
+  --token TOKEN             Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)
+  --instance INSTANCE       Instancia (default: XS)
+  --params-lists JSON       Lista JSON para paramsLists
+  --params-lists-file PATH  Ruta a JSON con lista de paramsLists
+  --extra-params PATH       Ruta a JSON con lista de extraParams
+  --execution-name NAME     Nombre de ejecución
+  --execution-description TEXT  Descripción de ejecución
+  --execution-priority NUM  Prioridad de ejecución (default: 0)
+  --force-execution-if-available-resources  Forzar ejecución si hay recursos
+  --retry-unsuccessful-writes               Reintentar escrituras fallidas
+  --max-attempts NUM        Máximo de intentos (default: 0)
+  --attempts-conditions JSON  Lista JSON con condiciones de reintento
+  --extended-audit-info     Habilitar auditoría extendida
+  --no-verify-ssl           No verificar SSL
+```
+
+Ejecuta un workflow en Rocket. Puede usar un archivo local (.py o .json) o especificar directamente
+el workflow-id. Soporta configuración avanzada de ejecución con parámetros, reintentos y auditoría.
 
 ### `pull` - Descargar workflow desde Rocket
 
@@ -212,6 +253,37 @@ El comando `sync` crea automáticamente un archivo `.py2rocket` en la carpeta de
 
 Este archivo permite que extensiones y herramientas identifiquen que la carpeta fue creada mediante sincronización.
 Para más información, consulta [docs/ARCHIVO_PY2ROCKET.md](docs/ARCHIVO_PY2ROCKET.md).
+
+### `get-extensions` - Listar extensiones del proyecto
+
+```bash
+py2rocket get-extensions [opciones]
+
+Opciones:
+  --url URL                 URL de Rocket (o usar ROCKET_API_HOST env var)
+  --token TOKEN             Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)
+  --no-verify-ssl           No verificar SSL
+```
+
+Lista todas las extensiones disponibles en un proyecto Rocket.
+El comando solicita de forma interactiva el ID del proyecto (o usa PROJECT_ID del .env).
+Muestra información como ID, nombre, tipo de extensión y clases personalizadas.
+
+### `create-group` - Crear grupo en Rocket
+
+```bash
+py2rocket create-group [nombre] [opciones]
+
+Opciones:
+  --project-name NAME       Nombre del proyecto (o usar PROJECT_NAME env var)
+  --url URL                 URL de Rocket (o usar ROCKET_API_HOST env var)
+  --token TOKEN             Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)
+  --no-verify-ssl           No verificar SSL
+```
+
+Crea un nuevo grupo en Rocket asociado a un proyecto específico.
+Si no se proporcionan los argumentos, los solicita de forma interactiva.
+Valida que el proyecto existe antes de crear el grupo.
 
 ---
 

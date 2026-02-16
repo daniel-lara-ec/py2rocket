@@ -18,23 +18,28 @@ import json
 import requests
 import urllib3
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from dotenv import load_dotenv
 from py2rocket.core import pipeline, RocketCompiler
+from py2rocket.core.pipeline import UIPosition
 from py2rocket.templates.workflow_template import WORKFLOW_TEMPLATE
 
-__version__ = "0.1.0"
+__version__ = "0.4.0"
 __all__ = [
     "create",
     "build",
     "render",
     "push",
+    "create_asset",
+    "create_workflow_version",
     "run",
     "pull",
     "download",
+    "get_execution_history",
     "from_json",
     "pipeline",
+    "UIPosition",
 ]
 
 # Cargar variables de entorno del archivo .env
@@ -590,6 +595,393 @@ def push(
     }
 
 
+def create_asset(
+    json_file: str,
+    rocket_url: str,
+    api_token: Optional[str] = None,
+    project_id: Optional[str] = None,
+    group_id: Optional[str] = None,
+    name: Optional[str] = None,
+    description: str = "",
+    verify_ssl: Optional[bool] = None,
+    download_after_create: bool = True,
+) -> Dict[str, Any]:
+    """
+    Crea un nuevo asset en Stratio Rocket importando un workflow completo.
+
+    Este comando importa un workflow JSON completo y crea un nuevo asset
+    (contenedor maestro) en Rocket. El asset se crea con una versión inicial
+    del workflow. Opcionalmente puede descargar el workflow creado para
+    obtener los IDs generados y actualizar el archivo .py.
+
+    Flujo:
+        1. Lee el JSON del workflow compilado
+        2. Envía POST /assets/import con el contenido
+        3. Rocket crea el asset y la primera versión del workflow
+        4. (Opcional) Descarga el workflow para obtener asset_id y workflow_id
+
+    Args:
+        json_file: Ruta al archivo JSON del workflow compilado
+        rocket_url: URL base de Rocket (ej: https://rocket.example.com)
+        api_token: Cookie de autenticación. Si no se proporciona,
+                  usa ROCKET_AUTH_COOKIE del .env
+        project_id: ID del proyecto. Si no se proporciona, usa PROJECT_ID del .env
+        group_id: ID del grupo/carpeta donde crear el asset
+        name: Nombre del asset. Si no se proporciona, usa el nombre del workflow
+        description: Descripción del asset
+        verify_ssl: Verificar certificados SSL (default: True)
+        download_after_create: Si descargar el workflow después de crearlo
+                              para obtener los IDs generados (default: True)
+
+    Returns:
+        Diccionario con la respuesta:
+        {
+            'status': 'success' | 'error',
+            'asset_id': 'uuid-del-asset',
+            'workflow_id': 'uuid-del-workflow-version',
+            'message': 'Asset creado exitosamente',
+            'workflow_data': {...}  # Si download_after_create=True
+        }
+
+    Raises:
+        FileNotFoundError: Si json_file no existe
+        ValueError: Si faltan parámetros requeridos
+        ConnectionError: Si no se puede conectar a Rocket
+        PermissionError: Si el token no tiene permisos
+
+    Example:
+        >>> from py2rocket import build, create_asset
+        >>> # 1. Compilar el workflow
+        >>> build(workflow(), "mi_pipeline.json")
+        >>>
+        >>> # 2. Crear asset en Rocket
+        >>> result = create_asset(
+        ...     json_file="mi_pipeline.json",
+        ...     rocket_url="https://rocket.mycompany.com",
+        ...     api_token="my-cookie",
+        ...     project_id="196c1c2d-5dfd-4756-ba37-80aa50d0f742",
+        ...     group_id="99beb8c9-32e7-465f-9081-137cea8adee6"
+        ... )
+        >>>
+        >>> print(f"Asset ID: {result['asset_id']}")
+        >>> print(f"Workflow ID: {result['workflow_id']}")
+
+    Note:
+        - Este comando crea un NUEVO asset (contenedor maestro)
+        - El asset incluye la primera versión del workflow
+        - Para agregar versiones a un asset existente, usa create_workflow_version()
+        - Los IDs generados pueden usarse para actualizar el decorator @pipeline
+    """
+    # 1. Validar que el archivo JSON existe
+    json_path = Path(json_file)
+    if not json_path.exists():
+        raise FileNotFoundError(f"Archivo no encontrado: {json_file}")
+
+    # 2. Leer el contenido del JSON
+    try:
+        workflow_data = json.loads(json_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"JSON inválido en {json_file}: {exc}") from exc
+
+    # 3. Obtener parámetros de configuración
+    if api_token is None:
+        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+    if project_id is None:
+        project_id = os.getenv("PROJECT_ID")
+    if not rocket_url:
+        rocket_url = os.getenv("ROCKET_API_HOST", "")
+    if verify_ssl is None:
+        verify_ssl = _get_verify_ssl_from_env()
+
+    # 4. Validar parámetros requeridos
+    if not rocket_url:
+        raise ValueError("Debe proporcionar 'rocket_url' o configurar ROCKET_API_HOST")
+    if not api_token:
+        raise ValueError(
+            "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
+        )
+    if not project_id:
+        raise ValueError("Debe proporcionar 'project_id' o configurar PROJECT_ID")
+    if not group_id:
+        raise ValueError("Debe proporcionar 'group_id' para crear el asset")
+
+    # 5. Obtener nombre del asset
+    if name is None:
+        name = workflow_data.get("name", "workflow")
+
+    # 6. Construir payload para /assets/import
+    import_payload = {
+        "content": json.dumps(workflow_data, ensure_ascii=False),
+        "assetType": "SpartaWorkflow",
+        "groupId": group_id,
+        "projectId": project_id,
+        "name": name,
+        "description": description,
+    }
+
+    # 7. Enviar POST a /assets/import
+    url = f"{rocket_url.rstrip('/')}/rocket/assets/import"
+    cookies = {"stratio-cookie": api_token, "lang": "en"}
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "py2rocket/" + __version__,
+    }
+
+    try:
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        response = requests.post(
+            url,
+            headers=headers,
+            cookies=cookies,
+            json=import_payload,
+            verify=verify_ssl,
+            timeout=60,
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        raise ConnectionError(f"Error al crear el asset en Rocket: {exc}") from exc
+
+    # 8. Procesar respuesta
+    try:
+        response_data = response.json()
+    except ValueError:
+        response_data = {"raw": response.text}
+
+    # 9. Extraer asset_id del response
+    # La respuesta puede tener diferentes estructuras según la API
+    asset_id = response_data.get("id") or response_data.get("assetId")
+    workflow_id = None
+
+    # 10. Si download_after_create, descargar el workflow para obtener los IDs
+    downloaded_workflow = None
+    if download_after_create and asset_id:
+        # Buscar las versiones del asset
+        versions_url = (
+            f"{rocket_url.rstrip('/')}/rocket/assets/findAllVersions/{asset_id}"
+        )
+        try:
+            versions_response = requests.get(
+                versions_url,
+                headers=headers,
+                cookies=cookies,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            versions_response.raise_for_status()
+            versions = versions_response.json()
+
+            if versions and len(versions) > 0:
+                # Tomar la primera versión (la recién creada)
+                workflow_id = versions[0].get("id")
+
+                # Descargar el workflow completo
+                if workflow_id:
+                    download_url = f"{rocket_url.rstrip('/')}/rocket/workflows/download/{workflow_id}"
+                    download_response = requests.get(
+                        download_url,
+                        headers=headers,
+                        cookies=cookies,
+                        verify=verify_ssl,
+                        timeout=30,
+                    )
+                    download_response.raise_for_status()
+                    downloaded_workflow = download_response.json()
+        except requests.exceptions.RequestException:
+            # Si falla la descarga, continuar sin ella
+            pass
+
+    return {
+        "status": "success",
+        "asset_id": asset_id,
+        "workflow_id": workflow_id,
+        "message": f"Asset '{name}' creado exitosamente",
+        "response": response_data,
+        "workflow_data": downloaded_workflow,
+    }
+
+
+def create_workflow_version(
+    json_file: str,
+    asset_id: str,
+    rocket_url: str,
+    api_token: Optional[str] = None,
+    comment: str = "",
+    verify_ssl: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Crea una nueva versión de workflow dentro de un asset existente en Rocket.
+
+    Este comando toma un workflow JSON compilado y lo sube como una nueva
+    versión dentro de un asset (contenedor maestro) existente. Incrementa
+    automáticamente el número de versión.
+
+    Flujo:
+        1. Lee el JSON del workflow compilado
+        2. Obtiene la última versión del asset para incrementar el número
+        3. Envía POST /workflows con workflowMasterId (asset_id)
+        4. Rocket crea una nueva versión del workflow
+
+    Args:
+        json_file: Ruta al archivo JSON del workflow compilado
+        asset_id: UUID del asset (workflowMasterId) donde crear la versión
+        rocket_url: URL base de Rocket (ej: https://rocket.example.com)
+        api_token: Cookie de autenticación. Si no se proporciona,
+                  usa ROCKET_AUTH_COOKIE del .env
+        comment: Comentario asociado a esta versión
+        verify_ssl: Verificar certificados SSL (default: True)
+
+    Returns:
+        Diccionario con la respuesta:
+        {
+            'status': 'success' | 'error',
+            'workflow_id': 'uuid-del-workflow-version',
+            'version': 1,
+            'message': 'Versión creada exitosamente',
+            'response': {...}
+        }
+
+    Raises:
+        FileNotFoundError: Si json_file no existe
+        ValueError: Si faltan parámetros requeridos o JSON inválido
+        ConnectionError: Si no se puede conectar a Rocket
+        PermissionError: Si el token no tiene permisos
+
+    Example:
+        >>> from py2rocket import build, create_workflow_version
+        >>> # 1. Compilar el workflow modificado
+        >>> build(workflow(), "mi_pipeline_v2.json")
+        >>>
+        >>> # 2. Crear nueva versión en el asset existente
+        >>> result = create_workflow_version(
+        ...     json_file="mi_pipeline_v2.json",
+        ...     asset_id="3d3d44bf-96bd-4f65-b731-44f14fecdbb9",
+        ...     rocket_url="https://rocket.mycompany.com",
+        ...     api_token="my-cookie",
+        ...     comment="Agregada validación de datos"
+        ... )
+        >>>
+        >>> print(f"Workflow Version ID: {result['workflow_id']}")
+        >>> print(f"Version Number: {result['version']}")
+
+    Note:
+        - Este comando crea una NUEVA VERSIÓN dentro de un asset existente
+        - El asset debe existir previamente (crear con create_asset() si es nuevo)
+        - El número de versión se incrementa automáticamente
+        - Para crear un asset nuevo, usa create_asset() en su lugar
+    """
+    # 1. Validar que el archivo JSON existe
+    json_path = Path(json_file)
+    if not json_path.exists():
+        raise FileNotFoundError(f"Archivo no encontrado: {json_file}")
+
+    # 2. Leer el contenido del JSON
+    try:
+        workflow_data = json.loads(json_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"JSON inválido en {json_file}: {exc}") from exc
+
+    # 3. Obtener parámetros de configuración
+    if api_token is None:
+        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+    if not rocket_url:
+        rocket_url = os.getenv("ROCKET_API_HOST", "")
+    if verify_ssl is None:
+        verify_ssl = _get_verify_ssl_from_env()
+
+    # 4. Validar parámetros requeridos
+    if not rocket_url:
+        raise ValueError("Debe proporcionar 'rocket_url' o configurar ROCKET_API_HOST")
+    if not api_token:
+        raise ValueError(
+            "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
+        )
+    if not asset_id:
+        raise ValueError(
+            "Debe proporcionar 'asset_id' (workflowMasterId del asset existente)"
+        )
+
+    # 5. Obtener la última versión del asset
+    versions_url = f"{rocket_url.rstrip('/')}/rocket/assets/findAllVersions/{asset_id}"
+    cookies = {"stratio-cookie": api_token, "lang": "en"}
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "py2rocket/" + __version__,
+    }
+
+    try:
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        versions_response = requests.get(
+            versions_url,
+            headers=headers,
+            cookies=cookies,
+            verify=verify_ssl,
+            timeout=30,
+        )
+        versions_response.raise_for_status()
+        versions = versions_response.json()
+    except requests.exceptions.RequestException as exc:
+        raise ConnectionError(f"Error al obtener versiones del asset: {exc}") from exc
+
+    # 6. Determinar el número de la nueva versión
+    if versions and len(versions) > 0:
+        # Obtener el máximo número de versión
+        max_version = max(v.get("version", 0) for v in versions)
+        new_version = max_version + 1
+    else:
+        new_version = 0
+
+    # 7. Construir payload para POST /workflows
+    workflow_payload = {
+        "workflowMasterId": asset_id,
+        "settings": workflow_data.get("settings", {}),
+        "pipelineGraph": workflow_data.get("pipelineGraph", {}),
+        "uiSettings": workflow_data.get("uiSettings", []),
+        "version": new_version,
+        "tags": workflow_data.get("tags", []),
+    }
+
+    # 8. Enviar POST a /workflows
+    url = f"{rocket_url.rstrip('/')}/rocket/workflows"
+    if comment:
+        url += f"?comment={requests.utils.quote(comment)}"
+
+    try:
+        response = requests.post(
+            url,
+            headers=headers,
+            cookies=cookies,
+            json=workflow_payload,
+            verify=verify_ssl,
+            timeout=60,
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        raise ConnectionError(f"Error al crear la versión del workflow: {exc}") from exc
+
+    # 9. Procesar respuesta
+    try:
+        response_data = response.json()
+    except ValueError:
+        response_data = {"raw": response.text}
+
+    workflow_id = response_data.get("id") or response_data.get("workflowId")
+
+    return {
+        "status": "success",
+        "workflow_id": workflow_id,
+        "version": new_version,
+        "asset_id": asset_id,
+        "message": f"Versión {new_version} creada exitosamente",
+        "response": response_data,
+    }
+
+
 def run(
     json_file: str,
     workflow_id: Optional[str] = None,
@@ -1068,6 +1460,161 @@ def download(
     }
 
 
+def get_execution_history(
+    workflow_id: str,
+    project_id: Optional[str] = None,
+    rocket_url: Optional[str] = None,
+    api_token: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    date_from: Optional[int] = None,
+    date_to: Optional[int] = None,
+    verify_ssl: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Obtiene el historial de ejecución de un workflow desde Stratio Rocket.
+
+    Recupera un listado de todas las ejecuciones asociadas a un workflow específico,
+    con opciones de filtrado por estado, fechas, límite de resultados, etc.
+
+    Args:
+        workflow_id: ID del workflow (UUID) para el cual obtener el historial
+        project_id: ID del proyecto. Si no se proporciona, usa PROJECT_ID del .env
+        rocket_url: URL de Rocket. Si no se proporciona, usa ROCKET_API_HOST o ROCKET_URL
+        api_token: Cookie de autenticación. Si no se proporciona, usa ROCKET_AUTH_COOKIE
+        status: Filtrar por estado ('Running', 'Failed', 'Stopped', 'Completed', etc.)
+                Puede ser una lista separada por comas para múltiples estados
+        limit: Número máximo de ejecuciones a devolver (default: 50)
+        offset: Número de resultados a saltar para paginación (default: 0)
+        date_from: Timestamp en ms de inicio del rango de fechas (opcional)
+        date_to: Timestamp en ms de fin del rango de fechas (opcional)
+        verify_ssl: Verificar certificados SSL (default: True)
+
+    Returns:
+        Diccionario con el historial de ejecuciones:
+        {
+            'status': 'success' | 'error',
+            'message': str,
+            'workflow_id': str,
+            'total_count': int,
+            'executions': [
+                {
+                    'id': str,
+                    'executionNameDescription': {...},
+                    'statuses': [...],
+                    'startDate': datetime,
+                    'endDate': datetime,
+                    'state': str,
+                    ...
+                },
+                ...
+            ]
+        }
+
+    Example:
+        >>> from py2rocket import get_execution_history
+        >>> result = get_execution_history(
+        ...     workflow_id="7133a9b4-d4fc-4390-9aa1-802d836a2874",
+        ...     status="Completed",
+        ...     limit=20
+        ... )
+        >>> print(json.dumps(result, indent=2, default=str))
+    """
+    # 1. Validar parámetros requeridos
+    if not workflow_id:
+        raise ValueError("workflow_id es requerido")
+
+    # 2. Obtener configuración de conexión
+    if rocket_url is None:
+        rocket_url = os.getenv("ROCKET_API_HOST") or os.getenv("ROCKET_URL")
+    if rocket_url is None:
+        raise ValueError(
+            "Debe configurar ROCKET_API_HOST/ROCKET_URL en variables de entorno o archivo .env"
+        )
+
+    if api_token is None:
+        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+    if api_token is None:
+        raise ValueError(
+            "Debe proporcionar 'api_token' o configurar ROCKET_AUTH_COOKIE"
+        )
+
+    if project_id is None:
+        project_id = os.getenv("PROJECT_ID")
+
+    if verify_ssl is None:
+        verify_ssl = _get_verify_ssl_from_env()
+
+    # 3. Construir parámetros de query
+    params = {
+        "page": offset,
+        "offset": limit,
+        "projectId": project_id,
+        "searchText": workflow_id,  # Buscar por ID del workflow
+    }
+
+    # Agregar parámetros opcionales
+    if status:
+        params["status"] = status
+    if date_from is not None:
+        params["dateFrom"] = date_from
+    if date_to is not None:
+        params["dateTo"] = date_to
+
+    # 4. Realizar request a la API
+    url = f"{rocket_url.rstrip('/')}/assetExecutions/search"
+
+    cookies = {"stratio-cookie": api_token, "lang": "en"}
+    headers = {
+        "Accept": "application/json, text/plain, */*",
+        "User-Agent": "py2rocket/" + __version__,
+    }
+
+    try:
+        response = requests.get(
+            url,
+            headers=headers,
+            cookies=cookies,
+            params=params,
+            verify=verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        raise ConnectionError(
+            f"Error al obtener historial de ejecuciones: {exc}"
+        ) from exc
+
+    try:
+        executions_data = response.json()
+    except ValueError as exc:
+        raise ValueError(f"Respuesta inválida del servidor: {exc}") from exc
+
+    # 5. Procesar respuesta
+    # La respuesta puede ser un array directamente o tener estructura con metadata
+    if isinstance(executions_data, list):
+        executions = executions_data
+        total_count = len(executions_data)
+    elif isinstance(executions_data, dict):
+        executions = executions_data.get("data", []) or executions_data.get(
+            "executions", []
+        )
+        total_count = executions_data.get("totalCount", len(executions))
+    else:
+        executions = []
+        total_count = 0
+
+    return {
+        "status": "success",
+        "message": f"Historial de ejecuciones obtenido exitosamente",
+        "workflow_id": workflow_id,
+        "total_count": total_count,
+        "executions": executions,
+        "url": url,
+    }
+
+
 # Mapeo de className a nombre de función Python
 CLASS_TO_FUNCTION = {
     # Inputs
@@ -1141,6 +1688,156 @@ def _sanitize_var_name(name: str, imported_functions: Optional[set] = None) -> s
         var_name = f"{var_name}_step"
 
     return var_name
+
+
+def _is_settings_modified(settings: Dict[str, Any]) -> bool:
+    """
+    Determina si los settings fueron modificados comparándolos con STANDARD_SETTINGS.
+
+    Ignora campos que ya están representados en otros parámetros del decorator:
+    - parametersUsed (autogenerado)
+    - parametersSettings.userDefinedParameters (está en params={})
+    - parametersLists (está en parameters_lists=[])
+    - userPluginsJars (está en plugins=[])
+
+    Returns:
+        True si hay modificaciones significativas, False si es igual a defaults
+    """
+    from py2rocket.core.compiler import RocketCompiler
+    from copy import deepcopy
+
+    if not settings:
+        return False
+
+    # Hacer copia profunda para no modificar el original
+    settings_copy = deepcopy(settings)
+    standard_copy = deepcopy(RocketCompiler.STANDARD_SETTINGS)
+
+    # Ignorar campos que están en otros parámetros del decorator
+    if "global" in settings_copy:
+        settings_copy["global"].pop("parametersUsed", None)
+        settings_copy["global"].pop("parametersLists", None)
+        settings_copy["global"].pop("userPluginsJars", None)
+
+        if "parametersSettings" in settings_copy["global"]:
+            settings_copy["global"]["parametersSettings"].pop(
+                "userDefinedParameters", None
+            )
+            # Si parametersSettings queda vacío, eliminarlo
+            if not settings_copy["global"]["parametersSettings"]:
+                settings_copy["global"].pop("parametersSettings", None)
+
+    if "global" in standard_copy:
+        standard_copy["global"].pop("parametersUsed", None)
+        standard_copy["global"].pop("parametersLists", None)
+        standard_copy["global"].pop("userPluginsJars", None)
+
+        if "parametersSettings" in standard_copy["global"]:
+            standard_copy["global"]["parametersSettings"].pop(
+                "userDefinedParameters", None
+            )
+            if not standard_copy["global"]["parametersSettings"]:
+                standard_copy["global"].pop("parametersSettings", None)
+
+    # Comparar las estructuras
+    return settings_copy != standard_copy
+
+
+def _extract_group_name_from_metadata(raw_metadata: Dict[str, Any]) -> Optional[str]:
+    """
+    Extrae el nombre/path del grupo desde raw_metadata.
+
+    Returns:
+        El nombre del grupo si existe, None en caso contrario
+    """
+    if not raw_metadata:
+        return None
+
+    group = raw_metadata.get("group", {})
+    if isinstance(group, dict):
+        return group.get("name")
+
+    return None
+
+
+def _filter_raw_settings(
+    settings: Dict[str, Any], parameters_lists: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """
+    Filtra campos de raw_settings que ya están representados en otros parámetros
+    o que son valores por defecto de configuración de Spark.
+
+    Campos a filtrar:
+    - parametersLists: ya está en parameters_lists=[]
+    - userPluginsJars: ya está en plugins=[]
+    - parametersUsed: filtrar solo parámetros estándar de Spark, mantener personalizados
+    - parametersSettings.userDefinedParameters: ya está en params={}
+
+    Returns:
+        settings filtrado sin campos duplicados
+    """
+    from copy import deepcopy
+
+    if not settings:
+        return settings
+
+    filtered = deepcopy(settings)
+
+    # Parámetros estándar de Spark que no son del usuario
+    standard_param_prefixes = [
+        "SparkConfigurations.",
+        "SparkResources.",
+        "Environment.",
+    ]
+
+    if "global" in filtered:
+        # Eliminar parametersLists (ya está en parameters_lists=[])
+        filtered["global"].pop("parametersLists", None)
+
+        # Eliminar userPluginsJars (ya está en plugins=[])
+        filtered["global"].pop("userPluginsJars", None)
+
+        # Eliminar dockerSettings (configuración interna estándar, se reconstruye automáticamente)
+        filtered["global"].pop("dockerSettings", None)
+
+        # Eliminar kubernetesDeploymentSettings (configuración interna estándar, se reconstruye automáticamente)
+        filtered["global"].pop("kubernetesDeploymentSettings", None)
+
+        # Eliminar debugSettings (configuración interna estándar, se reconstruye automáticamente)
+        filtered["global"].pop("debugSettings", None)
+
+        # Filtrar parametersUsed para mantener solo parámetros personalizados del usuario
+        params_used = filtered["global"].get("parametersUsed", [])
+        if params_used:
+            # Mantener solo parámetros que NO empiecen con prefijos estándar
+            user_params = [
+                param
+                for param in params_used
+                if not any(
+                    param.startswith(prefix) for prefix in standard_param_prefixes
+                )
+            ]
+            if user_params:
+                filtered["global"]["parametersUsed"] = user_params
+            else:
+                # Si no hay parámetros personalizados, eliminar el campo
+                filtered["global"].pop("parametersUsed", None)
+
+        # Eliminar parametersSettings.userDefinedParameters (ya está en params={})
+        if "parametersSettings" in filtered["global"]:
+            filtered["global"]["parametersSettings"].pop("userDefinedParameters", None)
+            # Si parametersSettings queda vacío, eliminarlo
+            if not filtered["global"]["parametersSettings"]:
+                filtered["global"].pop("parametersSettings", None)
+
+    # Eliminar streamingSettings (configuración interna estándar, se reconstruye automáticamente)
+    filtered.pop("streamingSettings", None)
+
+    # Eliminar sparkSettings (configuración interna estándar, se reconstruye automáticamente)
+    # Pero preservar userSparkConf si tiene valores personalizados (será extraído como parámetro)
+    filtered.pop("sparkSettings", None)
+
+    return filtered
 
 
 def from_json(
@@ -1295,6 +1992,22 @@ def from_json(
                 "⚠️  ROCKET_API_HOST o ROCKET_AUTH_COOKIE no definidos; se omite resolución de plugins en from-json."
             )
 
+    # Extraer userSparkConf si tiene valores personalizados (no vacío)
+    user_spark_conf = None
+    spark_settings = settings.get("sparkSettings", {})
+    spark_conf = spark_settings.get("sparkConf", {})
+    user_spark_conf_list = spark_conf.get("userSparkConf", [])
+    if user_spark_conf_list:
+        # Convertir de lista a diccionario si es necesario
+        if isinstance(user_spark_conf_list, list):
+            user_spark_conf = {
+                item.get("key", ""): item.get("value", "")
+                for item in user_spark_conf_list
+                if isinstance(item, dict) and item.get("key")
+            }
+        elif isinstance(user_spark_conf_list, dict):
+            user_spark_conf = user_spark_conf_list
+
     # 3. Extraer nodos y edges
     pipeline_graph = workflow_data.get("pipelineGraph", {})
     nodes = pipeline_graph.get("nodes", [])
@@ -1311,6 +2024,16 @@ def from_json(
     output_nodes = sorted(
         [n for n in nodes if n.get("stepType") == "Output"], key=lambda x: x.get("name")
     )
+
+    # 4.5 Extraer outputsWriter de transformations para generar OutputWriter objects
+    transform_outputs_writer = {}  # {transform_node_name: [OutputWriter_dicts]}
+
+    for node in input_nodes + transform_nodes:
+        node_name = node.get("name")
+        outputs_writer = node.get("outputsWriter", [])
+        if outputs_writer:
+            # Guardar lista de OutputWriter para este transformation
+            transform_outputs_writer[node_name] = outputs_writer
 
     # 5. Crear mapa de edges (qué inputs tiene cada nodo)
     node_inputs = {}
@@ -1436,8 +2159,17 @@ def from_json(
         if isinstance(config, dict):
             config_args.update(config)
 
+        # Config override: inicialmente tiene todo, pero se irá limpiando
         config_override = dict(config) if isinstance(config, dict) else {}
         config_override.pop("priority", None)
+        # Extraer debugOptions para manejarlo por separado
+        debug_options_raw = config_override.pop("debugOptions", None)
+
+        # Extraer metadatos (isSaved, genAI*) - removerlos del config_override
+        is_saved = config_override.pop("isSaved", True)  # Default es True
+        gen_ai_table_desc = config_override.pop("genAIMetadataTableDescription", "")
+        gen_ai_columns = config_override.pop("genAIMetadataColumns", "")
+        gen_ai_tables_desc = config_override.pop("genAIMetadataTablesDescription", None)
 
         added_params = set()
 
@@ -1466,6 +2198,10 @@ def from_json(
                 if snake_key in added_params:
                     continue
                 added_params.add(snake_key)
+
+                # Remove from config_override since it's now an explicit parameter
+                config_override.pop(key, None)
+
                 # Formatear valor
                 if isinstance(value, str):
                     # Detectar si es contenido multilínea (SQL, código Python, etc.)
@@ -1525,6 +2261,53 @@ def from_json(
             ):
                 args.append("inputs=[]")
 
+        # Agregar outputs_writer si este transformation tiene outputsWriter configurado
+        if (
+            node_name in transform_outputs_writer
+            and node.get("stepType") == "Transformation"
+        ):
+            imports.add("from py2rocket.core.pipeline import OutputWriter")
+            writers_list = []
+            for writer in transform_outputs_writer[node_name]:
+                output_step_name = writer.get("outputStepName", "")
+                save_mode = writer.get("saveMode", "Overwrite")
+                table_name = writer.get("tableName", "")
+                discard_table_name = writer.get("discardTableName", "")
+                extra_options = writer.get("extraOptions", {})
+
+                partition_by = extra_options.get("partitionBy")
+                if partition_by == "overwrite":
+                    partition_by = None
+                partition_overwrite = extra_options.get(
+                    "partitionOverwriteEnabled", True
+                )
+                check_if_empty = extra_options.get("checkIfEmpty", False)
+                partition_columns = extra_options.get("partitionColumns", "")
+                partitions = extra_options.get("partitions", "")
+
+                ow_args = [f'output_step_name="{output_step_name}"']
+                if save_mode != "Overwrite":
+                    ow_args.append(f'save_mode="{save_mode}"')
+                if table_name:
+                    ow_args.append(f'table_name="{table_name}"')
+                if discard_table_name:
+                    ow_args.append(f'discard_table_name="{discard_table_name}"')
+                if partition_by:
+                    ow_args.append(f'partition_by="{partition_by}"')
+                if not partition_overwrite:
+                    ow_args.append(f"partition_overwrite={partition_overwrite}")
+                if check_if_empty:
+                    ow_args.append(f"check_if_empty={check_if_empty}")
+                if partition_columns:
+                    ow_args.append(f'partition_columns="{partition_columns}"')
+                if partitions:
+                    ow_args.append(f'partitions="{partitions}"')
+
+                writers_list.append(f"OutputWriter({', '.join(ow_args)})")
+
+            if writers_list:
+                args.append(f"outputs_writer=[{', '.join(writers_list)}]")
+
         # Agregar description
         if "description" in sig.parameters:
             args.append(f"description={repr(node.get('description', ''))}")
@@ -1549,41 +2332,30 @@ def from_json(
         ):
             args.append(f"priority={priority_int}")
 
-        # Config override para preservar exactamente el JSON
-        if config_override:
-            args.append(f"config_override={config_override}")
+        # UI Position (extract clean x, y coordinates as integers)
+        ui_config = node.get("uiConfiguration")
+        if ui_config and "position" in ui_config:
+            pos = ui_config["position"]
+            if "x" in pos and "y" in pos:
+                # Redondear coordenadas a enteros
+                x_int = round(pos["x"])
+                y_int = round(pos["y"])
+                args.append(f"ui_position=UIPosition(x={x_int}, y={y_int})")
 
-        # Node overrides (metadatos fuera de config)
-        node_overrides = {}
-        # Tomar valores del JSON (excepto arity)
-        if node.get("className"):
-            node_overrides["class_name"] = node.get("className")
-        if node.get("classPrettyName") is not None:
-            node_overrides["class_pretty_name"] = node.get("classPrettyName")
-        if node.get("supportedEngines") is not None:
-            node_overrides["supported_engines"] = node.get("supportedEngines")
-        if node.get("supportedDataRelations") is not None:
-            node_overrides["supported_data_relations"] = node.get(
-                "supportedDataRelations"
-            )
-        if node.get("outputsWriter") is not None:
-            node_overrides["outputs_writer"] = node.get("outputsWriter")
-        if node.get("uiConfiguration") is not None:
-            node_overrides["ui_configuration"] = node.get("uiConfiguration")
-        if node.get("lineageProperties") is not None:
-            node_overrides["lineage_properties"] = node.get("lineageProperties")
-        if node.get("lastModified"):
-            node_overrides["last_modified"] = node.get("lastModified")
+        # Include flags: Solo agregar cuando tienen valor NO-DEFAULT (False)
+        # Defaults: include_debug_options=True, include_supported_data_relations=True, include_description=True
 
+        # include_supported_data_relations: solo agregar si False (no tiene supportedDataRelations)
         if "supportedDataRelations" not in node:
-            node_overrides["include_supported_data_relations"] = False
-        if "description" not in node:
-            node_overrides["include_description"] = False
-        if "debugOptions" not in config_override:
-            node_overrides["include_debug_options"] = False
+            args.append("include_supported_data_relations=False")
 
-        if node_overrides:
-            args.append(f"node_overrides={node_overrides}")
+        # include_description: solo agregar si False (no tiene description)
+        if "description" not in node:
+            args.append("include_description=False")
+
+        # include_debug_options: solo agregar si False (no tiene debugOptions)
+        if debug_options_raw is None:
+            args.append("include_debug_options=False")
 
         # Generar línea de código
         args_str = ",\n        ".join(args)
@@ -1622,6 +2394,13 @@ def from_json(
         for node in output_nodes:
             code_lines.append(generate_node_code(node))
 
+    # Check if any node has UI position to add UIPosition import
+    has_ui_positions = any(
+        node.get("uiConfiguration", {}).get("position") is not None for node in nodes
+    )
+    if has_ui_positions:
+        imports.add("from py2rocket.core.pipeline import UIPosition")
+
     # 7. Construir el archivo Python completo
     python_code = '"""\nWorkflow generado desde JSON de Rocket\n\n'
     python_code += f"Workflow: {name}\n"
@@ -1650,21 +2429,32 @@ def from_json(
         decorator_args.append(f"parameters_lists={parameters_lists}")
     if plugins:
         decorator_args.append(f"plugins={plugins}")
-    if settings:
-        decorator_args.append(f"raw_settings={settings}")
-    if raw_ui_settings is not None:
-        decorator_args.append(f"raw_ui_settings={raw_ui_settings}")
+    if user_spark_conf:
+        decorator_args.append(f"user_spark_conf={user_spark_conf}")
+    # Extraer group_name de raw_metadata y añadirlo como parámetro
     if raw_metadata:
-        decorator_args.append(f"raw_metadata={raw_metadata}")
-    if pipeline_graph.get("annotations") is not None:
-        decorator_args.append(f"annotations={pipeline_graph.get('annotations', [])}")
-    if pipeline_graph.get("nodeGroups") is not None:
-        decorator_args.append(f"node_groups={pipeline_graph.get('nodeGroups', [])}")
-    if nodes:
-        decorator_args.append(f"raw_nodes_order={[n.get('name') for n in nodes]}")
-    if edges:
-        decorator_args.append(f"raw_edges_order={edges}")
-    decorator_args.append("skip_validation=True")
+        group_name = _extract_group_name_from_metadata(raw_metadata)
+        if group_name:
+            decorator_args.append(f"group_name={repr(group_name)}")
+
+    # Solo incluir raw_settings si fue modificado (diferente de STANDARD_SETTINGS)
+    if settings and _is_settings_modified(settings):
+        # Filtrar settings para no duplicar información que está en otros parámetros
+        filtered_settings = _filter_raw_settings(settings, parameters_lists)
+        if filtered_settings and _is_settings_modified(filtered_settings):
+            decorator_args.append(f"raw_settings={filtered_settings}")
+    # raw_ui_settings no se incluye en código generado (solo útil para preservar canvas UI en roundtrip)
+    # raw_metadata no se incluye ya que group_name y group_id están como parámetros separados
+    # Solo incluir annotations si no está vacío
+    annotations_value = pipeline_graph.get("annotations", [])
+    if annotations_value:
+        decorator_args.append(f"annotations={annotations_value}")
+    # Solo incluir node_groups si no está vacío
+    node_groups_value = pipeline_graph.get("nodeGroups", [])
+    if node_groups_value:
+        decorator_args.append(f"node_groups={node_groups_value}")
+    # raw_nodes_order and raw_edges_order omitted - order doesn't matter, only content
+    # skip_validation omitted - no es necesario por defecto
 
     decorator_str = ",\n    ".join(decorator_args)
     python_code += f"@pipeline(\n    {decorator_str}\n)\n"

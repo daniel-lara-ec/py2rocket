@@ -914,7 +914,6 @@ def parquet_output(
     # Construir configuración
     config = {
         "path": path,
-        "saveMode": save_mode,
         "saveOptions": save_options,
         "debugOptions": {
             "executeStepAutoDebug": True,
@@ -922,16 +921,6 @@ def parquet_output(
             "mockType": "NoMock",
         },
     }
-
-    # Agregar parámetros opcionales si se proporcionan
-    if partition_by:
-        config["partitionBy"] = partition_by
-    if partition_overwrite is not None:
-        config["partitionOverwriteEnabled"] = partition_overwrite
-    if table_name:
-        config["tableName"] = table_name
-    if check_if_empty is not None:
-        config["checkIfEmpty"] = check_if_empty
 
     node = Node(
         name=name,
@@ -948,6 +937,25 @@ def parquet_output(
 
     pipeline.add_node(node)
 
+    # Construir extra_options para outputsWriter
+    # Partir de los defaults
+    extra_options = {
+        "partitionBy": "overwrite",
+        "partitionOverwriteEnabled": True,
+        "checkIfEmpty": False,
+        "partitionColumns": "",
+        "saveMode": save_mode,
+        "partitions": "",
+    }
+
+    # Sobrescribir con valores proporcionados
+    if partition_by:
+        extra_options["partitionBy"] = partition_by
+    if partition_overwrite is not None:
+        extra_options["partitionOverwriteEnabled"] = partition_overwrite
+    if check_if_empty is not None:
+        extra_options["checkIfEmpty"] = check_if_empty
+
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
@@ -958,7 +966,13 @@ def parquet_output(
                 data_type=data_relation,
             )
             pipeline.add_edge(edge)
-            _attach_outputs_writer(input_step, node.name, save_mode)
+            _attach_outputs_writer(
+                input_step,
+                node.name,
+                save_mode=save_mode,
+                table_name=table_name,
+                extra_options=extra_options,
+            )
     else:
         origin_name, data_relation = _get_origin_and_relation(inputs)
         edge = Edge(
@@ -967,7 +981,13 @@ def parquet_output(
             data_type=data_relation,
         )
         pipeline.add_edge(edge)
-        _attach_outputs_writer(inputs, node.name, save_mode)
+        _attach_outputs_writer(
+            inputs,
+            node.name,
+            save_mode=save_mode,
+            table_name=table_name,
+            extra_options=extra_options,
+        )
 
     return StepResult(node, pipeline)
 

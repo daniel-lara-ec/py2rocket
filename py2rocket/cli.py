@@ -10,8 +10,10 @@ Comandos disponibles:
     py2rocket pull <archivo>               - Descarga workflow desde Rocket
     py2rocket download <workflow-id>       - Descarga workflow por ID desde Rocket
     py2rocket sync <grupo>                  - Sincroniza assets/workflows de un grupo a local
+    py2rocket get-history <workflow-id>    - Obtiene el historial de ejecución en JSON
     py2rocket from-json <archivo.json>     - Convierte JSON a código Python
     py2rocket get-extensions               - Lista extensiones por proyecto
+    py2rocket create-group <nombre>        - Crea un grupo tomando el nombre del proyecto
 """
 
 import argparse
@@ -35,6 +37,7 @@ from py2rocket import (
     run,
     pull,
     download,
+    get_execution_history,
     from_json,
     __version__,
 )
@@ -780,10 +783,19 @@ def cmd_sync(args):
                         asset_dir = Path(safe_asset_name)
                         asset_dir.mkdir(parents=True, exist_ok=True)
 
-                        # Archivo identificador del asset
-                        name_file = asset_dir / "name.txt"
-                        if not name_file.exists() or args.force:
-                            name_file.write_text(str(asset_name), encoding="utf-8")
+                        # Archivo identificador del asset con metadatos
+                        asset_file = asset_dir / "asset"
+                        if not asset_file.exists() or args.force:
+                            asset_data = {
+                                "nombre": asset_name,
+                                "id_asset": asset_id,
+                                "id_grupo": group_id,
+                                "nombre_grupo": name,
+                            }
+                            asset_file.write_text(
+                                json.dumps(asset_data, ensure_ascii=False, indent=2),
+                                encoding="utf-8",
+                            )
 
                         group_assets += 1
 
@@ -1008,6 +1020,106 @@ def cmd_sync(args):
             pass
 
 
+def cmd_get_execution_history(args):
+    """Comando: get-history - Obtiene el historial de ejecución de un workflow en JSON"""
+    try:
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+
+        result = get_execution_history(
+            workflow_id=args.workflow_id,
+            project_id=args.project_id,
+            rocket_url=args.url,
+            api_token=args.token,
+            status=args.status,
+            limit=args.limit,
+            offset=args.offset,
+            verify_ssl=verify_ssl,
+        )
+
+        if result.get("status") == "success":
+            print(f"\n✓ Historial de ejecuciones obtenido exitosamente")
+            print(f"  Workflow ID: {result['workflow_id']}")
+            print(f"  Total de ejecuciones: {result['total_count']}")
+
+            # Mostrar en JSON si se solicita
+            if args.json_output:
+                print(
+                    "\n" + json.dumps(result, ensure_ascii=False, indent=2, default=str)
+                )
+            else:
+                # Mostrar información detallada
+                print("\n" + "=" * 100)
+
+                for i, exec in enumerate(result.get("executions", [])[: args.limit], 1):
+                    exec_id = exec.get("id", "N/A")
+                    asset_data = exec.get("assetDataExecution", {})
+                    asset_name = asset_data.get("name", "N/A")
+                    states = exec.get("statuses", [])
+
+                    # El primer estado es el más reciente
+                    latest_state = states[0] if states else {}
+                    state = latest_state.get("state", "Unknown")
+                    status_info = latest_state.get("statusInfo", "")
+                    last_update = latest_state.get("lastUpdateDate", "N/A")
+
+                    print(f"\n[Ejecución #{i}]")
+                    print(f"  ID:           {exec_id}")
+                    print(f"  Asset:        {asset_name}")
+                    print(f"  Estado:       {state}")
+                    if status_info:
+                        print(f"  Descripción:  {status_info}")
+                    print(f"  Actualizado:  {last_update}")
+
+                    # Mostrar parámetros de ejecución si existen
+                    params = asset_data.get("parametersUsed", {})
+                    if params:
+                        param_list = sorted(params.items())
+                        print(f"\n  Parámetros ({len(param_list)}):")
+                        max_key_len = (
+                            max(len(k) for k, v in param_list) if param_list else 0
+                        )
+                        for key, value in param_list:
+                            display_value = str(value)
+                            if len(display_value) > 60:
+                                display_value = display_value[:57] + "..."
+                            print(
+                                f"    • {key:<{min(max_key_len, 50)}}: {display_value}"
+                            )
+
+                    # Mostrar historial de estados
+                    if len(states) > 1:
+                        print(f"\n  Historial ({len(states)} cambios):")
+                        for s in states:
+                            s_state = s.get("state", "Unknown")
+                            s_info = s.get("statusInfo", "")
+                            s_date = s.get("lastUpdateDate", "N/A")
+                            info_str = f" - {s_info}" if s_info else ""
+                            print(f"    • {s_state}{info_str}")
+                            print(f"      ({s_date})")
+
+                    print("\n" + "=" * 100)
+
+            # Guardar en archivo si se especifica
+            if args.output:
+                output_path = Path(args.output)
+                output_path.write_text(
+                    json.dumps(result, ensure_ascii=False, indent=2, default=str),
+                    encoding="utf-8",
+                )
+                print(f"✓ Historial guardado en: {args.output}")
+
+        else:
+            print(f"\n❌ Error al obtener historial: {result.get('message')}")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def cmd_from_json(args):
     """Comando: from-json - Convierte JSON de Rocket a código Python"""
     try:
@@ -1026,6 +1138,113 @@ def cmd_from_json(args):
             print(f"    - Outputs: {result['outputs']}")
         else:
             print(f"\n❌ Error al convertir JSON")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        traceback.print_exc()
+        sys.exit(1)
+
+
+def cmd_create_group(args):
+    """Comando: create-group - Crea un grupo tomando el nombre del proyecto"""
+    try:
+        api_host = args.url or os.getenv("ROCKET_API_HOST")
+        auth_cookie = args.token or os.getenv("ROCKET_AUTH_COOKIE")
+        if not api_host or not auth_cookie:
+            print(
+                "❌ Error: Configura ROCKET_API_HOST y ROCKET_AUTH_COOKIE en .env o pásalos por argumentos."
+            )
+            sys.exit(1)
+
+        # Obtener nombre del grupo desde argumentos o prompt
+        group_name = args.name
+        if not group_name:
+            group_name = input("Nombre del grupo: ").strip()
+            if not group_name:
+                print("❌ Error: El nombre del grupo es obligatorio.")
+                sys.exit(1)
+
+        # Obtener nombre del proyecto desde argumentos o .env
+        project_name = args.project_name or os.getenv("PROJECT_NAME")
+        if not project_name:
+            project_name = input("Nombre del proyecto: ").strip()
+            if not project_name:
+                print("❌ Error: El nombre del proyecto es obligatorio.")
+                sys.exit(1)
+
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+        }
+        cookies = {"stratio-cookie": auth_cookie, "lang": "en"}
+
+        # Buscar el proyecto para validar que existe
+        print(f"🔍 Buscando proyecto: {project_name}...")
+        try:
+            response = requests.get(
+                f"{api_host}/projects/findByName/{project_name}",
+                headers=headers,
+                cookies=cookies,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            response.raise_for_status()
+            project_data = response.json()
+            project_id = project_data.get("id")
+            if not project_id:
+                print(f"❌ Error: No se encontró el proyecto '{project_name}'.")
+                sys.exit(1)
+            print(f"✓ Proyecto encontrado: {project_id}")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error al buscar proyecto: {e}")
+            sys.exit(1)
+
+        # Crear el grupo
+        print(f"🔧 Creando grupo '{group_name}'...")
+        payload = {"name": group_name}
+
+        try:
+            response = requests.post(
+                f"{api_host}/groups",
+                headers=headers,
+                cookies=cookies,
+                json=payload,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            response.raise_for_status()
+            group_data = response.json()
+            group_id = group_data.get("id")
+
+            if group_id:
+                print(f"✓ Grupo creado exitosamente!")
+                print(f"  ID: {group_id}")
+                print(f"  Nombre: {group_name}")
+                print(f"  Proyecto: {project_name}")
+            else:
+                print("⚠️  Grupo creado pero no se pudo obtener el ID.")
+                print(f"Respuesta: {json.dumps(group_data, indent=2)}")
+
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error al crear el grupo: {e}")
+            if hasattr(e, "response") and e.response is not None:
+                print(f"Respuesta del servidor: {e.response.text}")
             sys.exit(1)
 
     except Exception as e:
@@ -1435,6 +1654,51 @@ def main():
     )
     parser_sync.set_defaults(func=cmd_sync)
 
+    # Comando: get-history
+    parser_get_history = subparsers.add_parser(
+        "get-history",
+        help="Obtiene el historial de ejecución de un workflow en JSON",
+    )
+    parser_get_history.add_argument("workflow_id", help="ID del workflow (UUID)")
+    parser_get_history.add_argument("--project-id", help="ID del proyecto en Rocket")
+    parser_get_history.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_get_history.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_get_history.add_argument(
+        "--status",
+        help="Filtrar por estado (ej: Running, Completed, Failed, Stopped)",
+    )
+    parser_get_history.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Número máximo de ejecuciones a obtener (default: 50)",
+    )
+    parser_get_history.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Número de resultados a saltar para paginación (default: 0)",
+    )
+    parser_get_history.add_argument(
+        "-o",
+        "--output",
+        help="Ruta del archivo JSON de salida (opcional)",
+    )
+    parser_get_history.add_argument(
+        "-j",
+        "--json-output",
+        action="store_true",
+        help="Mostrar salida en formato JSON en la consola",
+    )
+    parser_get_history.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_get_history.set_defaults(func=cmd_get_execution_history)
+
     # Comando: from-json
     parser_from_json = subparsers.add_parser(
         "from-json", help="Convierte JSON de Rocket a código Python DSL"
@@ -1463,6 +1727,25 @@ def main():
         "--no-verify-ssl", action="store_true", help="No verificar SSL"
     )
     parser_get_extensions.set_defaults(func=cmd_get_extensions)
+
+    # Comando: create-group
+    parser_create_group = subparsers.add_parser(
+        "create-group", help="Crea un grupo tomando el nombre del proyecto"
+    )
+    parser_create_group.add_argument("name", nargs="?", help="Nombre del grupo a crear")
+    parser_create_group.add_argument(
+        "--project-name", help="Nombre del proyecto (o usar PROJECT_NAME env var)"
+    )
+    parser_create_group.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_create_group.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_create_group.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_create_group.set_defaults(func=cmd_create_group)
 
     # Parsear argumentos
     args = parser.parse_args()

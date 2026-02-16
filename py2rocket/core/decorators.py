@@ -38,6 +38,7 @@ def pipeline(
     workflow_id: Optional[str] = None,
     project_id: Optional[str] = None,
     group_id: Optional[str] = None,
+    group_name: Optional[str] = None,
     asset_id: Optional[str] = None,
     parameters_lists: Optional[list] = None,
     pre_execution_sql_sentences: Optional[list] = None,
@@ -50,8 +51,6 @@ def pipeline(
     raw_metadata: Optional[Dict[str, Any]] = None,
     annotations: Optional[list] = None,
     node_groups: Optional[list] = None,
-    raw_nodes_order: Optional[list] = None,
-    raw_edges_order: Optional[list] = None,
     skip_validation: bool = False,
 ) -> Callable:
     """
@@ -67,6 +66,7 @@ def pipeline(
         description: Descripción del propósito del pipeline
         project_id: UUID del proyecto (obtenido de la API)
         group_id: UUID del grupo (obtenido de la API)
+        group_name: Nombre/path del grupo o proyecto
         asset_id: UUID del asset creado en Rocket
         parameters_lists: Listas adicionales de parámetros a incluir
         pre_execution_sql_sentences: Lista de sentencias SQL a ejecutar antes del pipeline
@@ -79,8 +79,6 @@ def pipeline(
         raw_metadata: Metadatos de primer nivel del JSON original (opcional)
         annotations: Annotations del pipelineGraph (opcional)
         node_groups: NodeGroups del pipelineGraph (opcional)
-        raw_nodes_order: Orden original de nodos (opcional)
-        raw_edges_order: Orden original de edges (opcional)
         skip_validation: Omitir validación del pipeline (opcional)
 
     Returns:
@@ -125,6 +123,7 @@ def pipeline(
                 workflow_id=workflow_id,
                 project_id=effective_project_id,
                 group_id=group_id,
+                group_name=group_name,
                 asset_id=asset_id,
                 parameters_lists=parameters_lists or [],
                 pre_execution_sql_sentences=pre_execution_sql_sentences or [],
@@ -137,8 +136,6 @@ def pipeline(
                 raw_metadata=raw_metadata or {},
                 annotations=annotations or [],
                 node_groups=node_groups or [],
-                raw_nodes_order=raw_nodes_order,
-                raw_edges_order=raw_edges_order,
             )
 
             # Establecer como pipeline activo

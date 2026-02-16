@@ -21,6 +21,7 @@ from py2rocket.core.pipeline import (
     StepType,
     ExecutionEngine,
     DataRelation,
+    OutputWriter,
     StepResult,
     StepResultOutput,
     Pipeline,
@@ -59,6 +60,20 @@ def _get_origin_and_relation(input_step: Union[StepResult, StepResultOutput]) ->
         return input_step.node.name, input_step.data_relation
     else:  # StepResult
         return input_step.node.name, DataRelation.VALID_DATA
+
+
+def _process_outputs_writer(
+    node: Node, outputs_writer: Optional[List[OutputWriter]]
+) -> None:
+    """
+    Procesa la lista de OutputWriter y la asigna al nodo transformation.
+
+    Args:
+        node: El nodo transformation al que asignar outputs_writer
+        outputs_writer: Lista de OutputWriter objects o None
+    """
+    if outputs_writer:
+        node.outputs_writer = [ow.to_dict() for ow in outputs_writer]
 
 
 # ============================================================================
@@ -319,6 +334,7 @@ def custom_lite_xd_transform(
     user_pass_enabled: bool = False,
     tls_enabled: bool = False,
     vault_custom_property_enabled: bool = False,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
 ) -> StepResult:
     """
@@ -372,6 +388,9 @@ def custom_lite_xd_transform(
     )
 
     pipeline.add_node(node)
+
+    # Procesar outputs_writer si se proporcionó
+    _process_outputs_writer(node, outputs_writer)
 
     # Crear edges desde los inputs
     if inputs is not None:
@@ -779,6 +798,7 @@ def trigger(
     quote_sql: bool = False,
     discard_conditions: str = "",
     replace_with_input_dataframe: bool = False,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     priority: int = 50,
     description: str = "",
 ) -> StepResult:
@@ -838,6 +858,9 @@ def trigger(
     )
 
     pipeline.add_node(node)
+
+    # Procesar outputs_writer si se proporcionó
+    _process_outputs_writer(node, outputs_writer)
 
     # Crear edges desde los inputs
     if inputs is not None:

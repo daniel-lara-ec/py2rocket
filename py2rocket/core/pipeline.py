@@ -9,7 +9,7 @@ Arquitectura:
     Notebook (exploración) → DSL Python → IR → Compiler → JSON Rocket → Stratio Rocket
 """
 
-from typing import List, Dict, Any, Optional, Literal
+from typing import List, Dict, Any, Optional, Literal, Union
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -35,6 +35,76 @@ class DataRelation(Enum):
 
     VALID_DATA = "ValidData"
     INVALID_DATA = "DiscardedData"
+
+
+@dataclass
+class OutputWriter:
+    """
+    Configuración de escritura para outputs desde un transformation.
+
+    Este objeto representa la configuración outputsWriter que se adjunta
+    al nodo transformation y controla cómo se escriben los datos en el output.
+    """
+
+    output_step_name: str
+    save_mode: str = "Overwrite"
+    table_name: str = ""
+    discard_table_name: str = ""
+    partition_by: Optional[str] = None
+    partition_overwrite: bool = True
+    check_if_empty: bool = False
+    partition_columns: str = ""
+    partitions: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte el OutputWriter a formato dict para JSON"""
+        extra_options = {
+            "partitionBy": self.partition_by if self.partition_by else "overwrite",
+            "partitionOverwriteEnabled": self.partition_overwrite,
+            "checkIfEmpty": self.check_if_empty,
+            "partitionColumns": self.partition_columns,
+            "saveMode": self.save_mode,
+            "partitions": self.partitions,
+        }
+
+        return {
+            "saveMode": self.save_mode,
+            "outputStepName": self.output_step_name,
+            "tableName": self.table_name,
+            "discardTableName": self.discard_table_name,
+            "extraOptions": extra_options,
+        }
+
+
+@dataclass
+class UIPosition:
+    """Posición de un nodo en la interfaz gráfica de Rocket.
+
+    Attributes:
+        x: Coordenada X en el canvas (entero)
+        y: Coordenada Y en el canvas (entero)
+    """
+
+    x: int
+    y: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte la posición a formato para uiConfiguration."""
+        return {"position": {"x": self.x, "y": self.y}}
+
+    @classmethod
+    def from_dict(cls, ui_config: Dict[str, Any]) -> Optional["UIPosition"]:
+        """Crea una UIPosition desde uiConfiguration."""
+        if not ui_config:
+            return None
+        pos = ui_config.get("position")
+        if not pos or "x" not in pos or "y" not in pos:
+            return None
+        # Redondear coordenadas a enteros
+        return cls(x=round(pos["x"]), y=round(pos["y"]))
+
+    def __repr__(self) -> str:
+        return f"UIPosition(x={self.x}, y={self.y})"
 
 
 @dataclass
@@ -77,6 +147,8 @@ class Node:
     include_debug_options: bool = True
     include_supported_data_relations: bool = True
     include_description: bool = True
+    include_node_metadata: bool = True  # Control de serialización de NodeMetadata
+    node_metadata: Optional[Any] = None  # NodeMetadata object
 
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el nodo a formato diccionario para serialización JSON"""
@@ -84,8 +156,44 @@ class Node:
             "priority": str(self.priority),
             **self.configuration,
         }
+
+        # Asegurar que debugOptions sea una cadena JSON, no un dict
+        if "debugOptions" in config and isinstance(config["debugOptions"], dict):
+            import json
+
+            config["debugOptions"] = json.dumps(config["debugOptions"])
+
         if self.include_debug_options and "debugOptions" not in config:
-            config["debugOptions"] = '{"executeStepAutoDebug":true}'
+            # Agregar debugOptions por defecto basándose en el tipo de paso
+            if self.step_type == StepType.INPUT:
+                config["debugOptions"] = (
+                    '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"AutoInfer"}'
+                )
+            else:  # Transformation or Output
+                config["debugOptions"] = (
+                    '{"executeStepAutoDebug":true,"executeStepDebug":true,"mockType":"NoMock"}'
+                )
+
+        # Agregar NodeMetadata (isSaved, genAI*) si include_node_metadata es True
+        if self.include_node_metadata:
+            # Si no hay node_metadata, crear defaults
+            if self.node_metadata is None:
+                from py2rocket.core.node_metadata import NodeMetadata
+
+                # Determinar si es Trigger para incluir genAIMetadataTablesDescription
+                is_trigger = self.class_name == "TriggerTransformStep"
+                if self.step_type == StepType.INPUT:
+                    self.node_metadata = NodeMetadata.for_input()
+                elif self.step_type == StepType.TRANSFORMATION:
+                    self.node_metadata = NodeMetadata.for_transformation(
+                        is_trigger=is_trigger
+                    )
+                else:  # Output
+                    self.node_metadata = NodeMetadata.for_output()
+
+            # Agregar a config
+            metadata_dict = self.node_metadata.to_config_dict()
+            config.update(metadata_dict)
 
         node_dict = {
             "name": self.name,
@@ -177,6 +285,7 @@ class Pipeline:
     workflow_id: Optional[str] = None
     project_id: Optional[str] = None
     group_id: Optional[str] = None
+    group_name: Optional[str] = None
     asset_id: Optional[str] = None
     parameters_lists: List[str] = field(default_factory=list)
     pre_execution_sql_sentences: List[str] = field(default_factory=list)
@@ -190,8 +299,6 @@ class Pipeline:
     raw_metadata: Dict[str, Any] = field(default_factory=dict)
     annotations: List[Any] = field(default_factory=list)
     node_groups: List[Any] = field(default_factory=list)
-    raw_nodes_order: Optional[List[str]] = None
-    raw_edges_order: Optional[List[Dict[str, Any]]] = None
 
     def add_node(self, node: Node) -> None:
         """Añade un nodo al pipeline"""

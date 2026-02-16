@@ -199,20 +199,37 @@
         "description": "",
         "configuration": {
           "priority": "50",
-          "schema.inputMode": "NOSCHEMAPROVIDED",
-          "excludeGlobFilter": "",
-          "inputOptions": "",
           "path": "/user/rocket.stratio-rocket/practica_episodio.csv",
-          "subdirGlobFilter": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "isSaved": true,
-          "subdirRegexFilter": "",
-          "readMode": "DefaultReadMode",
-          "excludeRegexFilter": "",
+          "paths": [
+            {
+              "path": null,
+              "subdirGlobFilter": null,
+              "subdirRegexFilter": null,
+              "excludeGlobFilter": null,
+              "excludeRegexFilter": null
+            }
+          ],
+          "delimiter": ",",
           "header": true,
+          "pathGlobFilter": "*.csv",
+          "isRecursiveEnabled": true,
+          "metadataColumnEnabled": true,
+          "dataAsJsonEnabled": true,
+          "enableFilterPattern": true,
+          "readMode": "DefaultReadMode",
+          "excludeGlobFilter": "",
+          "excludeRegexFilter": "",
+          "subdirGlobFilter": "",
+          "subdirRegexFilter": "",
+          "inputOptions": "",
+          "schema.inputMode": "NOSCHEMAPROVIDED",
+          "schema.header": "",
+          "schema.fields": "",
+          "schema.sparkSchema": "",
+          "genAIMetadataTableDescription": "",
           "genAIMetadataColumns": "",
-          "delimiter": ","
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
+          "isSaved": true
         },
         "supportedEngines": [
           "Batch",
@@ -226,11 +243,11 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 271.0,
-            "y": 260.0
+            "x": 271,
+            "y": 260
           }
         },
-        "lastModified": "2026-02-11T01:10:10Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "F_Datos",
@@ -243,13 +260,13 @@
         "description": "",
         "configuration": {
           "priority": "50",
+          "filterExp": "id < 100",
           "quoteSql": false,
           "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
           "inputSchemas": "",
-          "filterExp": "id < 100",
-          "genAIMetadataColumns": ""
+          "genAIMetadataColumns": "",
+          "isSaved": true
         },
         "supportedEngines": [
           "Streaming",
@@ -258,18 +275,17 @@
         ],
         "executionEngine": "Hybrid",
         "supportedDataRelations": [
-          "ValidData",
-          "DiscardedData"
+          "ValidData"
         ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 454.0,
-            "y": 258.0
+            "x": 454,
+            "y": 258
           }
         },
-        "lastModified": "2026-02-11T01:10:36Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Transformacion",
@@ -282,22 +298,22 @@
         "description": "",
         "configuration": {
           "priority": "50",
-          "sql": "SELECT *\r\nFROM F_Datos",
+          "sql": "\nSELECT *\nFROM F_Datos\n",
           "quoteSql": false,
           "discardConditions": "",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
-          "isSaved": true,
           "replaceWithInputDataframe": false,
-          "genAIMetadataColumns": ""
+          "genAIMetadataTablesDescription": "",
+          "genAIMetadataColumns": "",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
+          "genAIMetadataTableDescription": ""
         },
         "supportedEngines": [
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
         "supportedDataRelations": [
-          "ValidData",
-          "DiscardedData"
+          "ValidData"
         ],
         "lineageProperties": [],
         "outputsWriter": [
@@ -307,17 +323,22 @@
             "tableName": "",
             "discardTableName": "",
             "extraOptions": {
-              "checkIfEmpty": false
+              "partitionBy": "overwrite",
+              "partitionOverwriteEnabled": true,
+              "checkIfEmpty": false,
+              "partitionColumns": "",
+              "saveMode": "Append",
+              "partitions": ""
             }
           }
         ],
         "uiConfiguration": {
           "position": {
-            "x": 641.0,
-            "y": 262.0
+            "x": 641,
+            "y": 262
           }
         },
-        "lastModified": "2026-02-11T01:10:31Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       },
       {
         "name": "Print",
@@ -328,13 +349,17 @@
           "NullaryToNullary",
           "NaryToNullary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
           "printData": false,
           "printSchema": false,
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
           "printMetadata": true,
-          "logLevel": "warn"
+          "logLevel": "warn",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": ""
         },
         "supportedEngines": [
           "Streaming",
@@ -342,15 +367,18 @@
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 813.0,
-            "y": 261.0
+            "x": 813,
+            "y": 261
           }
         },
-        "lastModified": "2026-02-11T01:10:45Z"
+        "lastModified": "2026-02-16T16:34:08Z"
       }
     ],
     "edges": [

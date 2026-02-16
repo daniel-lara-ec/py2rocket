@@ -9,9 +9,12 @@ from py2rocket.core.pipeline import (
     ExecutionEngine,
     StepType,
     DataRelation,
+    OutputWriter,
     StepResult,
     StepResultOutput,
 )
+
+from py2rocket.core.debug_options import DebugOptions, get_default_debug_options
 
 # Importar operaciones de los módulos específicos - Input
 from py2rocket.core.input import (
@@ -72,7 +75,11 @@ __all__ = [
     "ExecutionEngine",
     "StepType",
     "DataRelation",
+    "OutputWriter",
     "StepResult",
+    # Debug options
+    "DebugOptions",
+    "get_default_debug_options",
     # Input operations - Database
     "sql",
     "jdbc",

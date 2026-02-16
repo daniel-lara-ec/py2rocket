@@ -30,22 +30,14 @@
         "SparkConfigurations.HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES",
         "SparkConfigurations.SPARK_DRIVER_DOCKER_IMAGE",
         "SparkConfigurations.SPARK_DRIVER_DOCKER_VOLUMES",
-        "SparkConfigurations.SPARK_DRIVER_METRICS_SOURCES_WHITELIST",
         "SparkConfigurations.SPARK_EXECUTOR_DOCKER_IMAGE",
         "SparkConfigurations.SPARK_EXECUTOR_DOCKER_VOLUMES",
         "SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS",
-        "SparkConfigurations.SPARK_EXECUTOR_METRICS_SOURCES_WHITELIST",
-        "SparkConfigurations.SPARK_HISTORY_SERVER_EVENT_LOG_ROTATE_MAX_FILE_SIZE",
         "SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME",
         "SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO",
-        "SparkConfigurations.SPARK_STREAMING_BLOCK_INTERVAL",
-        "SparkConfigurations.SPARK_STREAMING_CHECKPOINT_PATH",
-        "SparkConfigurations.SPARK_STREAMING_WINDOW",
         "SparkResources.SPARK_DRIVER_CORES",
-        "SparkResources.SPARK_DRIVER_GPUS",
         "SparkResources.SPARK_DRIVER_MEMORY",
         "SparkResources.SPARK_EXECUTOR_CORES",
-        "SparkResources.SPARK_EXECUTOR_GPUS",
         "SparkResources.SPARK_EXECUTOR_INSTANCES",
         "SparkResources.SPARK_EXECUTOR_MEMORY",
         "SparkResources.SPARK_KUBERNETES_SHUTDOWN"
@@ -199,14 +191,14 @@
         "description": "",
         "configuration": {
           "priority": "50",
-          "genAIMetadataTableDescription": "",
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}",
-          "isSaved": true,
-          "query": "SELECT\r\n    1 AS columna",
+          "query": "\nSELECT\n    1 AS columna\n",
           "forceNativeQuery": false,
           "cacheTable": false,
+          "isSaved": true,
+          "asyncRefresh": false,
+          "genAIMetadataTableDescription": "",
           "genAIMetadataColumns": "",
-          "asyncRefresh": false
+          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}"
         },
         "supportedEngines": [
           "Batch",
@@ -217,24 +209,14 @@
           "ValidData"
         ],
         "lineageProperties": [],
-        "outputsWriter": [
-          {
-            "saveMode": "Append",
-            "outputStepName": "Print",
-            "tableName": "",
-            "discardTableName": "",
-            "extraOptions": {
-              "checkIfEmpty": false
-            }
-          }
-        ],
+        "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 470.0,
-            "y": 266.0
+            "x": 470,
+            "y": 266
           }
         },
-        "lastModified": "2026-02-11T00:56:25Z"
+        "lastModified": "2026-02-16T17:09:17Z"
       },
       {
         "name": "Print",
@@ -245,13 +227,17 @@
           "NullaryToNullary",
           "NaryToNullary"
         ],
+        "description": "",
         "configuration": {
           "priority": "50",
           "printData": false,
           "printSchema": false,
-          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"NoMock\"}",
           "printMetadata": true,
-          "logLevel": "warn"
+          "logLevel": "warn",
+          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
+          "isSaved": true,
+          "genAIMetadataTableDescription": "",
+          "genAIMetadataColumns": ""
         },
         "supportedEngines": [
           "Streaming",
@@ -259,15 +245,18 @@
           "Hybrid"
         ],
         "executionEngine": "Hybrid",
+        "supportedDataRelations": [
+          "ValidData"
+        ],
         "lineageProperties": [],
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 639.0,
-            "y": 267.0
+            "x": 639,
+            "y": 267
           }
         },
-        "lastModified": "2026-02-11T00:56:07Z"
+        "lastModified": "2026-02-16T17:09:17Z"
       }
     ],
     "edges": [
@@ -284,20 +273,20 @@
   "workflowType": "SpartaWorkflow",
   "uiSettings": {
     "position": {
-      "x": -229.1655408492427,
-      "y": -260.08007614861947,
-      "k": 1.8937737740515914
+      "x": -2083.536303142103,
+      "y": -859.7024044750958,
+      "k": 4.0
     }
   },
-  "creationDate": "2026-02-11T00:54:21Z",
-  "lastUpdateDate": "2026-02-11T00:55:22Z",
+  "creationDate": "2026-02-16T17:09:17Z",
+  "lastUpdateDate": "2026-02-16T17:09:17Z",
   "version": 0,
   "readOnly": false,
   "releaseInProgress": false,
   "tags": [],
   "debugMode": false,
   "debugAsExecutionMaybe": false,
-  "versionSparta": "3.6.1",
+  "versionSparta": "3.6.3",
   "normalizedName": "prueba",
   "isHybridStreaming": false,
   "workflowMasterId": "73f54524-d40b-4528-8ced-33dcaa86a1fc",
@@ -305,6 +294,6 @@
     "id": "4e71db55-7545-4bbf-958e-46247706885f",
     "name": "/home/system/workspace"
   },
-  "groupId": "4e71db55-7545-4bbf-958e-46247706885f",
-  "projectId": "7gj83a6q-t894-20ld2-45et-a4o433g4h6d1"
+  "projectId": "7gj83a6q-t894-20ld2-45et-a4o433g4h6d1",
+  "groupId": "4e71db55-7545-4bbf-958e-46247706885f"
 }
