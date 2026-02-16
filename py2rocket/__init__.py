@@ -25,7 +25,7 @@ from py2rocket.core import pipeline, RocketCompiler
 from py2rocket.core.pipeline import UIPosition
 from py2rocket.templates.workflow_template import WORKFLOW_TEMPLATE
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __all__ = [
     "create",
     "build",
@@ -37,6 +37,7 @@ __all__ = [
     "pull",
     "download",
     "get_execution_history",
+    "get_projects",
     "from_json",
     "pipeline",
     "UIPosition",
@@ -1611,6 +1612,106 @@ def get_execution_history(
         "workflow_id": workflow_id,
         "total_count": total_count,
         "executions": executions,
+        "url": url,
+    }
+
+
+def get_projects(
+    rocket_url: Optional[str] = None,
+    api_token: Optional[str] = None,
+    verify_ssl: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """
+    Obtiene la lista de todos los proyectos disponibles en Stratio Rocket.
+
+    Recupera información base de los proyectos incluyendo ID, nombre,
+    normalizedName (para uso en sincronización) y otros metadatos.
+
+    Args:
+        rocket_url: URL de Rocket. Si no se proporciona, usa ROCKET_API_HOST o ROCKET_URL
+        api_token: Cookie de autenticación. Si no se proporciona, usa ROCKET_AUTH_COOKIE
+        verify_ssl: Verificar certificados SSL (default: True from .env)
+
+    Returns:
+        Diccionario con la lista de proyectos:
+        {
+            'status': 'success' | 'error',
+            'message': str,
+            'total_count': int,
+            'projects': [
+                {
+                    'id': str (UUID),
+                    'name': str,
+                    'normalizedName': str (para sync),
+                    'groupId': str,
+                    'description': str,
+                    'creationDate': datetime,
+                    'lastUpdateDate': datetime,
+                    'creationUser': str,
+                    ...
+                },
+                ...
+            ]
+        }
+
+    Examples:
+        >>> from py2rocket import get_projects
+        >>> result = get_projects()
+        >>> if result['status'] == 'success':
+        ...     for proj in result['projects']:
+        ...         print(f"{proj['name']} ({proj['normalizedName']})")
+    """
+    if verify_ssl is None:
+        verify_ssl = os.getenv("ROCKET_VERIFY_SSL", "true").lower() == "true"
+
+    if not rocket_url:
+        rocket_url = os.getenv("ROCKET_API_HOST") or os.getenv("ROCKET_URL")
+    if not api_token:
+        api_token = os.getenv("ROCKET_AUTH_COOKIE")
+
+    if not rocket_url or not api_token:
+        return {
+            "status": "error",
+            "message": "Missing ROCKET_API_HOST and ROCKET_AUTH_COOKIE",
+            "total_count": 0,
+            "projects": [],
+        }
+
+    try:
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        url = f"{rocket_url.rstrip('/')}/projects"
+
+        headers = {
+            "Accept": "application/json, text/plain, */*",
+            "User-Agent": f"py2rocket/{__version__}",
+        }
+        cookies = {"stratio-cookie": api_token}
+
+        response = requests.get(
+            url,
+            headers=headers,
+            cookies=cookies,
+            verify=verify_ssl,
+            timeout=30,
+        )
+        response.raise_for_status()
+        projects = response.json() or []
+
+    except requests.exceptions.RequestException as exc:
+        return {
+            "status": "error",
+            "message": f"Error al conectar con Rocket: {str(exc)}",
+            "total_count": 0,
+            "projects": [],
+        }
+
+    return {
+        "status": "success",
+        "message": f"Proyectos obtenidos exitosamente",
+        "total_count": len(projects),
+        "projects": projects,
         "url": url,
     }
 

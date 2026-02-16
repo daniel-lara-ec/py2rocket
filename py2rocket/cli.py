@@ -11,6 +11,7 @@ Comandos disponibles:
     py2rocket download <workflow-id>       - Descarga workflow por ID desde Rocket
     py2rocket sync <grupo>                  - Sincroniza assets/workflows de un grupo a local
     py2rocket get-history <workflow-id>    - Obtiene el historial de ejecución en JSON
+    py2rocket projects                     - Lista todos los proyectos disponibles
     py2rocket from-json <archivo.json>     - Convierte JSON a código Python
     py2rocket get-extensions               - Lista extensiones por proyecto
     py2rocket create-group <nombre>        - Crea un grupo tomando el nombre del proyecto
@@ -38,6 +39,7 @@ from py2rocket import (
     pull,
     download,
     get_execution_history,
+    get_projects,
     from_json,
     __version__,
 )
@@ -1120,6 +1122,65 @@ def cmd_get_execution_history(args):
         sys.exit(1)
 
 
+def cmd_projects(args):
+    """Comando: projects - Lista todos los proyectos disponibles"""
+    try:
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+
+        result = get_projects(
+            rocket_url=args.url,
+            api_token=args.token,
+            verify_ssl=verify_ssl,
+        )
+
+        if result.get("status") == "success":
+            print(f"\n✓ Proyectos obtenidos exitosamente")
+            print(f"  Total de proyectos: {result['total_count']}")
+
+            # Mostrar en JSON si se solicita
+            if args.json_output:
+                print(
+                    "\n" + json.dumps(result, ensure_ascii=False, indent=2, default=str)
+                )
+            else:
+                # Mostrar tabla resumida
+                print("\n" + "=" * 120)
+                print(f"{'Nombre':<30} {'normalizedName':<30} {'ID':<40} {'Grupo':<15}")
+                print("=" * 120)
+
+                for proj in result.get("projects", []):
+                    name = proj.get("name", "N/A")[:30]
+                    norm_name = proj.get("normalizedName", "N/A")[:30]
+                    proj_id = proj.get("id", "N/A")[:40]
+                    group_id = proj.get("groupId", "N/A")[:15]
+                    print(f"{name:<30} {norm_name:<30} {proj_id:<40} {group_id:<15}")
+
+                print("=" * 120)
+                print(
+                    "\nℹ️  Usa 'py2rocket sync /proyecto-name' con el nombreormalizado para sincronizar"
+                )
+
+            # Guardar en archivo si se especifica
+            if args.output:
+                output_path = Path(args.output)
+                output_path.write_text(
+                    json.dumps(result, ensure_ascii=False, indent=2, default=str),
+                    encoding="utf-8",
+                )
+                print(f"\n✓ Proyectos guardados en: {args.output}")
+
+        else:
+            print(f"\n❌ Error al obtener proyectos: {result.get('message')}")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def cmd_from_json(args):
     """Comando: from-json - Convierte JSON de Rocket a código Python"""
     try:
@@ -1698,6 +1759,32 @@ def main():
         "--no-verify-ssl", action="store_true", help="No verificar SSL"
     )
     parser_get_history.set_defaults(func=cmd_get_execution_history)
+
+    # Comando: projects
+    parser_projects = subparsers.add_parser(
+        "projects", help="Lista todos los proyectos disponibles"
+    )
+    parser_projects.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_projects.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_projects.add_argument(
+        "-o",
+        "--output",
+        help="Ruta del archivo JSON de salida (opcional)",
+    )
+    parser_projects.add_argument(
+        "-j",
+        "--json-output",
+        action="store_true",
+        help="Mostrar salida en formato JSON en la consola",
+    )
+    parser_projects.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_projects.set_defaults(func=cmd_projects)
 
     # Comando: from-json
     parser_from_json = subparsers.add_parser(
