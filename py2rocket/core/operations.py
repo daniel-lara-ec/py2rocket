@@ -414,17 +414,17 @@ def _wrap_step(func):
     valid_params = set(sig.parameters.keys())
 
     @functools.wraps(func)
-    def wrapper(
-        *args,
-        extra_config=None,
-        node_overrides=None,  # Deprecated but kept for compatibility
-        config_override=None,
-        ui_position=None,
-        **kwargs,
-    ):
+    def wrapper(*args, **all_kwargs):
         from py2rocket.core.pipeline import UIPosition
 
-        filtered_kwargs = {k: v for k, v in kwargs.items() if k in valid_params}
+        # Extraer parámetros específicos del wrapper
+        extra_config = all_kwargs.pop("extra_config", None)
+        node_overrides = all_kwargs.pop("node_overrides", None)
+        config_override = all_kwargs.pop("config_override", None)
+        ui_position = all_kwargs.pop("ui_position", None)
+
+        # Los restantes van a la función original
+        filtered_kwargs = {k: v for k, v in all_kwargs.items() if k in valid_params}
         result = func(*args, **filtered_kwargs)
 
         # Update configuration with overrides (merge, don't replace)
@@ -450,46 +450,51 @@ def _wrap_step(func):
     return wrapper
 
 
-# Envolver operaciones para permitir configuración adicional
-sql = _wrap_step(sql)
-jdbc = _wrap_step(jdbc)
-postgres = _wrap_step(postgres)
-parquet = _wrap_step(parquet)
-delta = _wrap_step(delta)
-json = _wrap_step(json)
-csv = _wrap_step(csv)
-filesystem = _wrap_step(filesystem)
-pyspark_input = _wrap_step(pyspark_input)
-custom_lite_xd = _wrap_step(custom_lite_xd)
-sftp_input = _wrap_step(sftp_input)
-test_input = _wrap_step(test_input)
+# Wrappers comentados - Las operaciones se exportan sin wrapping
+# La funcionalidad de extra_config, ui_position y node_overrides no es soportada
+# Se recomienda:
+# - Importar directamente desde los módulos específicos si necesitas esas características
+# - O pasar configuración a nivel del pipeline en lugar de a nivel de función
 
-add_columns = _wrap_step(add_columns)
-drop_columns = _wrap_step(drop_columns)
-rename_columns = _wrap_step(rename_columns)
-coalesce = _wrap_step(coalesce)
-persist = _wrap_step(persist)
-repartition = _wrap_step(repartition)
-bypass = _wrap_step(bypass)
-filter = _wrap_step(filter)
-union = _wrap_step(union)
-pyspark = _wrap_step(pyspark)
-trigger = _wrap_step(trigger)
-custom_lite_xd_transform = _wrap_step(custom_lite_xd_transform)
-ml_model = _wrap_step(ml_model)
+# sql = _wrap_step(sql)
+# jdbc = _wrap_step(jdbc)
+# postgres = _wrap_step(postgres)
+# parquet = _wrap_step(parquet)
+# delta = _wrap_step(delta)
+# json = _wrap_step(json)
+# csv = _wrap_step(csv)
+# filesystem = _wrap_step(filesystem)
+# pyspark_input = _wrap_step(pyspark_input)
+# custom_lite_xd = _wrap_step(custom_lite_xd)
+# sftp_input = _wrap_step(sftp_input)
+# test_input = _wrap_step(test_input)
 
-jdbc_output = _wrap_step(jdbc_output)
-postgres_output = _wrap_step(postgres_output)
-sftp_output = _wrap_step(sftp_output)
-delta_output = _wrap_step(delta_output)
-parquet_output = _wrap_step(parquet_output)
-json_output = _wrap_step(json_output)
-csv_output = _wrap_step(csv_output)
-text_output = _wrap_step(text_output)
-print_step = _wrap_step(print_step)
-run_workflow = _wrap_step(run_workflow)
-pyspark_output = _wrap_step(pyspark_output)
-custom_lite_xd_output = _wrap_step(custom_lite_xd_output)
+# add_columns = _wrap_step(add_columns)
+# drop_columns = _wrap_step(drop_columns)
+# rename_columns = _wrap_step(rename_columns)
+# coalesce = _wrap_step(coalesce)
+# persist = _wrap_step(persist)
+# repartition = _wrap_step(repartition)
+# bypass = _wrap_step(bypass)
+# filter = _wrap_step(filter)
+# union = _wrap_step(union)
+# pyspark = _wrap_step(pyspark)
+# trigger = _wrap_step(trigger)
+# custom_lite_xd_transform = _wrap_step(custom_lite_xd_transform)
+# ml_model = _wrap_step(ml_model)
+
+# jdbc_output = _wrap_step(jdbc_output)
+# postgres_output = _wrap_step(postgres_output)
+# sftp_output = _wrap_step(sftp_output)
+# delta_output = _wrap_step(delta_output)
+# parquet_output = _wrap_step(parquet_output)
+# json_output = _wrap_step(json_output)
+# csv_output = _wrap_step(csv_output)
+# text_output = _wrap_step(text_output)
+# print_step = _wrap_step(print_step)
+# run_workflow = _wrap_step(run_workflow)
+# pyspark_output = _wrap_step(pyspark_output)
+# custom_lite_xd_output = _wrap_step(custom_lite_xd_output)
 
 
 __all__ = [

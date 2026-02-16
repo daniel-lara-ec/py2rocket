@@ -20,6 +20,7 @@ from py2rocket.core.pipeline import (
     ExecutionEngine,
     StepResult,
     Pipeline,
+    UIPosition,
 )
 
 
@@ -41,6 +42,28 @@ def set_current_pipeline(pipeline: Pipeline) -> None:
     _current_pipeline = pipeline
 
 
+def _apply_ui_position(
+    node: Node, ui_position: Optional[Union[dict, "UIPosition"]]
+) -> None:
+    """Aplica la posición UI al nodo si se proporciona.
+
+    Args:
+        node: El nodo al que aplicar la posición
+        ui_position: Diccionario con claves 'x' e 'y', o UIPosition object, o None
+    """
+    if ui_position is not None:
+        from py2rocket.core.pipeline import UIPosition
+
+        if isinstance(ui_position, UIPosition):
+            node.ui_configuration = ui_position.to_dict()
+        elif isinstance(ui_position, dict):
+            node.ui_configuration = ui_position
+        else:
+            raise TypeError(
+                f"ui_position debe ser UIPosition o dict, recibido {type(ui_position)}"
+            )
+
+
 # ============================================================================
 # CUSTOMADE INPUTS
 # ============================================================================
@@ -58,6 +81,7 @@ def custom_lite_xd(
     is_streaming: bool = False,
     is_legacy_batch_step: bool = False,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada CustomLiteXD personalizado.
@@ -112,6 +136,7 @@ def custom_lite_xd(
         supported_engines=["Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -138,6 +163,7 @@ def sftp_input(
     schema_spark_schema: str = "",
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada SFTP.
@@ -191,6 +217,7 @@ def sftp_input(
         supported_engines=["Batch", "Hybrid", "Streaming"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -205,6 +232,7 @@ def test_input(
     explode_event: bool = False,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada Test.
@@ -244,6 +272,7 @@ def test_input(
         supported_engines=["Batch", "Hybrid", "Streaming"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -260,6 +289,7 @@ def sql(
     cache_table: bool = False,
     force_native_query: bool = False,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada SQL.
@@ -308,6 +338,7 @@ def sql(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -324,6 +355,7 @@ def jdbc(
     vault_db_name: str = "",
     input_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada JDBC.
@@ -386,6 +418,7 @@ def jdbc(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -401,6 +434,7 @@ def postgres(
     tls_enabled: bool = True,
     case_sensitive_enabled: bool = True,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada PostgreSQL.
@@ -459,6 +493,7 @@ def postgres(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -474,6 +509,7 @@ def pyspark_input(
     python_input_dictionary: str = "",
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada PySpark personalizado.
@@ -522,6 +558,7 @@ def pyspark_input(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -541,6 +578,7 @@ def parquet(
     metadata_column_enabled: bool = True,
     enable_filter_pattern: bool = True,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada Parquet.
@@ -602,6 +640,7 @@ def parquet(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -615,6 +654,7 @@ def delta(
     version_as_of: str = "",
     timestamp_as_of: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada Delta Lake.
@@ -671,6 +711,7 @@ def delta(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -686,6 +727,7 @@ def json(
     enable_filter_pattern: bool = True,
     multiline_enabled: bool = False,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada JSON.
@@ -750,6 +792,7 @@ def json(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -772,6 +815,7 @@ def csv(
     data_as_json_enabled: bool = True,
     enable_filter_pattern: bool = True,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada CSV.
@@ -857,6 +901,7 @@ def csv(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -868,6 +913,7 @@ def filesystem(
     priority: int = 50,
     input_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de entrada Filesystem.
@@ -919,5 +965,6 @@ def filesystem(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
     return StepResult(node, pipeline)

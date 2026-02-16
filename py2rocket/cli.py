@@ -12,6 +12,7 @@ Comandos disponibles:
     py2rocket sync <grupo>                  - Sincroniza assets/workflows de un grupo a local
     py2rocket get-history <workflow-id>    - Obtiene el historial de ejecución en JSON
     py2rocket projects                     - Lista todos los proyectos disponibles
+    py2rocket run-view-parameters <workflow-id> - Obtiene los parámetros disponibles
     py2rocket from-json <archivo.json>     - Convierte JSON a código Python
     py2rocket get-extensions               - Lista extensiones por proyecto
     py2rocket create-group <nombre>        - Crea un grupo tomando el nombre del proyecto
@@ -40,6 +41,7 @@ from py2rocket import (
     download,
     get_execution_history,
     get_projects,
+    get_workflow_run_parameters,
     from_json,
     __version__,
 )
@@ -1181,6 +1183,130 @@ def cmd_projects(args):
         sys.exit(1)
 
 
+def cmd_run_view_parameters(args):
+    """Comando: run-view-parameters - Obtiene los parámetros disponibles para ejecutar un workflow"""
+    try:
+        verify_ssl = _get_verify_ssl_from_env()
+        if args.no_verify_ssl:
+            verify_ssl = False
+
+        result = get_workflow_run_parameters(
+            workflow_id=args.workflow_id,
+            rocket_url=args.url,
+            api_token=args.token,
+            verify_ssl=verify_ssl,
+        )
+
+        if result.get("status") == "success":
+            print(f"\n✓ Parámetros obtenidos exitosamente")
+            print(f"  Workflow ID: {result['workflow_id']}")
+
+            # Mostrar en JSON si se solicita
+            if args.json_output:
+                print(
+                    "\n" + json.dumps(result, ensure_ascii=False, indent=2, default=str)
+                )
+            else:
+                # Mostrar parámetros organizados por contextos
+                print("\n" + "=" * 100)
+
+                groups = result.get("groupsAndContexts", [])
+                for group_idx, group in enumerate(groups):
+                    param_list = group.get("parameterList", {})
+                    list_name = param_list.get("name", "Unknown")
+                    contexts_list = group.get("contexts", [])
+
+                    print(f"\n📋 {list_name}:")
+                    print("-" * 100)
+
+                    # Si hay contextos, mostrar parámetros por contexto
+                    if contexts_list:
+                        for ctx_idx, context in enumerate(contexts_list):
+                            ctx_name = context.get("name", "Unknown")
+                            ctx_params = context.get("parameters", [])
+
+                            is_last = ctx_idx == len(contexts_list) - 1
+                            prefix = "└─ " if is_last else "├─ "
+
+                            print(
+                                f"\n  {prefix}{ctx_name} ({len(ctx_params)} parámetros):"
+                            )
+
+                            for param in ctx_params:
+                                param_name = param.get("name", "N/A")
+                                param_value = param.get("value", "")
+
+                                # Truncar valores muy largos
+                                display_value = str(param_value)
+                                if len(display_value) > 60:
+                                    display_value = display_value[:57] + "..."
+
+                                branch = "   " if is_last else "│  "
+                                print(f"  {branch}• {param_name:<45} = {display_value}")
+                    else:
+                        # Si no hay contextos, mostrar los parámetros del parameterList
+                        parameters = param_list.get("parameters", [])
+                        print(f"\n  ({len(parameters)} parámetros):")
+                        for param in parameters:
+                            param_name = param.get("name", "N/A")
+                            param_value = param.get("value", "")
+
+                            # Truncar valores muy largos
+                            display_value = str(param_value)
+                            if len(display_value) > 60:
+                                display_value = display_value[:57] + "..."
+
+                            print(f"  • {param_name:<45} = {display_value}")
+
+                if groups:
+                    print("\n" + "=" * 100)
+                    print(
+                        "\nℹ️  Los contextos disponibles pueden ser usados en ejecuciones futuras"
+                    )
+
+                # Mostrar parámetros extra si los hay
+                extra_params = result.get("extraParams", [])
+                if extra_params:
+                    print(f"\n🔧 Parámetros Adicionales ({len(extra_params)}):")
+                    for param in extra_params:
+                        print(f"  • {param}")
+
+                # Mostrar parámetros extra con valores por defecto si los hay
+                extra_params_with_default = result.get("extraParamsWithDefault", [])
+                if extra_params_with_default:
+                    print(
+                        f"\n⚙️  Parámetros con Valores Por Defecto ({len(extra_params_with_default)}):"
+                    )
+                    for param in extra_params_with_default:
+                        if isinstance(param, dict):
+                            param_name = param.get("name", "N/A")
+                            param_value = param.get("value", "")
+                            display_value = str(param_value)
+                            if len(display_value) > 60:
+                                display_value = display_value[:57] + "..."
+                            print(f"  • {param_name:<45} = {display_value}")
+                        else:
+                            print(f"  • {param}")
+
+            # Guardar en archivo si se especifica
+            if args.output:
+                output_path = Path(args.output)
+                output_path.write_text(
+                    json.dumps(result, ensure_ascii=False, indent=2, default=str),
+                    encoding="utf-8",
+                )
+                print(f"\n✓ Parámetros guardados en: {args.output}")
+
+        else:
+            print(f"\n❌ Error al obtener parámetros: {result.get('message')}")
+            sys.exit(1)
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def cmd_from_json(args):
     """Comando: from-json - Convierte JSON de Rocket a código Python"""
     try:
@@ -1785,6 +1911,34 @@ def main():
         "--no-verify-ssl", action="store_true", help="No verificar SSL"
     )
     parser_projects.set_defaults(func=cmd_projects)
+
+    # Comando: run-view-parameters
+    parser_run_view_params = subparsers.add_parser(
+        "run-view-parameters",
+        help="Obtiene los parámetros disponibles para ejecutar un workflow",
+    )
+    parser_run_view_params.add_argument("workflow_id", help="ID del workflow (UUID)")
+    parser_run_view_params.add_argument(
+        "--url", help="URL de Rocket (o usar ROCKET_API_HOST env var)"
+    )
+    parser_run_view_params.add_argument(
+        "--token", help="Cookie de autenticación (o usar ROCKET_AUTH_COOKIE env var)"
+    )
+    parser_run_view_params.add_argument(
+        "-o",
+        "--output",
+        help="Ruta del archivo JSON de salida (opcional)",
+    )
+    parser_run_view_params.add_argument(
+        "-j",
+        "--json-output",
+        action="store_true",
+        help="Mostrar salida en formato JSON en la consola",
+    )
+    parser_run_view_params.add_argument(
+        "--no-verify-ssl", action="store_true", help="No verificar SSL"
+    )
+    parser_run_view_params.set_defaults(func=cmd_run_view_parameters)
 
     # Comando: from-json
     parser_from_json = subparsers.add_parser(

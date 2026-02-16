@@ -24,6 +24,7 @@ from py2rocket.core.pipeline import (
     StepResult,
     StepResultOutput,
     Pipeline,
+    UIPosition,
 )
 
 
@@ -110,6 +111,22 @@ def _attach_outputs_writer(
     )
 
 
+def _apply_ui_position(
+    node: Node, ui_position: Optional[Union[dict, "UIPosition"]]
+) -> None:
+    """Aplica la posición UI al nodo si se proporciona."""
+    if ui_position is not None:
+
+        if isinstance(ui_position, UIPosition):
+            node.ui_configuration = ui_position.to_dict()
+        elif isinstance(ui_position, dict):
+            node.ui_configuration = ui_position
+        else:
+            raise TypeError(
+                f"ui_position debe ser UIPosition o dict, recibido: {type(ui_position)}"
+            )
+
+
 # ============================================================================
 # CUSTOMMADE OUTPUTS
 # ============================================================================
@@ -126,6 +143,7 @@ def custom_lite_xd_output(
     tls_enabled: bool = False,
     vault_custom_property_enabled: bool = False,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida CustomLiteXD personalizado.
@@ -177,6 +195,7 @@ def custom_lite_xd_output(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -226,6 +245,7 @@ def jdbc_output(
     schema_from_database: bool = False,
     save_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida JDBC.
@@ -288,6 +308,7 @@ def jdbc_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -328,6 +349,7 @@ def postgres_output(
     create_schema_if_not_exists: bool = False,
     save_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida PostgreSQL.
@@ -378,6 +400,7 @@ def postgres_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -423,6 +446,7 @@ def sftp_output(
     data_source_class: str = "",
     save_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida SFTP.
@@ -487,6 +511,7 @@ def sftp_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -527,6 +552,7 @@ def print_step(
     print_metadata: bool = True,
     log_level: str = "warn",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida para imprimir/mostrar datos.
@@ -576,6 +602,7 @@ def print_step(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -623,6 +650,7 @@ def run_workflow(
     _asset_model_name: str = "",
     use_latest_version: bool = False,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida para ejecutar otro workflow.
@@ -705,6 +733,7 @@ def run_workflow(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -732,6 +761,7 @@ def pyspark_output(
     python_code: str,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida PySpark personalizado.
@@ -770,6 +800,7 @@ def pyspark_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -807,6 +838,7 @@ def delta_output(
     save_mode: str = "Overwrite",
     save_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida Delta Lake.
@@ -849,6 +881,7 @@ def delta_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -887,6 +920,9 @@ def parquet_output(
     table_name: str = "",
     check_if_empty: Optional[bool] = None,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida Parquet.
@@ -933,8 +969,11 @@ def parquet_output(
         description=description,
         configuration=config,
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Construir extra_options para outputsWriter
@@ -1000,6 +1039,7 @@ def json_output(
     save_mode: str = "Overwrite",
     save_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida JSON.
@@ -1042,6 +1082,7 @@ def json_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -1082,6 +1123,7 @@ def csv_output(
     save_mode: str = "Overwrite",
     save_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida CSV.
@@ -1130,6 +1172,7 @@ def csv_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs
@@ -1163,6 +1206,7 @@ def text_output(
     save_mode: str = "Overwrite",
     save_options: str = "",
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de salida Text.
@@ -1207,6 +1251,7 @@ def text_output(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Manejar múltiples inputs

@@ -25,6 +25,7 @@ from py2rocket.core.pipeline import (
     StepResult,
     StepResultOutput,
     Pipeline,
+    UIPosition,
 )
 
 
@@ -76,6 +77,21 @@ def _process_outputs_writer(
         node.outputs_writer = [ow.to_dict() for ow in outputs_writer]
 
 
+def _apply_ui_position(
+    node: Node, ui_position: Optional[Union[dict, "UIPosition"]]
+) -> None:
+    """Aplica la posición UI al nodo si se proporciona."""
+    if ui_position is not None:
+        if isinstance(ui_position, UIPosition):
+            node.ui_configuration = ui_position.to_dict()
+        elif isinstance(ui_position, dict):
+            node.ui_configuration = ui_position
+        else:
+            raise TypeError(
+                f"ui_position debe ser UIPosition o dict, recibido: {type(ui_position)}"
+            )
+
+
 # ============================================================================
 # COLUMN OPERATION TRANSFORMATIONS
 # ============================================================================
@@ -89,6 +105,7 @@ def add_columns(
     columns: Optional[list] = None,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de transformación para agregar columnas.
@@ -168,6 +185,7 @@ def drop_columns(
     columns_to_drop: Optional[list] = None,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de transformación para eliminar columnas.
@@ -222,6 +240,7 @@ def drop_columns(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -245,6 +264,7 @@ def rename_columns(
     column_mappings: Optional[dict] = None,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de transformación para renombrar columnas.
@@ -299,6 +319,7 @@ def rename_columns(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -336,6 +357,7 @@ def custom_lite_xd_transform(
     vault_custom_property_enabled: bool = False,
     outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define una transformación CustomLiteXD personalizada.
@@ -387,6 +409,7 @@ def custom_lite_xd_transform(
         supported_engines=["Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Procesar outputs_writer si se proporcionó
@@ -418,6 +441,7 @@ def coalesce(
     partitions: str = "1",
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define una transformación de coalescencia de particiones.
@@ -468,6 +492,7 @@ def coalesce(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -491,6 +516,7 @@ def persist(
     storage_level: str = "",
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de persistencia de datos en caché.
@@ -541,6 +567,7 @@ def persist(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -565,6 +592,7 @@ def repartition(
     columns: str = "",
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de reparticionamiento.
@@ -618,6 +646,7 @@ def repartition(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -645,6 +674,7 @@ def bypass(
     inputs: Optional[Union[StepResult, List[StepResult]]] = None,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de bypass/paso a través.
@@ -692,6 +722,7 @@ def bypass(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -720,6 +751,7 @@ def pyspark(
     inputs: Optional[Union[StepResult, List[StepResult]]] = None,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de transformación PySpark.
@@ -769,6 +801,7 @@ def pyspark(
         supported_engines=["Batch", "Streaming", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -801,6 +834,7 @@ def trigger(
     outputs_writer: Optional[List[OutputWriter]] = None,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define una transformación Trigger con SQL condicional.
@@ -857,6 +891,7 @@ def trigger(
         supported_engines=["Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Procesar outputs_writer si se proporcionó
@@ -884,6 +919,7 @@ def filter(
     quote_sql: bool = False,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de transformación para filtrar datos.
@@ -941,6 +977,7 @@ def filter(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -966,6 +1003,7 @@ def union(
     inputs: Union[StepResult, StepResultOutput, List],
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Combina múltiples flujos de datos usando UNION ALL.
@@ -1017,6 +1055,7 @@ def union(
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -1048,6 +1087,7 @@ def ml_model(
     enable_post_processing: bool = False,
     priority: int = 50,
     description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
 ) -> StepResult:
     """
     Define un paso de transformación MlModel.
@@ -1078,6 +1118,7 @@ def ml_model(
         supported_engines=["Batch", "Hybrid", "Streaming"],
     )
 
+    _apply_ui_position(node, ui_position)
     pipeline.add_node(node)
 
     if inputs is not None:
