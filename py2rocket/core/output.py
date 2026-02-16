@@ -144,6 +144,8 @@ def custom_lite_xd_output(
     vault_custom_property_enabled: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida CustomLiteXD personalizado.
@@ -193,6 +195,8 @@ def custom_lite_xd_output(
             },
         },
         supported_engines=["Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -246,6 +250,8 @@ def jdbc_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida JDBC.
@@ -306,6 +312,8 @@ def jdbc_output(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -350,6 +358,8 @@ def postgres_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida PostgreSQL.
@@ -398,6 +408,8 @@ def postgres_output(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -447,6 +459,8 @@ def sftp_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida SFTP.
@@ -509,6 +523,8 @@ def sftp_output(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -553,6 +569,8 @@ def print_step(
     log_level: str = "warn",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida para imprimir/mostrar datos.
@@ -569,6 +587,8 @@ def print_step(
         print_metadata: Si se deben imprimir metadatos (filas, columnas, etc.)
         log_level: Nivel de log (debug, info, warn, error)
         description: Descripción del propósito de este paso
+        include_supported_data_relations: Si se deben incluir las relaciones de datos soportadas
+        include_debug_options: Si se deben incluir las opciones de debug
 
     Returns:
         StepResult del paso print
@@ -600,6 +620,8 @@ def print_step(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -651,6 +673,8 @@ def run_workflow(
     use_latest_version: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida para ejecutar otro workflow.
@@ -731,6 +755,8 @@ def run_workflow(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -762,6 +788,8 @@ def pyspark_output(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida PySpark personalizado.
@@ -798,6 +826,8 @@ def pyspark_output(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -839,6 +869,8 @@ def delta_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida Delta Lake.
@@ -879,6 +911,8 @@ def delta_output(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -1124,6 +1158,8 @@ def csv_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida CSV.
@@ -1170,6 +1206,8 @@ def csv_output(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
@@ -1207,6 +1245,8 @@ def text_output(
     save_options: str = "",
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_supported_data_relations: bool = True,
+    include_debug_options: bool = True,
 ) -> StepResult:
     """
     Define un paso de salida Text.
@@ -1249,6 +1289,8 @@ def text_output(
             },
         },
         supported_engines=["Streaming", "Batch", "Hybrid"],
+        include_supported_data_relations=include_supported_data_relations,
+        include_debug_options=include_debug_options,
     )
 
     _apply_ui_position(node, ui_position)
