@@ -907,15 +907,35 @@ def cmd_sync(args):
 
         print(f"✓ Grupo encontrado: {group_id}")
 
-        # Extraer información del proyecto si está disponible
-        if group_data.get("project"):
-            project_info = group_data.get("project")
-            project_name = project_info.get("name")
-            project_code = project_info.get("code") or project_info.get("id")
-            if project_name:
-                print(
-                    f"✓ Proyecto asociado: {project_name} ({project_code or 'sin código'})"
-                )
+        # Obtener información del proyecto filtrando por normalizedName del group_name
+        print(f"🔍 Buscando proyecto asociado al grupo...")
+        try:
+            projects_url = f"{api_host.rstrip('/')}/projects"
+            projects_response = requests.get(
+                projects_url,
+                headers=headers,
+                cookies=cookies,
+                verify=verify_ssl,
+                timeout=30,
+            )
+            projects_response.raise_for_status()
+            projects_data = projects_response.json() or []
+
+            # Filtrar por normalizedName que coincida con group_name
+            # El group_name puede tener formato "/proyecto-name" o "proyecto-name"
+            normalized_group_name = group_name.strip("/").split("/")[0]
+
+            for project in projects_data:
+                if project.get("normalizedName") == normalized_group_name:
+                    project_name = project.get("name")
+                    project_code = project.get("id")
+                    if project_name:
+                        print(
+                            f"✓ Proyecto asociado: {project_name} (ID: {project_code})"
+                        )
+                    break
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️  No se pudo obtener información del proyecto: {e}")
 
         # 1.1) Buscar subgrupos (recursivo si la API lo permite)
         group_targets = [{"name": group_name, "id": group_id}]
