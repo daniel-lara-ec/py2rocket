@@ -923,10 +923,9 @@ def cmd_sync(args):
 
             # Filtrar por normalizedName que coincida con group_name
             # El group_name puede tener formato "/proyecto-name" o "proyecto-name"
-            normalized_group_name = group_name.strip("/").split("/")[0]
 
             for project in projects_data:
-                if project.get("normalizedName") == normalized_group_name:
+                if project.get("normalizedName") == group_name:
                     project_name = project.get("name")
                     project_code = project.get("id")
                     if project_name:
