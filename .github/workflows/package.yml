@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -49,20 +49,19 @@ jobs:
           zip -r py2rocket-${{ steps.version.outputs.VERSION }}.zip py2rocket_package/ -x "*/tests/*" "*/__pycache__/*" "*/.git/*" "*.pyc" "*.egg-info/*"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: py2rocket-${{ steps.version.outputs.VERSION }}
           path: py2rocket-${{ steps.version.outputs.VERSION }}.zip
           retention-days: 30
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: v${{ steps.version.outputs.VERSION }}
-          release_name: Release v${{ steps.version.outputs.VERSION }}
+          artifacts: py2rocket-${{ steps.version.outputs.VERSION }}.zip
+          tag: v${{ steps.version.outputs.VERSION }}
+          name: Release v${{ steps.version.outputs.VERSION }}
+          generateReleaseNotes: true
           body: |
             # py2rocket v${{ steps.version.outputs.VERSION }}
 
@@ -82,13 +81,3 @@ jobs:
             ```
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./py2rocket-${{ steps.version.outputs.VERSION }}.zip
-          asset_name: py2rocket-${{ steps.version.outputs.VERSION }}.zip
-          asset_content_type: application/zip
