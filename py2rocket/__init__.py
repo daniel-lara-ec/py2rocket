@@ -2217,13 +2217,25 @@ def from_json(
     spark_conf = spark_settings.get("sparkConf", {})
     user_spark_conf_list = spark_conf.get("userSparkConf", [])
     if user_spark_conf_list:
-        # Convertir de lista a diccionario si es necesario
         if isinstance(user_spark_conf_list, list):
-            user_spark_conf = {
-                item.get("key", ""): item.get("value", "")
+            if any(
+                isinstance(item, dict) and item.get("sparkConfKey")
                 for item in user_spark_conf_list
-                if isinstance(item, dict) and item.get("key")
-            }
+            ):
+                user_spark_conf = [
+                    {
+                        "sparkConfKey": item.get("sparkConfKey", ""),
+                        "sparkConfValue": item.get("sparkConfValue", ""),
+                    }
+                    for item in user_spark_conf_list
+                    if isinstance(item, dict) and item.get("sparkConfKey")
+                ]
+            else:
+                user_spark_conf = {
+                    item.get("key", ""): item.get("value", "")
+                    for item in user_spark_conf_list
+                    if isinstance(item, dict) and item.get("key")
+                }
         elif isinstance(user_spark_conf_list, dict):
             user_spark_conf = user_spark_conf_list
 

@@ -420,14 +420,28 @@ class RocketCompiler:
 
         # Agregar configuraciones Spark personalizadas (solo si no hay settings crudos)
         if not use_raw_settings and getattr(self.pipeline, "user_spark_conf", None):
-            spark_conf = [
-                {"sparkConfKey": key, "sparkConfValue": value}
-                for key, value in self.pipeline.user_spark_conf.items()
-                if key and value
-            ]
-            rocket_json["settings"]["global"]["sparkSettings"][
-                "userSparkConf"
-            ] = spark_conf
+            user_spark_conf = self.pipeline.user_spark_conf
+            spark_conf = []
+            if isinstance(user_spark_conf, dict):
+                spark_conf = [
+                    {"sparkConfKey": key, "sparkConfValue": value}
+                    for key, value in user_spark_conf.items()
+                    if key and value
+                ]
+            elif isinstance(user_spark_conf, list):
+                for item in user_spark_conf:
+                    if not isinstance(item, dict):
+                        continue
+                    key = item.get("sparkConfKey") or item.get("key")
+                    value = item.get("sparkConfValue") or item.get("value")
+                    if key and value:
+                        spark_conf.append(
+                            {"sparkConfKey": key, "sparkConfValue": value}
+                        )
+            if spark_conf:
+                rocket_json["settings"]["global"]["sparkSettings"][
+                    "userSparkConf"
+                ] = spark_conf
 
         # Incluir el workflowMasterId si existe
         if getattr(self.pipeline, "asset_id", None):
