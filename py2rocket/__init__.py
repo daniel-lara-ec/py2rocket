@@ -23,6 +23,7 @@ from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 from py2rocket.core import pipeline, RocketCompiler
 from py2rocket.core.pipeline import UIPosition
+from py2rocket.core.step_defaults import _get_step_defaults
 from py2rocket.templates.workflow_template import WORKFLOW_TEMPLATE
 
 __version__ = "0.4.7"
@@ -2237,15 +2238,14 @@ def from_json(
         [n for n in nodes if n.get("stepType") == "Output"], key=lambda x: x.get("name")
     )
 
-    # 4.5 Extraer outputsWriter de transformations para generar OutputWriter objects
-    transform_outputs_writer = {}  # {transform_node_name: [OutputWriter_dicts]}
+    # 4.5 Extraer outputsWriter de inputs/transformations para generar OutputWriter objects
+    node_outputs_writer = {}  # {node_name: [OutputWriter_dicts]}
 
     for node in input_nodes + transform_nodes:
         node_name = node.get("name")
         outputs_writer = node.get("outputsWriter", [])
         if outputs_writer:
-            # Guardar lista de OutputWriter para este transformation
-            transform_outputs_writer[node_name] = outputs_writer
+            node_outputs_writer[node_name] = outputs_writer
 
     # 5. Crear mapa de edges (qué inputs tiene cada nodo)
     node_inputs = {}
@@ -2266,6 +2266,13 @@ def from_json(
             if dest not in node_inputs:
                 node_inputs[dest] = []
             node_inputs[dest].append((origin, data_type))
+
+    # Detectar inputs huérfanos para evitar fallos de validación al reconstruir
+    origin_nodes = {edge.get("origin") for edge in edges if edge.get("origin")}
+    has_orphan_inputs = any(
+        n.get("stepType") == "Input" and n.get("name") not in origin_nodes
+        for n in nodes
+    )
 
     # 5.5 Función de ordenamiento topológico
     def topological_sort(nodes_to_sort):
@@ -2326,14 +2333,12 @@ def from_json(
         class_pretty_name = node.get("classPrettyName")
         config = node.get("configuration", {})
 
-        from py2rocket.core.operations import _get_step_defaults
-
         if class_name not in CLASS_TO_FUNCTION:
             return f"    # TODO: Unsupported node type: {class_name} ({node_name})"
 
         try:
             func_name, module = CLASS_TO_FUNCTION[class_name]
-            imports.add(f"from py2rocket.core.operations import {func_name}")
+            imports.add(f"from py2rocket.core import {func_name}")
         except Exception as e:
             print(
                 f"ERROR: No se pudo procesar el nodo '{node_name}' de tipo '{class_name}'"
@@ -2473,14 +2478,14 @@ def from_json(
             ):
                 args.append("inputs=[]")
 
-        # Agregar outputs_writer si este transformation tiene outputsWriter configurado
-        if (
-            node_name in transform_outputs_writer
-            and node.get("stepType") == "Transformation"
-        ):
+        # Agregar outputs_writer si este input/transformation tiene outputsWriter configurado
+        if node_name in node_outputs_writer and node.get("stepType") in {
+            "Input",
+            "Transformation",
+        }:
             imports.add("from py2rocket.core.pipeline import OutputWriter")
             writers_list = []
-            for writer in transform_outputs_writer[node_name]:
+            for writer in node_outputs_writer[node_name]:
                 output_step_name = writer.get("outputStepName", "")
                 save_mode = writer.get("saveMode", "Overwrite")
                 table_name = writer.get("tableName", "")
@@ -2666,7 +2671,8 @@ def from_json(
     if node_groups_value:
         decorator_args.append(f"node_groups={node_groups_value}")
     # raw_nodes_order and raw_edges_order omitted - order doesn't matter, only content
-    # skip_validation omitted - no es necesario por defecto
+    if has_orphan_inputs:
+        decorator_args.append("skip_validation=True")
 
     decorator_str = ",\n    ".join(decorator_args)
     python_code += f"@pipeline(\n    {decorator_str}\n)\n"

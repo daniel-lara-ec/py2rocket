@@ -41,6 +41,7 @@ from py2rocket.core.transformation import (
     persist,
     repartition,
     bypass,
+    union,
     pyspark,
     trigger,
     filter,
@@ -108,6 +109,8 @@ __all__ = [
     "repartition",
     # Transformation operations - Other
     "bypass",
+    "filter",
+    "union",
     # Transformation operations - Python
     "pyspark",
     # Transformation operations - SQL

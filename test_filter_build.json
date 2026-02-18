@@ -1,6 +1,6 @@
 {
-  "id": "dda769d6-a3fd-463c-a2bd-54c172d7369c",
-  "name": "demo",
+  "id": "65f8b096-a169-477d-aab3-0d958e487c69",
+  "name": "test-filter-workflow",
   "description": "",
   "settings": {
     "global": {
@@ -30,22 +30,14 @@
         "SparkConfigurations.HEALTH_CHECK_MAX_CONSECUTIVE_FAILURES",
         "SparkConfigurations.SPARK_DRIVER_DOCKER_IMAGE",
         "SparkConfigurations.SPARK_DRIVER_DOCKER_VOLUMES",
-        "SparkConfigurations.SPARK_DRIVER_METRICS_SOURCES_WHITELIST",
         "SparkConfigurations.SPARK_EXECUTOR_DOCKER_IMAGE",
         "SparkConfigurations.SPARK_EXECUTOR_DOCKER_VOLUMES",
         "SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS",
-        "SparkConfigurations.SPARK_EXECUTOR_METRICS_SOURCES_WHITELIST",
-        "SparkConfigurations.SPARK_HISTORY_SERVER_EVENT_LOG_ROTATE_MAX_FILE_SIZE",
         "SparkConfigurations.SPARK_MAX_REGISTERED_RESOURCES_WAITING_TIME",
         "SparkConfigurations.SPARK_MIN_REGISTERED_RESOURCES_RATIO",
-        "SparkConfigurations.SPARK_STREAMING_BLOCK_INTERVAL",
-        "SparkConfigurations.SPARK_STREAMING_CHECKPOINT_PATH",
-        "SparkConfigurations.SPARK_STREAMING_WINDOW",
         "SparkResources.SPARK_DRIVER_CORES",
-        "SparkResources.SPARK_DRIVER_GPUS",
         "SparkResources.SPARK_DRIVER_MEMORY",
         "SparkResources.SPARK_EXECUTOR_CORES",
-        "SparkResources.SPARK_EXECUTOR_GPUS",
         "SparkResources.SPARK_EXECUTOR_INSTANCES",
         "SparkResources.SPARK_EXECUTOR_MEMORY",
         "SparkResources.SPARK_KUBERNETES_SHUTDOWN"
@@ -64,6 +56,7 @@
         "imagePullPolicy": "IfNotPresent",
         "userEnvVariables": [],
         "userLabels": [],
+        "logLevel": "",
         "includePostgresHealthCheck": true,
         "includeHdfsHealthCheck": true,
         "includeSparkHealthCheck": true,
@@ -114,12 +107,12 @@
       }
     },
     "streamingSettings": {
-      "window": "{{{SparkConfigurations.SPARK_STREAMING_WINDOW}}}",
+      "window": "2s",
       "backpressure": false,
-      "blockInterval": "{{{SparkConfigurations.SPARK_STREAMING_BLOCK_INTERVAL}}}",
+      "blockInterval": "100ms",
       "stopGracefully": true,
       "checkpointSettings": {
-        "checkpointPath": "{{{SparkConfigurations.SPARK_STREAMING_CHECKPOINT_PATH}}}",
+        "checkpointPath": "tmp/checkpoint",
         "enableCheckpointing": true,
         "autoDeleteCheckpoint": true,
         "addTimeToCheckpointPath": false,
@@ -140,20 +133,22 @@
           "limitModeDriverCores": "SOFT",
           "limitModeDriverMemory": "GUARANTEED",
           "limitModeExecutorCores": "SOFT",
+          "executorTaskParallelism": "",
+          "sparkParallelism": "",
           "executorInstances": "{{{SparkResources.SPARK_EXECUTOR_INSTANCES}}}",
           "enableDriverGpus": false,
-          "driverGpus": "{{{SparkResources.SPARK_DRIVER_GPUS}}}",
+          "driverGpus": "1",
           "enableExecutorGpus": false,
-          "executorGpus": "{{{SparkResources.SPARK_EXECUTOR_GPUS}}}"
+          "executorGpus": "1"
         },
         "sparkHistoryServerConf": {
           "enableHistoryServerMonitoring": false,
           "sparkHistoryServerEventLogRotateEnable": false,
-          "sparkHistoryServerEventLogRotateMaxFileSize": "{{{SparkConfigurations.SPARK_HISTORY_SERVER_EVENT_LOG_ROTATE_MAX_FILE_SIZE}}}"
+          "sparkHistoryServerEventLogRotateMaxFileSize": "128m"
         },
         "userSparkConf": [],
         "sparkUser": "root",
-        "logStagesProgress": false,
+        "logStagesProgress": true,
         "hdfsTokenCache": true,
         "executorExtraJavaOptions": "{{{SparkConfigurations.SPARK_EXECUTOR_EXTRA_JAVA_OPTIONS}}}",
         "stopGracefullyTimeout": "{{{SparkResources.SPARK_KUBERNETES_SHUTDOWN}}}",
@@ -163,9 +158,9 @@
         },
         "sparkMetricsConf": {
           "sparkMetricsEnabled": false,
-          "sparkDriverSourcesWhitelist": "{{{SparkConfigurations.SPARK_DRIVER_METRICS_SOURCES_WHITELIST}}}",
+          "sparkDriverSourcesWhitelist": "System,jvm,DAGScheduler,BlockManager",
           "sparkDriverUnregisteredMetrics": [],
-          "sparkExecutorSourcesWhitelist": "{{{SparkConfigurations.SPARK_EXECUTOR_METRICS_SOURCES_WHITELIST}}}",
+          "sparkExecutorSourcesWhitelist": "System,jvm,executor",
           "sparkExecutorUnregisteredMetrics": []
         },
         "enableProjectSparkConf": true
@@ -189,47 +184,24 @@
   "pipelineGraph": {
     "nodes": [
       {
-        "name": "Csv",
+        "name": "Load_Sales",
         "stepType": "Input",
-        "className": "CsvInputStep",
-        "classPrettyName": "Csv",
+        "className": "SQLInputStep",
+        "classPrettyName": "SQL",
         "arity": [
           "NullaryToNary"
         ],
         "description": "",
         "configuration": {
-          "priority": "50",
-          "path": "/user/rocket.stratio-rocket/practica_episodio.csv",
-          "paths": [
-            {
-              "path": null,
-              "subdirGlobFilter": null,
-              "subdirRegexFilter": null,
-              "excludeGlobFilter": null,
-              "excludeRegexFilter": null
-            }
-          ],
-          "delimiter": ",",
-          "header": true,
-          "pathGlobFilter": "*.csv",
-          "isRecursiveEnabled": true,
-          "metadataColumnEnabled": true,
-          "dataAsJsonEnabled": true,
-          "enableFilterPattern": true,
-          "readMode": "DefaultReadMode",
-          "excludeGlobFilter": "",
-          "excludeRegexFilter": "",
-          "subdirGlobFilter": "",
-          "subdirRegexFilter": "",
-          "inputOptions": "",
-          "schema.inputMode": "NOSCHEMAPROVIDED",
-          "schema.header": "",
-          "schema.fields": "",
-          "schema.sparkSchema": "",
+          "priority": "10",
+          "query": "SELECT * FROM sales.transactions",
+          "forceNativeQuery": false,
+          "cacheTable": false,
+          "isSaved": true,
+          "asyncRefresh": false,
           "genAIMetadataTableDescription": "",
           "genAIMetadataColumns": "",
-          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"AutoInfer\"}",
-          "isSaved": true
+          "debugOptions": "{\"executeStepAutoDebug\":true,\"executeStepDebug\":true,\"mockType\":\"AutoInfer\"}"
         },
         "supportedEngines": [
           "Batch",
@@ -243,14 +215,14 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 271,
-            "y": 260
+            "x": 612,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-16T16:34:08Z"
+        "lastModified": "2026-02-18T15:35:37Z"
       },
       {
-        "name": "F_Datos",
+        "name": "Filter_Active_High_Value",
         "stepType": "Transformation",
         "className": "FilterTransformStep",
         "classPrettyName": "Filter",
@@ -259,8 +231,8 @@
         ],
         "description": "",
         "configuration": {
-          "priority": "50",
-          "filterExp": "id < 100",
+          "priority": "20",
+          "filterExp": "status = 'active' AND amount > 100",
           "quoteSql": false,
           "genAIMetadataTableDescription": "",
           "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
@@ -281,67 +253,14 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 454,
-            "y": 258
+            "x": 782,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-16T16:34:08Z"
+        "lastModified": "2026-02-18T15:35:37Z"
       },
       {
-        "name": "Transformacion",
-        "stepType": "Transformation",
-        "className": "TriggerTransformStep",
-        "classPrettyName": "Trigger",
-        "arity": [
-          "NaryToNary"
-        ],
-        "description": "",
-        "configuration": {
-          "priority": "50",
-          "sql": "\nSELECT *\nFROM F_Datos\n",
-          "quoteSql": false,
-          "discardConditions": "",
-          "replaceWithInputDataframe": false,
-          "genAIMetadataTablesDescription": "",
-          "genAIMetadataColumns": "",
-          "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
-          "isSaved": true,
-          "genAIMetadataTableDescription": ""
-        },
-        "supportedEngines": [
-          "Hybrid"
-        ],
-        "executionEngine": "Hybrid",
-        "supportedDataRelations": [
-          "ValidData"
-        ],
-        "lineageProperties": [],
-        "outputsWriter": [
-          {
-            "saveMode": "Append",
-            "outputStepName": "Print",
-            "tableName": "",
-            "discardTableName": "",
-            "extraOptions": {
-              "partitionBy": "overwrite",
-              "partitionOverwriteEnabled": true,
-              "checkIfEmpty": false,
-              "partitionColumns": "",
-              "saveMode": "Append",
-              "partitions": ""
-            }
-          }
-        ],
-        "uiConfiguration": {
-          "position": {
-            "x": 641,
-            "y": 262
-          }
-        },
-        "lastModified": "2026-02-16T16:34:08Z"
-      },
-      {
-        "name": "Print",
+        "name": "Print_Filtered",
         "stepType": "Output",
         "className": "PrintOutputStep",
         "classPrettyName": "Print",
@@ -351,9 +270,9 @@
         ],
         "description": "",
         "configuration": {
-          "priority": "50",
+          "priority": "30",
           "printData": false,
-          "printSchema": false,
+          "printSchema": true,
           "printMetadata": true,
           "logLevel": "warn",
           "debugOptions": "{\"executeStepAutoDebug\": true, \"executeStepDebug\": true, \"mockType\": \"NoMock\"}",
@@ -374,27 +293,22 @@
         "outputsWriter": [],
         "uiConfiguration": {
           "position": {
-            "x": 813,
-            "y": 261
+            "x": 952,
+            "y": 289
           }
         },
-        "lastModified": "2026-02-16T16:34:08Z"
+        "lastModified": "2026-02-18T15:35:37Z"
       }
     ],
     "edges": [
       {
-        "origin": "Csv",
-        "destination": "F_Datos",
+        "origin": "Load_Sales",
+        "destination": "Filter_Active_High_Value",
         "dataType": "ValidData"
       },
       {
-        "origin": "F_Datos",
-        "destination": "Transformacion",
-        "dataType": "ValidData"
-      },
-      {
-        "origin": "Transformacion",
-        "destination": "Print",
+        "origin": "Filter_Active_High_Value",
+        "destination": "Print_Filtered",
         "dataType": "ValidData"
       }
     ],
@@ -405,27 +319,21 @@
   "workflowType": "SpartaWorkflow",
   "uiSettings": {
     "position": {
-      "x": 0.0,
-      "y": 0.0,
-      "k": 1.0
+      "x": -2083.536303142103,
+      "y": -859.7024044750958,
+      "k": 4.0
     }
   },
-  "creationDate": "2026-02-11T01:07:49Z",
-  "lastUpdateDate": "2026-02-11T01:09:40Z",
+  "creationDate": "2026-02-18T15:35:37Z",
+  "lastUpdateDate": "2026-02-18T15:35:37Z",
   "version": 0,
   "readOnly": false,
   "releaseInProgress": false,
   "tags": [],
   "debugMode": false,
   "debugAsExecutionMaybe": false,
-  "versionSparta": "3.6.1",
-  "normalizedName": "demo",
+  "versionSparta": "3.6.3",
+  "normalizedName": "test-filter-workflow",
   "isHybridStreaming": false,
-  "workflowMasterId": "5c1d1353-a2b7-4067-88e1-0bce2c5adbe8",
-  "group": {
-    "id": "4e71db55-7545-4bbf-958e-46247706885f",
-    "name": "/home/system/workspace"
-  },
-  "groupId": "4e71db55-7545-4bbf-958e-46247706885f",
-  "projectId": "7gj83a6q-t894-20ld2-45et-a4o433g4h6d1"
+  "projectId": "078e27ea-a99e-4023-9b32-b2da4d116a00"
 }

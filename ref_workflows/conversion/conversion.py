@@ -6,11 +6,11 @@ ID: 67d9dbbc-3d7b-4611-ba2f-aaefdb431a10
 """
 
 from py2rocket import pipeline, build
-from py2rocket.core.operations import filter
-from py2rocket.core.operations import parquet
-from py2rocket.core.operations import parquet_output
-from py2rocket.core.operations import sql
-from py2rocket.core.operations import trigger
+from py2rocket.core import filter
+from py2rocket.core import parquet
+from py2rocket.core import parquet_output
+from py2rocket.core import sql
+from py2rocket.core import trigger
 from py2rocket.core.pipeline import OutputWriter
 from py2rocket.core.pipeline import UIPosition
 

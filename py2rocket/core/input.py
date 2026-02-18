@@ -18,6 +18,7 @@ from py2rocket.core.pipeline import (
     Node,
     StepType,
     ExecutionEngine,
+    OutputWriter,
     StepResult,
     Pipeline,
     UIPosition,
@@ -74,6 +75,14 @@ def _apply_include_description(node: Node, include_description: bool) -> None:
         node.include_description = False
 
 
+def _process_outputs_writer(
+    node: Node, outputs_writer: Optional[List[OutputWriter]]
+) -> None:
+    """Procesa la lista de OutputWriter y la asigna al nodo input."""
+    if outputs_writer:
+        node.outputs_writer = [ow.to_dict() for ow in outputs_writer]
+
+
 # ============================================================================
 # CUSTOMADE INPUTS
 # ============================================================================
@@ -90,6 +99,7 @@ def custom_lite_xd(
     vault_custom_property_enabled: bool = False,
     is_streaming: bool = False,
     is_legacy_batch_step: bool = False,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -149,6 +159,7 @@ def custom_lite_xd(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -174,6 +185,7 @@ def sftp_input(
     input_options: str = "",
     schema_spark_schema: str = "",
     priority: int = 50,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -232,6 +244,7 @@ def sftp_input(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -245,6 +258,7 @@ def test_input(
     max_number: str = "",
     explode_event: bool = False,
     priority: int = 50,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -289,6 +303,7 @@ def test_input(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -304,6 +319,7 @@ def sql(
     priority: int = 50,
     cache_table: bool = False,
     force_native_query: bool = False,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -357,6 +373,7 @@ def sql(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -372,6 +389,7 @@ def jdbc(
     user_pass_enabled: bool = False,
     vault_db_name: str = "",
     input_options: str = "",
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -439,6 +457,7 @@ def jdbc(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -453,6 +472,7 @@ def postgres(
     isolation_level: str = "READ_UNCOMMITTED",
     tls_enabled: bool = True,
     case_sensitive_enabled: bool = True,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -516,6 +536,7 @@ def postgres(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -530,6 +551,7 @@ def pyspark_input(
     python_code: str,
     python_input_dictionary: str = "",
     priority: int = 50,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -583,6 +605,7 @@ def pyspark_input(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -601,6 +624,7 @@ def parquet(
     is_recursive_enabled: bool = True,
     metadata_column_enabled: bool = True,
     enable_filter_pattern: bool = True,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -667,6 +691,7 @@ def parquet(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -679,6 +704,7 @@ def delta(
     read_older_version_by: str = "versionAsOf",
     version_as_of: str = "",
     timestamp_as_of: str = "",
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -740,6 +766,7 @@ def delta(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -754,6 +781,7 @@ def json(
     metadata_column_enabled: bool = True,
     enable_filter_pattern: bool = True,
     multiline_enabled: bool = False,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -823,6 +851,7 @@ def json(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -844,6 +873,7 @@ def csv(
     metadata_column_enabled: bool = True,
     data_as_json_enabled: bool = True,
     enable_filter_pattern: bool = True,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -934,6 +964,7 @@ def csv(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 
@@ -944,6 +975,7 @@ def filesystem(
     output_field: str = "raw",
     priority: int = 50,
     input_options: str = "",
+    outputs_writer: Optional[List[OutputWriter]] = None,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -1000,5 +1032,6 @@ def filesystem(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
     return StepResult(node, pipeline)

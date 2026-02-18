@@ -14,7 +14,11 @@ from typing import Callable, Dict, Any, Optional
 from functools import wraps
 from dotenv import load_dotenv
 from py2rocket.core.pipeline import Pipeline, ExecutionEngine
-from py2rocket.core.operations import set_current_pipeline
+from py2rocket.core.input import set_current_pipeline as _set_current_pipeline_input
+from py2rocket.core.transformation import (
+    set_current_pipeline as _set_current_pipeline_transform,
+)
+from py2rocket.core.output import set_current_pipeline as _set_current_pipeline_output
 
 # Cargar variables de entorno del archivo .env
 load_dotenv()
@@ -138,8 +142,10 @@ def pipeline(
                 node_groups=node_groups or [],
             )
 
-            # Establecer como pipeline activo
-            set_current_pipeline(pipe)
+            # Establecer como pipeline activo en los módulos core
+            _set_current_pipeline_input(pipe)
+            _set_current_pipeline_transform(pipe)
+            _set_current_pipeline_output(pipe)
 
             # Ejecutar la función para construir el DAG
             func(*args, **kwargs)

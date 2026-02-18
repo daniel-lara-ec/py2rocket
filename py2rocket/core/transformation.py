@@ -117,6 +117,7 @@ def add_columns(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -176,6 +177,7 @@ def add_columns(
 
     _apply_ui_position(node, ui_position)
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -200,6 +202,7 @@ def drop_columns(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -258,6 +261,7 @@ def drop_columns(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -282,6 +286,7 @@ def rename_columns(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -340,6 +345,7 @@ def rename_columns(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -465,6 +471,7 @@ def coalesce(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -519,6 +526,7 @@ def coalesce(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -543,6 +551,7 @@ def persist(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -597,6 +606,7 @@ def persist(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -622,6 +632,7 @@ def repartition(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -679,6 +690,7 @@ def repartition(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -707,6 +719,7 @@ def bypass(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -758,6 +771,7 @@ def bypass(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -787,6 +801,7 @@ def pyspark(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -840,6 +855,7 @@ def pyspark(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -933,10 +949,8 @@ def trigger(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
-    pipeline.add_node(node)
-
-    # Procesar outputs_writer si se proporcionó
     _process_outputs_writer(node, outputs_writer)
+    pipeline.add_node(node)
 
     # Crear edges desde los inputs
     if inputs is not None:
@@ -961,6 +975,7 @@ def filter(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -1022,6 +1037,7 @@ def filter(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -1048,6 +1064,7 @@ def union(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -1103,6 +1120,7 @@ def union(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     # Crear edges desde los inputs
@@ -1135,6 +1153,7 @@ def ml_model(
     priority: int = 50,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
     include_description: bool = True,
 ) -> StepResult:
     """
@@ -1169,6 +1188,7 @@ def ml_model(
     _apply_ui_position(node, ui_position)
 
     _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
     pipeline.add_node(node)
 
     if inputs is not None:
