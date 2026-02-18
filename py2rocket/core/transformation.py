@@ -279,6 +279,220 @@ def drop_columns(
     return StepResult(node, pipeline)
 
 
+def select(
+    name: str,
+    inputs: Optional[Union[StepResult, List[StepResult]]] = None,
+    select_type: str = "COLUMNS",
+    columns: str = "",
+    select_exp: str = "",
+    quote_sql: bool = False,
+    priority: int = 50,
+    description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
+    include_description: bool = True,
+) -> StepResult:
+    """
+    Define un paso de transformación para seleccionar columnas.
+
+    Args:
+        name: Nombre único del paso
+        inputs: Paso(s) previo(s) que alimentan esta transformación
+        select_type: Tipo de selección ("COLUMNS" o "EXPRESSION")
+        columns: Columnas a seleccionar (formato Rocket)
+        select_exp: Expresión de selección (si aplica)
+        quote_sql: Si se deben añadir comillas a la SQL
+        priority: Prioridad de ejecución
+        description: Descripción de la transformación
+
+    Returns:
+        StepResult que puede ser usado en pasos posteriores
+    """
+    pipeline = get_current_pipeline()
+
+    node = Node(
+        name=name,
+        step_type=StepType.TRANSFORMATION,
+        class_name="SelectTransformStep",
+        class_pretty_name="Select",
+        arity=["UnaryToNary"],
+        execution_engine=ExecutionEngine.HYBRID,
+        priority=priority,
+        description=description,
+        configuration={
+            "quoteSql": quote_sql,
+            "selectType": select_type,
+            "inputSchemas": "",
+            "columns": columns,
+            "selectExp": select_exp,
+            "genAIMetadataTableDescription": "",
+            "genAIMetadataColumns": "",
+            "debugOptions": {
+                "executeStepAutoDebug": True,
+                "executeStepDebug": True,
+                "mockType": "NoMock",
+            },
+        },
+        supported_engines=["Streaming", "Batch", "Hybrid"],
+    )
+
+    _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
+    pipeline.add_node(node)
+
+    if inputs is not None:
+        input_list = inputs if isinstance(inputs, list) else [inputs]
+        for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
+            edge = Edge(
+                origin=origin_name,
+                destination=name,
+                data_type=data_relation,
+            )
+            pipeline.add_edge(edge)
+
+    return StepResult(node, pipeline)
+
+
+def distinct(
+    name: str,
+    inputs: Optional[Union[StepResult, List[StepResult]]] = None,
+    partitions: str = "",
+    priority: int = 50,
+    description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
+    include_description: bool = True,
+) -> StepResult:
+    """
+    Define un paso de transformación Distinct.
+
+    Args:
+        name: Nombre único del paso
+        inputs: Paso(s) previo(s) que alimentan esta transformación
+        partitions: Número de particiones (formato Rocket)
+        priority: Prioridad de ejecución
+        description: Descripción de la transformación
+
+    Returns:
+        StepResult que puede ser usado en pasos posteriores
+    """
+    pipeline = get_current_pipeline()
+
+    node = Node(
+        name=name,
+        step_type=StepType.TRANSFORMATION,
+        class_name="DistinctTransformStep",
+        class_pretty_name="Distinct",
+        arity=["UnaryToNary"],
+        execution_engine=ExecutionEngine.HYBRID,
+        priority=priority,
+        description=description,
+        configuration={
+            "partitions": partitions,
+            "inputSchemas": "",
+            "genAIMetadataTableDescription": "",
+            "genAIMetadataColumns": "",
+            "debugOptions": {
+                "executeStepAutoDebug": True,
+                "executeStepDebug": True,
+                "mockType": "NoMock",
+            },
+        },
+        supported_engines=["Streaming", "Batch", "Hybrid"],
+    )
+
+    _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
+    pipeline.add_node(node)
+
+    if inputs is not None:
+        input_list = inputs if isinstance(inputs, list) else [inputs]
+        for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
+            edge = Edge(
+                origin=origin_name,
+                destination=name,
+                data_type=data_relation,
+            )
+            pipeline.add_edge(edge)
+
+    return StepResult(node, pipeline)
+
+
+def drop_duplicates(
+    name: str,
+    inputs: Optional[Union[StepResult, List[StepResult]]] = None,
+    columns: str = "",
+    discard_conditions: str = "",
+    priority: int = 50,
+    description: str = "",
+    ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    outputs_writer: Optional[List[OutputWriter]] = None,
+    include_description: bool = True,
+) -> StepResult:
+    """
+    Define un paso de transformación DropDuplicates.
+
+    Args:
+        name: Nombre único del paso
+        inputs: Paso(s) previo(s) que alimentan esta transformación
+        columns: Columnas a considerar para duplicados
+        discard_conditions: Condiciones para descartar registros
+        priority: Prioridad de ejecución
+        description: Descripción de la transformación
+
+    Returns:
+        StepResult que puede ser usado en pasos posteriores
+    """
+    pipeline = get_current_pipeline()
+
+    node = Node(
+        name=name,
+        step_type=StepType.TRANSFORMATION,
+        class_name="DropDuplicatesTransformStep",
+        class_pretty_name="DropDuplicates",
+        arity=["UnaryToNary"],
+        execution_engine=ExecutionEngine.HYBRID,
+        priority=priority,
+        description=description,
+        configuration={
+            "discardConditions": discard_conditions,
+            "inputSchemas": "",
+            "columns": columns,
+            "genAIMetadataTableDescription": "",
+            "genAIMetadataColumns": "",
+            "debugOptions": {
+                "executeStepAutoDebug": True,
+                "executeStepDebug": True,
+                "mockType": "NoMock",
+            },
+        },
+        supported_engines=["Streaming", "Batch", "Hybrid"],
+        supported_data_relations=["ValidData", "DiscardedData"],
+    )
+
+    _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
+    _process_outputs_writer(node, outputs_writer)
+    pipeline.add_node(node)
+
+    if inputs is not None:
+        input_list = inputs if isinstance(inputs, list) else [inputs]
+        for input_step in input_list:
+            origin_name, data_relation = _get_origin_and_relation(input_step)
+            edge = Edge(
+                origin=origin_name,
+                destination=name,
+                data_type=data_relation,
+            )
+            pipeline.add_edge(edge)
+
+    return StepResult(node, pipeline)
+
+
 def rename_columns(
     name: str,
     inputs: Optional[Union[StepResult, List[StepResult]]] = None,

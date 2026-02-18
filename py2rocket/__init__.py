@@ -1849,6 +1849,12 @@ CLASS_TO_FUNCTION = {
     "PySparkTransformerStep": ("pyspark", "py2rocket.core.transformation"),
     "AddColumnsTransformStep": ("add_columns", "py2rocket.core.transformation"),
     "DropColumnsTransformStep": ("drop_columns", "py2rocket.core.transformation"),
+    "SelectTransformStep": ("select", "py2rocket.core.transformation"),
+    "DistinctTransformStep": ("distinct", "py2rocket.core.transformation"),
+    "DropDuplicatesTransformStep": (
+        "drop_duplicates",
+        "py2rocket.core.transformation",
+    ),
     "RenameColumnTransformationStep": (
         "rename_columns",
         "py2rocket.core.transformation",

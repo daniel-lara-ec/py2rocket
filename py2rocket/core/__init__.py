@@ -36,6 +36,9 @@ from py2rocket.core.input import (
 from py2rocket.core.transformation import (
     add_columns,
     drop_columns,
+    select,
+    distinct,
+    drop_duplicates,
     rename_columns,
     coalesce,
     persist,
@@ -102,6 +105,9 @@ __all__ = [
     # Transformation operations - Column operations
     "add_columns",
     "drop_columns",
+    "select",
+    "distinct",
+    "drop_duplicates",
     "rename_columns",
     # Transformation operations - Optimization
     "coalesce",
