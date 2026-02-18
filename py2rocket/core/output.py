@@ -213,7 +213,6 @@ def custom_lite_xd_output(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -334,7 +333,6 @@ def jdbc_output(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -433,7 +431,6 @@ def postgres_output(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -553,7 +550,6 @@ def sftp_output(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -653,7 +649,6 @@ def print_step(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -793,7 +788,6 @@ def run_workflow(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -867,7 +861,6 @@ def pyspark_output(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -956,7 +949,6 @@ def delta_output(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -1052,7 +1044,6 @@ def parquet_output(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -1166,7 +1157,6 @@ def json_output(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -1264,7 +1254,6 @@ def csv_output(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -1350,7 +1339,6 @@ def text_output(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)

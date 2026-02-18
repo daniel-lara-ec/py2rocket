@@ -846,6 +846,7 @@ def csv(
     enable_filter_pattern: bool = True,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
+    include_description: bool = True,
 ) -> StepResult:
     """
     Define un paso de entrada CSV.
@@ -932,6 +933,7 @@ def csv(
     )
 
     _apply_ui_position(node, ui_position)
+    _apply_include_description(node, include_description)
     pipeline.add_node(node)
     return StepResult(node, pipeline)
 

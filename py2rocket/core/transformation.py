@@ -257,7 +257,6 @@ def drop_columns(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -339,7 +338,6 @@ def rename_columns(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -434,7 +432,6 @@ def custom_lite_xd_transform(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -521,7 +518,6 @@ def coalesce(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -599,7 +595,6 @@ def persist(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -683,7 +678,6 @@ def repartition(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -762,7 +756,6 @@ def bypass(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -845,7 +838,6 @@ def pyspark(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
@@ -940,7 +932,6 @@ def trigger(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -1030,7 +1021,6 @@ def filter(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -1112,7 +1102,6 @@ def union(
 
     _apply_ui_position(node, ui_position)
 
-
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
@@ -1178,7 +1167,6 @@ def ml_model(
     )
 
     _apply_ui_position(node, ui_position)
-
 
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
