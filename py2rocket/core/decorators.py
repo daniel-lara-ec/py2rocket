@@ -46,6 +46,7 @@ def pipeline(
     asset_id: Optional[str] = None,
     parameters_lists: Optional[list] = None,
     pre_execution_sql_sentences: Optional[list] = None,
+    post_execution_sql_sentences: Optional[list] = None,
     udfs_to_register: Optional[list] = None,
     udafs_to_register: Optional[list] = None,
     user_spark_conf: Optional[dict] = None,
@@ -74,6 +75,7 @@ def pipeline(
         asset_id: UUID del asset creado en Rocket
         parameters_lists: Listas adicionales de parámetros a incluir
         pre_execution_sql_sentences: Lista de sentencias SQL a ejecutar antes del pipeline
+        post_execution_sql_sentences: Lista de sentencias SQL a ejecutar después del pipeline
         udfs_to_register: Lista de UDFs (User Defined Functions) a registrar
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
         user_spark_conf: Diccionario de configuraciones Spark personalizadas
@@ -131,6 +133,7 @@ def pipeline(
                 asset_id=asset_id,
                 parameters_lists=parameters_lists or [],
                 pre_execution_sql_sentences=pre_execution_sql_sentences or [],
+                post_execution_sql_sentences=post_execution_sql_sentences or [],
                 udfs_to_register=udfs_to_register or [],
                 udafs_to_register=udafs_to_register or [],
                 user_spark_conf=user_spark_conf or {},

@@ -84,6 +84,7 @@ def create(
     workflow_id: Optional[str] = None,
     parameters_lists: Optional[list] = None,
     pre_execution_sql_sentences: Optional[list] = None,
+    post_execution_sql_sentences: Optional[list] = None,
     udfs_to_register: Optional[list] = None,
     udafs_to_register: Optional[list] = None,
     user_spark_conf: Optional[dict] = None,
@@ -106,6 +107,7 @@ def create(
         asset_id: UUID del asset creado en Rocket
         parameters_lists: Listas adicionales de parámetros a incluir
         pre_execution_sql_sentences: Lista de sentencias SQL a ejecutar antes del pipeline
+        post_execution_sql_sentences: Lista de sentencias SQL a ejecutar después del pipeline
         udfs_to_register: Lista de UDFs (User Defined Functions) a registrar
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
         user_spark_conf: Diccionario de configuraciones Spark personalizadas
@@ -152,9 +154,13 @@ def create(
     pre_execution_sql_sentences_str = (
         repr(pre_execution_sql_sentences) if pre_execution_sql_sentences else "[]"
     )
+    post_execution_sql_sentences_str = (
+        repr(post_execution_sql_sentences) if post_execution_sql_sentences else "[]"
+    )
     udfs_to_register_str = repr(udfs_to_register) if udfs_to_register else "[]"
     udafs_to_register_str = repr(udafs_to_register) if udafs_to_register else "[]"
     user_spark_conf_str = repr(user_spark_conf) if user_spark_conf else "{}"
+    plugins_str = repr(plugins) if plugins else "[]"
 
     content = WORKFLOW_TEMPLATE.format(
         name=name,
@@ -168,9 +174,11 @@ def create(
         asset_id=asset_id_str,
         parameters_lists=parameters_lists_str,
         pre_execution_sql_sentences=pre_execution_sql_sentences_str,
+        post_execution_sql_sentences=post_execution_sql_sentences_str,
         udfs_to_register=udfs_to_register_str,
         udafs_to_register=udafs_to_register_str,
         user_spark_conf=user_spark_conf_str,
+        plugins=plugins_str,
     )
 
     # Crear directorio si no existe
@@ -1918,6 +1926,8 @@ def _is_settings_modified(settings: Dict[str, Any]) -> bool:
     - parametersSettings.userDefinedParameters (está en params={})
     - parametersLists (está en parameters_lists=[])
     - userPluginsJars (está en plugins=[])
+    - sqlSettings.preExecutionSqlSentences/postExecutionSqlSentences (está en objetos SqlSentence)
+    - sqlSettings.udfsToRegister/udafsToRegister (está en objetos ToRegister)
 
     Returns:
         True si hay modificaciones significativas, False si es igual a defaults
@@ -1938,6 +1948,16 @@ def _is_settings_modified(settings: Dict[str, Any]) -> bool:
         settings_copy["global"].pop("parametersLists", None)
         settings_copy["global"].pop("userPluginsJars", None)
 
+        if "sqlSettings" in settings_copy["global"]:
+            settings_copy["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
+            settings_copy["global"]["sqlSettings"].pop(
+                "postExecutionSqlSentences", None
+            )
+            settings_copy["global"]["sqlSettings"].pop("udfsToRegister", None)
+            settings_copy["global"]["sqlSettings"].pop("udafsToRegister", None)
+            if not settings_copy["global"]["sqlSettings"]:
+                settings_copy["global"].pop("sqlSettings", None)
+
         if "parametersSettings" in settings_copy["global"]:
             settings_copy["global"]["parametersSettings"].pop(
                 "userDefinedParameters", None
@@ -1950,6 +1970,16 @@ def _is_settings_modified(settings: Dict[str, Any]) -> bool:
         standard_copy["global"].pop("parametersUsed", None)
         standard_copy["global"].pop("parametersLists", None)
         standard_copy["global"].pop("userPluginsJars", None)
+
+        if "sqlSettings" in standard_copy["global"]:
+            standard_copy["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
+            standard_copy["global"]["sqlSettings"].pop(
+                "postExecutionSqlSentences", None
+            )
+            standard_copy["global"]["sqlSettings"].pop("udfsToRegister", None)
+            standard_copy["global"]["sqlSettings"].pop("udafsToRegister", None)
+            if not standard_copy["global"]["sqlSettings"]:
+                standard_copy["global"].pop("sqlSettings", None)
 
         if "parametersSettings" in standard_copy["global"]:
             standard_copy["global"]["parametersSettings"].pop(
@@ -1991,6 +2021,8 @@ def _filter_raw_settings(
     - userPluginsJars: ya está en plugins=[]
     - parametersUsed: filtrar solo parámetros estándar de Spark, mantener personalizados
     - parametersSettings.userDefinedParameters: ya está en params={}
+    - sqlSettings.preExecutionSqlSentences/postExecutionSqlSentences: ya está en objetos SqlSentence
+    - sqlSettings.udfsToRegister/udafsToRegister: ya está en objetos ToRegister
 
     Returns:
         settings filtrado sin campos duplicados
@@ -2048,6 +2080,16 @@ def _filter_raw_settings(
             # Si parametersSettings queda vacío, eliminarlo
             if not filtered["global"]["parametersSettings"]:
                 filtered["global"].pop("parametersSettings", None)
+
+        # Eliminar sqlSettings representados en parámetros explícitos del decorator
+        if "sqlSettings" in filtered["global"]:
+            filtered["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
+            filtered["global"]["sqlSettings"].pop("postExecutionSqlSentences", None)
+            filtered["global"]["sqlSettings"].pop("udfsToRegister", None)
+            filtered["global"]["sqlSettings"].pop("udafsToRegister", None)
+            # Si sqlSettings queda vacío, eliminarlo
+            if not filtered["global"]["sqlSettings"]:
+                filtered["global"].pop("sqlSettings", None)
 
     # Eliminar streamingSettings (configuración interna estándar, se reconstruye automáticamente)
     filtered.pop("streamingSettings", None)
@@ -2119,6 +2161,45 @@ def from_json(
     params = {}
     settings = workflow_data.get("settings", {})
     global_settings = settings.get("global", {})
+    sql_settings = global_settings.get("sqlSettings", {})
+
+    def _extract_sentence_values(items):
+        values = []
+        if not isinstance(items, list):
+            return values
+        for item in items:
+            if isinstance(item, dict):
+                sentence = item.get("sentence")
+                if sentence:
+                    values.append(sentence)
+            elif isinstance(item, str) and item:
+                values.append(item)
+        return values
+
+    def _extract_register_values(items):
+        values = []
+        if not isinstance(items, list):
+            return values
+        for item in items:
+            if isinstance(item, dict):
+                name = item.get("name")
+                if name:
+                    values.append(name)
+            elif isinstance(item, str) and item:
+                values.append(item)
+        return values
+
+    pre_execution_sql_sentences = _extract_sentence_values(
+        sql_settings.get("preExecutionSqlSentences", [])
+    )
+    post_execution_sql_sentences = _extract_sentence_values(
+        sql_settings.get("postExecutionSqlSentences", [])
+    )
+    udfs_to_register = _extract_register_values(sql_settings.get("udfsToRegister", []))
+    udafs_to_register = _extract_register_values(
+        sql_settings.get("udafsToRegister", [])
+    )
+
     parameters_lists = global_settings.get("parametersLists", [])
     user_defined_params = global_settings.get("parametersSettings", {}).get(
         "userDefinedParameters", []
@@ -2340,6 +2421,16 @@ def from_json(
     # 6. Generar código Python
     imports = set()
     imports.add("from py2rocket import pipeline, build")
+    has_sql_objects = any(
+        [
+            pre_execution_sql_sentences,
+            post_execution_sql_sentences,
+            udfs_to_register,
+            udafs_to_register,
+        ]
+    )
+    if has_sql_objects:
+        imports.add("from py2rocket.core.pipeline import SqlSentence, ToRegister")
 
     code_lines = []
     var_names = {}  # Map node name -> variable name
@@ -2662,6 +2753,32 @@ def from_json(
         decorator_args.append(f'asset_id="{asset_id}"')
     if parameters_lists is not None:
         decorator_args.append(f"parameters_lists={parameters_lists}")
+    if pre_execution_sql_sentences:
+        sentences = ", ".join(
+            [
+                f"SqlSentence(sentence={repr(item)})"
+                for item in pre_execution_sql_sentences
+            ]
+        )
+        decorator_args.append(f"pre_execution_sql_sentences=[{sentences}]")
+    if post_execution_sql_sentences:
+        sentences = ", ".join(
+            [
+                f"SqlSentence(sentence={repr(item)})"
+                for item in post_execution_sql_sentences
+            ]
+        )
+        decorator_args.append(f"post_execution_sql_sentences=[{sentences}]")
+    if udfs_to_register:
+        items = ", ".join(
+            [f"ToRegister(name={repr(item)})" for item in udfs_to_register]
+        )
+        decorator_args.append(f"udfs_to_register=[{items}]")
+    if udafs_to_register:
+        items = ", ".join(
+            [f"ToRegister(name={repr(item)})" for item in udafs_to_register]
+        )
+        decorator_args.append(f"udafs_to_register=[{items}]")
     if plugins:
         decorator_args.append(f"plugins={plugins}")
     if user_spark_conf:

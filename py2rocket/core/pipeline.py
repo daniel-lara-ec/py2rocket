@@ -77,6 +77,28 @@ class OutputWriter:
 
 
 @dataclass
+class SqlSentence:
+    """Representa una sentencia SQL para sqlSettings."""
+
+    sentence: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte la sentencia a formato dict para JSON."""
+        return {"sentence": self.sentence}
+
+
+@dataclass
+class ToRegister:
+    """Representa un UDF/UDAF a registrar en sqlSettings."""
+
+    name: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte el registro a formato dict para JSON."""
+        return {"name": self.name}
+
+
+@dataclass
 class UIPosition:
     """Posición de un nodo en la interfaz gráfica de Rocket.
 
@@ -288,9 +310,18 @@ class Pipeline:
     group_name: Optional[str] = None
     asset_id: Optional[str] = None
     parameters_lists: List[str] = field(default_factory=list)
-    pre_execution_sql_sentences: List[str] = field(default_factory=list)
-    udfs_to_register: List[str] = field(default_factory=list)
-    udafs_to_register: List[str] = field(default_factory=list)
+    pre_execution_sql_sentences: List[Union[str, SqlSentence, Dict[str, Any]]] = field(
+        default_factory=list
+    )
+    post_execution_sql_sentences: List[Union[str, SqlSentence, Dict[str, Any]]] = field(
+        default_factory=list
+    )
+    udfs_to_register: List[Union[str, ToRegister, Dict[str, Any]]] = field(
+        default_factory=list
+    )
+    udafs_to_register: List[Union[str, ToRegister, Dict[str, Any]]] = field(
+        default_factory=list
+    )
     user_spark_conf: Dict[str, str] = field(default_factory=dict)
     plugins: List[str] = field(default_factory=list)
     user_plugins_jars: List[Dict[str, str]] = field(default_factory=list)

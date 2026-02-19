@@ -10,6 +10,8 @@ from py2rocket.core.pipeline import (
     StepType,
     DataRelation,
     OutputWriter,
+    SqlSentence,
+    ToRegister,
     StepResult,
     StepResultOutput,
 )
@@ -80,6 +82,8 @@ __all__ = [
     "StepType",
     "DataRelation",
     "OutputWriter",
+    "SqlSentence",
+    "ToRegister",
     "StepResult",
     # Debug options
     "DebugOptions",

@@ -14,7 +14,7 @@ import uuid
 from copy import deepcopy
 from datetime import datetime
 from typing import Dict, Any
-from py2rocket.core.pipeline import Pipeline
+from py2rocket.core.pipeline import Pipeline, SqlSentence, ToRegister
 
 
 class RocketCompiler:
@@ -178,6 +178,40 @@ class RocketCompiler:
             pipeline: Objeto Pipeline a compilar
         """
         self.pipeline = pipeline
+
+    @staticmethod
+    def _serialize_sql_sentence_items(items: list) -> list:
+        """Serializa sentencias SQL (str | SqlSentence | dict) a lista de dicts."""
+        serialized = []
+        for item in items or []:
+            if not item:
+                continue
+            if isinstance(item, SqlSentence):
+                serialized.append(item.to_dict())
+            elif isinstance(item, str):
+                serialized.append({"sentence": item})
+            elif isinstance(item, dict):
+                sentence = item.get("sentence")
+                if sentence:
+                    serialized.append({"sentence": sentence})
+        return serialized
+
+    @staticmethod
+    def _serialize_to_register_items(items: list) -> list:
+        """Serializa registros (str | ToRegister | dict) a lista de dicts."""
+        serialized = []
+        for item in items or []:
+            if not item:
+                continue
+            if isinstance(item, ToRegister):
+                serialized.append(item.to_dict())
+            elif isinstance(item, str):
+                serialized.append({"name": item})
+            elif isinstance(item, dict):
+                name = item.get("name")
+                if name:
+                    serialized.append({"name": name})
+        return serialized
 
     def _extract_parameters_used(self) -> list:
         """
@@ -365,6 +399,12 @@ class RocketCompiler:
                 "global"
             ]["debugSettings"]
 
+        # 7.1. sqlSettings - asegurar estructura para sincronizar sentencias y registros
+        if "sqlSettings" not in rocket_json["settings"]["global"]:
+            rocket_json["settings"]["global"]["sqlSettings"] = deepcopy(
+                self.STANDARD_SETTINGS["global"]["sqlSettings"]
+            )
+
         # 8. streamingSettings - siempre reconstruir desde STANDARD_SETTINGS (configuración interna)
         if "streamingSettings" not in rocket_json["settings"]:
             rocket_json["settings"]["streamingSettings"] = self.STANDARD_SETTINGS[
@@ -395,27 +435,32 @@ class RocketCompiler:
                     "userSparkConf"
                 ] = user_spark_conf
 
-        # Agregar sentencias SQL de pre-ejecución (solo si no hay settings crudos)
-        if not use_raw_settings and getattr(
-            self.pipeline, "pre_execution_sql_sentences", None
-        ):
-            sql_sentences = [
-                {"sentence": sentence}
-                for sentence in self.pipeline.pre_execution_sql_sentences
-                if sentence
-            ]
+        # Agregar sentencias SQL de pre-ejecución (siempre sincronizado con el decorador)
+        if getattr(self.pipeline, "pre_execution_sql_sentences", None):
+            sql_sentences = self._serialize_sql_sentence_items(
+                self.pipeline.pre_execution_sql_sentences
+            )
             rocket_json["settings"]["global"]["sqlSettings"][
                 "preExecutionSqlSentences"
             ] = sql_sentences
 
-        # Agregar UDFs a registrar (solo si no hay settings crudos)
-        if not use_raw_settings and getattr(self.pipeline, "udfs_to_register", None):
-            udfs = [{"name": udf} for udf in self.pipeline.udfs_to_register if udf]
+        # Agregar sentencias SQL de post-ejecución (siempre sincronizado con el decorador)
+        if getattr(self.pipeline, "post_execution_sql_sentences", None):
+            sql_sentences = self._serialize_sql_sentence_items(
+                self.pipeline.post_execution_sql_sentences
+            )
+            rocket_json["settings"]["global"]["sqlSettings"][
+                "postExecutionSqlSentences"
+            ] = sql_sentences
+
+        # Agregar UDFs a registrar (siempre sincronizado con el decorador)
+        if getattr(self.pipeline, "udfs_to_register", None):
+            udfs = self._serialize_to_register_items(self.pipeline.udfs_to_register)
             rocket_json["settings"]["global"]["sqlSettings"]["udfsToRegister"] = udfs
 
-        # Agregar UDAFs a registrar (solo si no hay settings crudos)
-        if not use_raw_settings and getattr(self.pipeline, "udafs_to_register", None):
-            udafs = [{"name": udaf} for udaf in self.pipeline.udafs_to_register if udaf]
+        # Agregar UDAFs a registrar (siempre sincronizado con el decorador)
+        if getattr(self.pipeline, "udafs_to_register", None):
+            udafs = self._serialize_to_register_items(self.pipeline.udafs_to_register)
             rocket_json["settings"]["global"]["sqlSettings"]["udafsToRegister"] = udafs
 
         # Agregar configuraciones Spark personalizadas (solo si no hay settings crudos)
