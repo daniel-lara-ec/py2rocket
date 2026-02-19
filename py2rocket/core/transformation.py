@@ -1046,14 +1046,14 @@ def pyspark(
     node = Node(
         name=name,
         step_type=StepType.TRANSFORMATION,
-        class_name="PySparkTransformStep",
+        class_name="PySparkTransformerStep",
         class_pretty_name="PySpark",
         arity=["NaryToNary"],
         execution_engine=ExecutionEngine.HYBRID,
         priority=priority,
         description=description,
         configuration={
-            "code": code,
+            "pythonCode": code,
             "isSaved": True,
             "genAIMetadataTableDescription": "",
             "genAIMetadataColumns": "",

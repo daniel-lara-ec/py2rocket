@@ -14,6 +14,7 @@ from py2rocket.core import pipeline, sql, print_step
 @pipeline(
     name="{name}",
     execution_engine="{engine}",
+    version=0,
     params={params},
     workflow_id={workflow_id},
     project_id={project_id},

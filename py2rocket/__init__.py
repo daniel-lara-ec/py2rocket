@@ -2096,6 +2096,12 @@ def from_json(
     name = workflow_data.get("name", "imported_workflow")
     execution_engine = workflow_data.get("executionEngine", "Hybrid")
     workflow_id = workflow_data.get("id")
+    version = workflow_data.get("version", 0)
+    if not isinstance(version, int):
+        try:
+            version = int(version)
+        except (TypeError, ValueError):
+            version = 0
     # Usar el asset_id pasado como parámetro, o intentar obtenerlo del JSON
     if not asset_id:
         asset_id = workflow_data.get("workflowMasterId") or workflow_data.get("assetId")
@@ -2695,6 +2701,7 @@ def from_json(
 
     # Decorator
     decorator_args = [f'name="{name}"', f'execution_engine="{execution_engine}"']
+    decorator_args.append(f"version={version}")
     if params:
         decorator_args.append(f"params={params}")
     if workflow_data.get("description"):

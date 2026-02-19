@@ -528,6 +528,7 @@ class Pipeline:
     parameters: Dict[str, str] = field(default_factory=dict)
     description: str = ""
     workflow_id: Optional[str] = None
+    version: int = 0
     project_id: Optional[str] = None
     group_id: Optional[str] = None
     group_name: Optional[str] = None

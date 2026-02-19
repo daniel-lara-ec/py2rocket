@@ -336,6 +336,12 @@ class RocketCompiler:
         now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
         settings = deepcopy(self.STANDARD_SETTINGS)
+        pipeline_version = getattr(self.pipeline, "version", 0)
+        if not isinstance(pipeline_version, int):
+            try:
+                pipeline_version = int(pipeline_version)
+            except (TypeError, ValueError):
+                pipeline_version = 0
 
         rocket_json = {
             "id": self.pipeline.workflow_id or str(uuid.uuid4()),
@@ -351,7 +357,7 @@ class RocketCompiler:
             },
             "creationDate": now,
             "lastUpdateDate": now,
-            "version": 0,
+            "version": pipeline_version,
             "readOnly": False,
             "releaseInProgress": False,
             "tags": [],
