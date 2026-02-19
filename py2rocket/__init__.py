@@ -22,7 +22,16 @@ from typing import Optional, Dict, Any, List, Union
 
 from dotenv import load_dotenv
 from py2rocket.core import pipeline, RocketCompiler
-from py2rocket.core.pipeline import UIPosition, PythonEnvDefinition
+from py2rocket.core.pipeline import (
+    UIPosition,
+    PythonEnvDefinition,
+    GlobalSettings,
+    AutoDebugSettings,
+    ExecutionMetricsSettings,
+    ErrorsManagement,
+    GenericErrorManagement,
+    StructuredStreamingSettings,
+)
 from py2rocket.core.step_defaults import _get_step_defaults
 from py2rocket.templates.workflow_template import WORKFLOW_TEMPLATE
 
@@ -1937,82 +1946,85 @@ def _to_python_string_literal(value: str) -> str:
     return repr(value)
 
 
-def _is_settings_modified(settings: Dict[str, Any]) -> bool:
-    """
-    Determina si los settings fueron modificados comparándolos con STANDARD_SETTINGS.
+def _auto_debug_settings_to_literal(value: AutoDebugSettings) -> str:
+    default = AutoDebugSettings()
+    args = []
+    if value.enable_auto_debug != default.enable_auto_debug:
+        args.append(f"enable_auto_debug={value.enable_auto_debug}")
+    if (
+        value.force_auto_debug_execution_for_all_steps
+        != default.force_auto_debug_execution_for_all_steps
+    ):
+        args.append(
+            "force_auto_debug_execution_for_all_steps="
+            f"{value.force_auto_debug_execution_for_all_steps}"
+        )
+    if value.do_not_use_cache_data != default.do_not_use_cache_data:
+        args.append(f"do_not_use_cache_data={value.do_not_use_cache_data}")
+    if not args:
+        return "AutoDebugSettings()"
+    return f"AutoDebugSettings({', '.join(args)})"
 
-    Ignora campos que ya están representados en otros parámetros del decorator:
-    - parametersUsed (autogenerado)
-    - parametersSettings.userDefinedParameters (está en params={})
-    - parametersLists (está en parameters_lists=[])
-    - userPluginsJars (está en plugins=[])
-    - sqlSettings.preExecutionSqlSentences/postExecutionSqlSentences (está en objetos SqlSentence)
-    - sqlSettings.udfsToRegister/udafsToRegister (está en objetos ToRegister)
-    - pythonEnvDefinition (está en python_env_definition=PythonEnvDefinition(...))
 
-    Returns:
-        True si hay modificaciones significativas, False si es igual a defaults
-    """
-    from py2rocket.core.compiler import RocketCompiler
-    from copy import deepcopy
+def _execution_metrics_settings_to_literal(value: ExecutionMetricsSettings) -> str:
+    default = ExecutionMetricsSettings()
+    args = []
+    if value.custom_metric_labels != default.custom_metric_labels:
+        args.append(f"custom_metric_labels={repr(value.custom_metric_labels)}")
+    if not args:
+        return "ExecutionMetricsSettings()"
+    return f"ExecutionMetricsSettings({', '.join(args)})"
 
-    if not settings:
-        return False
 
-    # Hacer copia profunda para no modificar el original
-    settings_copy = deepcopy(settings)
-    standard_copy = deepcopy(RocketCompiler.STANDARD_SETTINGS)
+def _global_settings_to_literal(value: GlobalSettings) -> str:
+    default = GlobalSettings()
+    args = []
+    if value.execution_mode != default.execution_mode:
+        args.append(f"execution_mode={repr(value.execution_mode)}")
+    if value.enable_quality_rules != default.enable_quality_rules:
+        args.append(f"enable_quality_rules={value.enable_quality_rules}")
+    if value.auto_debug_settings != default.auto_debug_settings:
+        args.append(
+            "auto_debug_settings="
+            f"{_auto_debug_settings_to_literal(value.auto_debug_settings)}"
+        )
+    if value.get_total_rows_by_step != default.get_total_rows_by_step:
+        args.append(f"get_total_rows_by_step={value.get_total_rows_by_step}")
+    if value.enable_project_env_var != default.enable_project_env_var:
+        args.append(f"enable_project_env_var={value.enable_project_env_var}")
+    if value.execution_metrics_settings != default.execution_metrics_settings:
+        args.append(
+            "execution_metrics_settings="
+            f"{_execution_metrics_settings_to_literal(value.execution_metrics_settings)}"
+        )
+    if not args:
+        return "GlobalSettings()"
+    return f"GlobalSettings({', '.join(args)})"
 
-    # Ignorar campos que están en otros parámetros del decorator
-    if "global" in settings_copy:
-        settings_copy["global"].pop("parametersUsed", None)
-        settings_copy["global"].pop("parametersLists", None)
-        settings_copy["global"].pop("userPluginsJars", None)
-        settings_copy.pop("pythonEnvDefinition", None)
 
-        if "sqlSettings" in settings_copy["global"]:
-            settings_copy["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
-            settings_copy["global"]["sqlSettings"].pop(
-                "postExecutionSqlSentences", None
-            )
-            settings_copy["global"]["sqlSettings"].pop("udfsToRegister", None)
-            settings_copy["global"]["sqlSettings"].pop("udafsToRegister", None)
-            if not settings_copy["global"]["sqlSettings"]:
-                settings_copy["global"].pop("sqlSettings", None)
+def _errors_management_to_literal(value: ErrorsManagement) -> str:
+    default = ErrorsManagement()
+    args = []
+    if (
+        value.generic_error_management.when_error
+        != default.generic_error_management.when_error
+    ):
+        args.append(
+            "generic_error_management=GenericErrorManagement("
+            f"when_error={repr(value.generic_error_management.when_error)}"
+            ")"
+        )
+    if not args:
+        return "ErrorsManagement()"
+    return f"ErrorsManagement({', '.join(args)})"
 
-        if "parametersSettings" in settings_copy["global"]:
-            settings_copy["global"]["parametersSettings"].pop(
-                "userDefinedParameters", None
-            )
-            # Si parametersSettings queda vacío, eliminarlo
-            if not settings_copy["global"]["parametersSettings"]:
-                settings_copy["global"].pop("parametersSettings", None)
 
-    if "global" in standard_copy:
-        standard_copy["global"].pop("parametersUsed", None)
-        standard_copy["global"].pop("parametersLists", None)
-        standard_copy["global"].pop("userPluginsJars", None)
-        standard_copy.pop("pythonEnvDefinition", None)
-
-        if "sqlSettings" in standard_copy["global"]:
-            standard_copy["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
-            standard_copy["global"]["sqlSettings"].pop(
-                "postExecutionSqlSentences", None
-            )
-            standard_copy["global"]["sqlSettings"].pop("udfsToRegister", None)
-            standard_copy["global"]["sqlSettings"].pop("udafsToRegister", None)
-            if not standard_copy["global"]["sqlSettings"]:
-                standard_copy["global"].pop("sqlSettings", None)
-
-        if "parametersSettings" in standard_copy["global"]:
-            standard_copy["global"]["parametersSettings"].pop(
-                "userDefinedParameters", None
-            )
-            if not standard_copy["global"]["parametersSettings"]:
-                standard_copy["global"].pop("parametersSettings", None)
-
-    # Comparar las estructuras
-    return settings_copy != standard_copy
+def _structured_streaming_settings_to_literal(
+    value: StructuredStreamingSettings,
+) -> str:
+    if value.settings:
+        return f"StructuredStreamingSettings(settings={repr(value.settings)})"
+    return "StructuredStreamingSettings()"
 
 
 def _extract_group_name_from_metadata(raw_metadata: Dict[str, Any]) -> Optional[str]:
@@ -2030,102 +2042,6 @@ def _extract_group_name_from_metadata(raw_metadata: Dict[str, Any]) -> Optional[
         return group.get("name")
 
     return None
-
-
-def _filter_raw_settings(
-    settings: Dict[str, Any], parameters_lists: Optional[List[str]] = None
-) -> Dict[str, Any]:
-    """
-    Filtra campos de raw_settings que ya están representados en otros parámetros
-    o que son valores por defecto de configuración de Spark.
-
-    Campos a filtrar:
-    - parametersLists: ya está en parameters_lists=[]
-    - userPluginsJars: ya está en plugins=[]
-    - parametersUsed: filtrar solo parámetros estándar de Spark, mantener personalizados
-    - parametersSettings.userDefinedParameters: ya está en params={}
-    - sqlSettings.preExecutionSqlSentences/postExecutionSqlSentences: ya está en objetos SqlSentence
-    - sqlSettings.udfsToRegister/udafsToRegister: ya está en objetos ToRegister
-    - pythonEnvDefinition: ya está en python_env_definition=PythonEnvDefinition(...)
-
-    Returns:
-        settings filtrado sin campos duplicados
-    """
-    from copy import deepcopy
-
-    if not settings:
-        return settings
-
-    filtered = deepcopy(settings)
-
-    # Parámetros estándar de Spark que no son del usuario
-    standard_param_prefixes = [
-        "SparkConfigurations.",
-        "SparkResources.",
-        "Environment.",
-    ]
-
-    if "global" in filtered:
-        # Eliminar parametersLists (ya está en parameters_lists=[])
-        filtered["global"].pop("parametersLists", None)
-
-        # Eliminar userPluginsJars (ya está en plugins=[])
-        filtered["global"].pop("userPluginsJars", None)
-
-        # Eliminar dockerSettings (configuración interna estándar, se reconstruye automáticamente)
-        filtered["global"].pop("dockerSettings", None)
-
-        # Eliminar kubernetesDeploymentSettings (configuración interna estándar, se reconstruye automáticamente)
-        filtered["global"].pop("kubernetesDeploymentSettings", None)
-
-        # Eliminar debugSettings (configuración interna estándar, se reconstruye automáticamente)
-        filtered["global"].pop("debugSettings", None)
-
-        # Filtrar parametersUsed para mantener solo parámetros personalizados del usuario
-        params_used = filtered["global"].get("parametersUsed", [])
-        if params_used:
-            # Mantener solo parámetros que NO empiecen con prefijos estándar
-            user_params = [
-                param
-                for param in params_used
-                if not any(
-                    param.startswith(prefix) for prefix in standard_param_prefixes
-                )
-            ]
-            if user_params:
-                filtered["global"]["parametersUsed"] = user_params
-            else:
-                # Si no hay parámetros personalizados, eliminar el campo
-                filtered["global"].pop("parametersUsed", None)
-
-        # Eliminar parametersSettings.userDefinedParameters (ya está en params={})
-        if "parametersSettings" in filtered["global"]:
-            filtered["global"]["parametersSettings"].pop("userDefinedParameters", None)
-            # Si parametersSettings queda vacío, eliminarlo
-            if not filtered["global"]["parametersSettings"]:
-                filtered["global"].pop("parametersSettings", None)
-
-        # Eliminar sqlSettings representados en parámetros explícitos del decorator
-        if "sqlSettings" in filtered["global"]:
-            filtered["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
-            filtered["global"]["sqlSettings"].pop("postExecutionSqlSentences", None)
-            filtered["global"]["sqlSettings"].pop("udfsToRegister", None)
-            filtered["global"]["sqlSettings"].pop("udafsToRegister", None)
-            # Si sqlSettings queda vacío, eliminarlo
-            if not filtered["global"]["sqlSettings"]:
-                filtered["global"].pop("sqlSettings", None)
-
-    # Eliminar streamingSettings (configuración interna estándar, se reconstruye automáticamente)
-    filtered.pop("streamingSettings", None)
-
-    # Eliminar sparkSettings (configuración interna estándar, se reconstruye automáticamente)
-    # Pero preservar userSparkConf si tiene valores personalizados (será extraído como parámetro)
-    filtered.pop("sparkSettings", None)
-
-    # Eliminar pythonEnvDefinition (ya está en python_env_definition=...)
-    filtered.pop("pythonEnvDefinition", None)
-
-    return filtered
 
 
 def from_json(
@@ -2187,8 +2103,15 @@ def from_json(
     # Extraer parámetros desde settings
     params = {}
     settings = workflow_data.get("settings", {})
-    global_settings = settings.get("global", {})
-    sql_settings = global_settings.get("sqlSettings", {})
+    global_settings_dict = settings.get("global", {})
+    sql_settings = global_settings_dict.get("sqlSettings", {})
+    global_settings_obj = GlobalSettings.from_dict(global_settings_dict)
+    errors_management_obj = ErrorsManagement.from_dict(
+        settings.get("errorsManagement", {})
+    )
+    structured_streaming_settings_obj = StructuredStreamingSettings.from_dict(
+        settings.get("structuredStreamingSettings", {})
+    )
     python_env_definition = settings.get("pythonEnvDefinition")
     python_env_definition_obj = None
     if isinstance(python_env_definition, dict):
@@ -2231,8 +2154,8 @@ def from_json(
         sql_settings.get("udafsToRegister", [])
     )
 
-    parameters_lists = global_settings.get("parametersLists", [])
-    user_defined_params = global_settings.get("parametersSettings", {}).get(
+    parameters_lists = global_settings_dict.get("parametersLists", [])
+    user_defined_params = global_settings_dict.get("parametersSettings", {}).get(
         "userDefinedParameters", []
     )
     if isinstance(user_defined_params, list):
@@ -2245,8 +2168,8 @@ def from_json(
     project_id = (
         workflow_data.get("projectId")
         or workflow_data.get("project_id")
-        or global_settings.get("projectId")
-        or global_settings.get("project_id")
+        or global_settings_dict.get("projectId")
+        or global_settings_dict.get("project_id")
     )
     group_id = workflow_data.get("groupId")
 
@@ -2272,7 +2195,7 @@ def from_json(
     raw_metadata = {
         k: workflow_data.get(k) for k in raw_metadata_keys if k in workflow_data
     }
-    user_plugins_jars = global_settings.get("userPluginsJars", [])
+    user_plugins_jars = global_settings_dict.get("userPluginsJars", [])
     plugins = []
     if project_id and user_plugins_jars:
         api_host = os.getenv("ROCKET_API_HOST")
@@ -2831,18 +2754,37 @@ def from_json(
             f"py_spark_native_extensions={repr(python_env_definition_obj.py_spark_native_extensions)}"
             ")"
         )
+
+    global_settings_literal = _global_settings_to_literal(global_settings_obj)
+    if global_settings_literal != "GlobalSettings()":
+        decorator_args.append(f"global_settings={global_settings_literal}")
+        python_code += (
+            "from py2rocket.core.pipeline import "
+            "GlobalSettings, AutoDebugSettings, ExecutionMetricsSettings\n\n"
+        )
+    errors_management_literal = _errors_management_to_literal(errors_management_obj)
+    if errors_management_literal != "ErrorsManagement()":
+        decorator_args.append(f"errors_management={errors_management_literal}")
+        python_code += (
+            "from py2rocket.core.pipeline import "
+            "ErrorsManagement, GenericErrorManagement\n\n"
+        )
+    structured_streaming_settings_literal = _structured_streaming_settings_to_literal(
+        structured_streaming_settings_obj
+    )
+    if structured_streaming_settings_literal != "StructuredStreamingSettings()":
+        decorator_args.append(
+            "structured_streaming_settings=" f"{structured_streaming_settings_literal}"
+        )
+        python_code += (
+            "from py2rocket.core.pipeline import StructuredStreamingSettings\n\n"
+        )
+
     # Extraer group_name de raw_metadata y añadirlo como parámetro
     if raw_metadata:
         group_name = _extract_group_name_from_metadata(raw_metadata)
         if group_name:
             decorator_args.append(f"group_name={repr(group_name)}")
-
-    # Solo incluir raw_settings si fue modificado (diferente de STANDARD_SETTINGS)
-    if settings and _is_settings_modified(settings):
-        # Filtrar settings para no duplicar información que está en otros parámetros
-        filtered_settings = _filter_raw_settings(settings, parameters_lists)
-        if filtered_settings and _is_settings_modified(filtered_settings):
-            decorator_args.append(f"raw_settings={filtered_settings}")
     # raw_ui_settings no se incluye en código generado (solo útil para preservar canvas UI en roundtrip)
     # raw_metadata no se incluye ya que group_name y group_id están como parámetros separados
     # Solo incluir annotations si no está vacío

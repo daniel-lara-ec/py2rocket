@@ -13,7 +13,14 @@ import os
 from typing import Callable, Dict, Any, Optional, Union, List
 from functools import wraps
 from dotenv import load_dotenv
-from py2rocket.core.pipeline import Pipeline, ExecutionEngine, PythonEnvDefinition
+from py2rocket.core.pipeline import (
+    Pipeline,
+    ExecutionEngine,
+    PythonEnvDefinition,
+    GlobalSettings,
+    ErrorsManagement,
+    StructuredStreamingSettings,
+)
 from py2rocket.core.input import set_current_pipeline as _set_current_pipeline_input
 from py2rocket.core.transformation import (
     set_current_pipeline as _set_current_pipeline_transform,
@@ -51,8 +58,10 @@ def pipeline(
     udafs_to_register: Optional[list] = None,
     user_spark_conf: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
     python_env_definition: Optional[Union[Dict[str, Any], PythonEnvDefinition]] = None,
+    global_settings: Optional[GlobalSettings] = None,
+    errors_management: Optional[ErrorsManagement] = None,
+    structured_streaming_settings: Optional[StructuredStreamingSettings] = None,
     plugins: Optional[list] = None,
-    raw_settings: Optional[Dict[str, Any]] = None,
     raw_ui_settings: Optional[Dict[str, Any]] = None,
     raw_metadata: Optional[Dict[str, Any]] = None,
     annotations: Optional[list] = None,
@@ -81,8 +90,10 @@ def pipeline(
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
         user_spark_conf: Configuraciones Spark personalizadas (dict o lista de dicts)
         python_env_definition: Configuración pythonEnvDefinition de Rocket
+        global_settings: Configuración tipada para settings.global
+        errors_management: Configuración tipada para settings.errorsManagement
+        structured_streaming_settings: Configuración tipada para settings.structuredStreamingSettings
         plugins: Lista de nombres de plugins a incluir en el build
-        raw_settings: Settings completos del JSON original (opcional)
         raw_ui_settings: uiSettings del JSON original (opcional)
         raw_metadata: Metadatos de primer nivel del JSON original (opcional)
         annotations: Annotations del pipelineGraph (opcional)
@@ -140,8 +151,11 @@ def pipeline(
                 udafs_to_register=udafs_to_register or [],
                 user_spark_conf=user_spark_conf or {},
                 python_env_definition=python_env_definition,
+                global_settings=global_settings or GlobalSettings(),
+                errors_management=errors_management or ErrorsManagement(),
+                structured_streaming_settings=structured_streaming_settings
+                or StructuredStreamingSettings(),
                 plugins=plugins or [],
-                raw_settings=raw_settings,
                 raw_ui_settings=raw_ui_settings,
                 raw_metadata=raw_metadata or {},
                 annotations=annotations or [],

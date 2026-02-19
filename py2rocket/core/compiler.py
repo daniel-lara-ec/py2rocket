@@ -335,12 +335,7 @@ class RocketCompiler:
         # Construir el JSON completo
         now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        use_raw_settings = bool(getattr(self.pipeline, "raw_settings", None))
-        settings = (
-            deepcopy(self.pipeline.raw_settings)
-            if use_raw_settings
-            else deepcopy(self.STANDARD_SETTINGS)
-        )
+        settings = deepcopy(self.STANDARD_SETTINGS)
 
         rocket_json = {
             "id": self.pipeline.workflow_id or str(uuid.uuid4()),
@@ -366,6 +361,41 @@ class RocketCompiler:
             "normalizedName": self.pipeline.name.lower(),
             "isHybridStreaming": False,
         }
+
+        # Aplicar opciones tipadas de settings (siempre desde atributos del Pipeline)
+        global_settings = getattr(self.pipeline, "global_settings", None)
+        if global_settings is not None:
+            settings_global = (
+                global_settings.to_dict()
+                if hasattr(global_settings, "to_dict")
+                else global_settings
+            )
+            if isinstance(settings_global, dict):
+                rocket_json["settings"]["global"].update(settings_global)
+
+        errors_management = getattr(self.pipeline, "errors_management", None)
+        if errors_management is not None:
+            settings_errors = (
+                errors_management.to_dict()
+                if hasattr(errors_management, "to_dict")
+                else errors_management
+            )
+            if isinstance(settings_errors, dict):
+                rocket_json["settings"]["errorsManagement"] = settings_errors
+
+        structured_streaming_settings = getattr(
+            self.pipeline, "structured_streaming_settings", None
+        )
+        if structured_streaming_settings is not None:
+            settings_structured_streaming = (
+                structured_streaming_settings.to_dict()
+                if hasattr(structured_streaming_settings, "to_dict")
+                else structured_streaming_settings
+            )
+            if isinstance(settings_structured_streaming, dict):
+                rocket_json["settings"][
+                    "structuredStreamingSettings"
+                ] = settings_structured_streaming
 
         # Reconstruir campos que siempre deben estar sincronizados con parámetros del decorador
         # (estos campos se filtran de raw_settings para evitar duplicación)
@@ -489,31 +519,6 @@ class RocketCompiler:
         if getattr(self.pipeline, "udafs_to_register", None):
             udafs = self._serialize_to_register_items(self.pipeline.udafs_to_register)
             rocket_json["settings"]["global"]["sqlSettings"]["udafsToRegister"] = udafs
-
-        # Agregar configuraciones Spark personalizadas (solo si no hay settings crudos)
-        if not use_raw_settings and getattr(self.pipeline, "user_spark_conf", None):
-            user_spark_conf = self.pipeline.user_spark_conf
-            spark_conf = []
-            if isinstance(user_spark_conf, dict):
-                spark_conf = [
-                    {"sparkConfKey": key, "sparkConfValue": value}
-                    for key, value in user_spark_conf.items()
-                    if key and value
-                ]
-            elif isinstance(user_spark_conf, list):
-                for item in user_spark_conf:
-                    if not isinstance(item, dict):
-                        continue
-                    key = item.get("sparkConfKey") or item.get("key")
-                    value = item.get("sparkConfValue") or item.get("value")
-                    if key and value:
-                        spark_conf.append(
-                            {"sparkConfKey": key, "sparkConfValue": value}
-                        )
-            if spark_conf:
-                rocket_json["settings"]["global"]["sparkSettings"][
-                    "userSparkConf"
-                ] = spark_conf
 
         # Incluir el workflowMasterId si existe
         if getattr(self.pipeline, "asset_id", None):

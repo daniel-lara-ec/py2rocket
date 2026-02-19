@@ -141,6 +141,187 @@ class PythonEnvDefinition:
 
 
 @dataclass
+class AutoDebugSettings:
+    """Representa settings.global.autoDebugSettings."""
+
+    enable_auto_debug: bool = True
+    force_auto_debug_execution_for_all_steps: bool = False
+    do_not_use_cache_data: bool = True
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = {
+            "enableAutoDebug": self.enable_auto_debug,
+            "forceAutoDebugExecutionForAllSteps": self.force_auto_debug_execution_for_all_steps,
+            "doNotUseCacheData": self.do_not_use_cache_data,
+        }
+        data.update(self.extra)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "AutoDebugSettings":
+        if not isinstance(data, dict):
+            return cls()
+        known = {
+            "enableAutoDebug",
+            "forceAutoDebugExecutionForAllSteps",
+            "doNotUseCacheData",
+        }
+        extra = {k: v for k, v in data.items() if k not in known}
+        return cls(
+            enable_auto_debug=data.get("enableAutoDebug", True),
+            force_auto_debug_execution_for_all_steps=data.get(
+                "forceAutoDebugExecutionForAllSteps", False
+            ),
+            do_not_use_cache_data=data.get("doNotUseCacheData", True),
+            extra=extra,
+        )
+
+
+@dataclass
+class ExecutionMetricsSettings:
+    """Representa settings.global.executionMetricsSettings."""
+
+    custom_metric_labels: List[Any] = field(default_factory=list)
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = {"customMetricLabels": self.custom_metric_labels}
+        data.update(self.extra)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ExecutionMetricsSettings":
+        if not isinstance(data, dict):
+            return cls()
+        known = {"customMetricLabels"}
+        extra = {k: v for k, v in data.items() if k not in known}
+        return cls(
+            custom_metric_labels=data.get("customMetricLabels", []) or [],
+            extra=extra,
+        )
+
+
+@dataclass
+class GlobalSettings:
+    """Representa settings.global para opciones extra preservadas."""
+
+    execution_mode: str = "kubernetes"
+    enable_quality_rules: bool = True
+    auto_debug_settings: AutoDebugSettings = field(default_factory=AutoDebugSettings)
+    get_total_rows_by_step: bool = False
+    enable_project_env_var: bool = True
+    execution_metrics_settings: ExecutionMetricsSettings = field(
+        default_factory=ExecutionMetricsSettings
+    )
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = {
+            "executionMode": self.execution_mode,
+            "enableQualityRules": self.enable_quality_rules,
+            "autoDebugSettings": self.auto_debug_settings.to_dict(),
+            "getTotalRowsByStep": self.get_total_rows_by_step,
+            "enableProjectEnvVar": self.enable_project_env_var,
+            "executionMetricsSettings": self.execution_metrics_settings.to_dict(),
+        }
+        data.update(self.extra)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "GlobalSettings":
+        if not isinstance(data, dict):
+            return cls()
+        known = {
+            "executionMode",
+            "enableQualityRules",
+            "autoDebugSettings",
+            "getTotalRowsByStep",
+            "enableProjectEnvVar",
+            "executionMetricsSettings",
+        }
+        extra = {k: v for k, v in data.items() if k not in known}
+        return cls(
+            execution_mode=data.get("executionMode", "kubernetes"),
+            enable_quality_rules=data.get("enableQualityRules", True),
+            auto_debug_settings=AutoDebugSettings.from_dict(
+                data.get("autoDebugSettings", {})
+            ),
+            get_total_rows_by_step=data.get("getTotalRowsByStep", False),
+            enable_project_env_var=data.get("enableProjectEnvVar", True),
+            execution_metrics_settings=ExecutionMetricsSettings.from_dict(
+                data.get("executionMetricsSettings", {})
+            ),
+            extra=extra,
+        )
+
+
+@dataclass
+class GenericErrorManagement:
+    """Representa settings.errorsManagement.genericErrorManagement."""
+
+    when_error: str = "Error"
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = {"whenError": self.when_error}
+        data.update(self.extra)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "GenericErrorManagement":
+        if not isinstance(data, dict):
+            return cls()
+        known = {"whenError"}
+        extra = {k: v for k, v in data.items() if k not in known}
+        return cls(when_error=data.get("whenError", "Error"), extra=extra)
+
+
+@dataclass
+class ErrorsManagement:
+    """Representa settings.errorsManagement."""
+
+    generic_error_management: GenericErrorManagement = field(
+        default_factory=GenericErrorManagement
+    )
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = {"genericErrorManagement": self.generic_error_management.to_dict()}
+        data.update(self.extra)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ErrorsManagement":
+        if not isinstance(data, dict):
+            return cls()
+        known = {"genericErrorManagement"}
+        extra = {k: v for k, v in data.items() if k not in known}
+        return cls(
+            generic_error_management=GenericErrorManagement.from_dict(
+                data.get("genericErrorManagement", {})
+            ),
+            extra=extra,
+        )
+
+
+@dataclass
+class StructuredStreamingSettings:
+    """Representa settings.structuredStreamingSettings."""
+
+    settings: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return self.settings
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "StructuredStreamingSettings":
+        if not isinstance(data, dict):
+            return cls()
+        return cls(settings=data)
+
+
+@dataclass
 class UIPosition:
     """Posición de un nodo en la interfaz gráfica de Rocket.
 
@@ -368,9 +549,13 @@ class Pipeline:
         default_factory=dict
     )
     python_env_definition: Optional[Union[PythonEnvDefinition, Dict[str, Any]]] = None
+    global_settings: GlobalSettings = field(default_factory=GlobalSettings)
+    errors_management: ErrorsManagement = field(default_factory=ErrorsManagement)
+    structured_streaming_settings: StructuredStreamingSettings = field(
+        default_factory=StructuredStreamingSettings
+    )
     plugins: List[str] = field(default_factory=list)
     user_plugins_jars: List[Dict[str, str]] = field(default_factory=list)
-    raw_settings: Optional[Dict[str, Any]] = None
     raw_ui_settings: Optional[Dict[str, Any]] = None
     raw_metadata: Dict[str, Any] = field(default_factory=dict)
     annotations: List[Any] = field(default_factory=list)
