@@ -25,6 +25,7 @@ from py2rocket.core import pipeline, sql, print_step
     udfs_to_register={udfs_to_register},
     udafs_to_register={udafs_to_register},
     user_spark_conf={user_spark_conf},
+    python_env_definition={python_env_definition},
     plugins={plugins}
 )
 def workflow():

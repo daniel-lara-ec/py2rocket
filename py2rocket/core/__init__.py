@@ -12,6 +12,7 @@ from py2rocket.core.pipeline import (
     OutputWriter,
     SqlSentence,
     ToRegister,
+    PythonEnvDefinition,
     StepResult,
     StepResultOutput,
 )
@@ -84,6 +85,7 @@ __all__ = [
     "OutputWriter",
     "SqlSentence",
     "ToRegister",
+    "PythonEnvDefinition",
     "StepResult",
     # Debug options
     "DebugOptions",

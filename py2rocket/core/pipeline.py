@@ -99,6 +99,48 @@ class ToRegister:
 
 
 @dataclass
+class PythonEnvDefinition:
+    """Representa la configuración pythonEnvDefinition del workflow."""
+
+    v_env_management_mode: str = "DefaultExecutionVirtualEnv"
+    conda_yaml_definition: str = ""
+    freeze_after_debug: bool = False
+    conda_pack_extension: List[Any] = field(default_factory=list)
+    execute_conda_unpack_after_activate: bool = False
+    py_spark_native_extensions: List[Any] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte el objeto a formato dict compatible con Rocket JSON."""
+        return {
+            "vEnvManagementMode": self.v_env_management_mode,
+            "condaYamlDefinition": self.conda_yaml_definition,
+            "freezeAfterDebug": self.freeze_after_debug,
+            "condaPackExtension": self.conda_pack_extension,
+            "executeCondaUnpackAfterActivate": self.execute_conda_unpack_after_activate,
+            "pySparkNativeExtensions": self.py_spark_native_extensions,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PythonEnvDefinition":
+        """Construye un PythonEnvDefinition desde un dict de Rocket JSON."""
+        if not isinstance(data, dict):
+            return cls()
+
+        return cls(
+            v_env_management_mode=data.get(
+                "vEnvManagementMode", "DefaultExecutionVirtualEnv"
+            ),
+            conda_yaml_definition=data.get("condaYamlDefinition", ""),
+            freeze_after_debug=data.get("freezeAfterDebug", False),
+            conda_pack_extension=data.get("condaPackExtension", []) or [],
+            execute_conda_unpack_after_activate=data.get(
+                "executeCondaUnpackAfterActivate", False
+            ),
+            py_spark_native_extensions=data.get("pySparkNativeExtensions", []) or [],
+        )
+
+
+@dataclass
 class UIPosition:
     """Posición de un nodo en la interfaz gráfica de Rocket.
 
@@ -322,7 +364,10 @@ class Pipeline:
     udafs_to_register: List[Union[str, ToRegister, Dict[str, Any]]] = field(
         default_factory=list
     )
-    user_spark_conf: Dict[str, str] = field(default_factory=dict)
+    user_spark_conf: Union[Dict[str, str], List[Dict[str, str]]] = field(
+        default_factory=dict
+    )
+    python_env_definition: Optional[Union[PythonEnvDefinition, Dict[str, Any]]] = None
     plugins: List[str] = field(default_factory=list)
     user_plugins_jars: List[Dict[str, str]] = field(default_factory=list)
     raw_settings: Optional[Dict[str, Any]] = None

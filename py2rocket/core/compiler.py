@@ -14,7 +14,12 @@ import uuid
 from copy import deepcopy
 from datetime import datetime
 from typing import Dict, Any
-from py2rocket.core.pipeline import Pipeline, SqlSentence, ToRegister
+from py2rocket.core.pipeline import (
+    Pipeline,
+    SqlSentence,
+    ToRegister,
+    PythonEnvDefinition,
+)
 
 
 class RocketCompiler:
@@ -212,6 +217,15 @@ class RocketCompiler:
                 if name:
                     serialized.append({"name": name})
         return serialized
+
+    @staticmethod
+    def _serialize_python_env_definition(value: Any) -> Dict[str, Any]:
+        """Serializa python_env_definition (objeto o dict) a formato Rocket."""
+        if isinstance(value, PythonEnvDefinition):
+            return value.to_dict()
+        if isinstance(value, dict):
+            return value
+        return {}
 
     def _extract_parameters_used(self) -> list:
         """
@@ -415,6 +429,19 @@ class RocketCompiler:
         if "sparkSettings" not in rocket_json["settings"]:
             rocket_json["settings"]["sparkSettings"] = deepcopy(
                 self.STANDARD_SETTINGS["sparkSettings"]
+            )
+
+        # 9.1. pythonEnvDefinition - sincronizar desde parámetro explícito si existe
+        python_env_definition = getattr(self.pipeline, "python_env_definition", None)
+        if python_env_definition:
+            serialized_python_env = self._serialize_python_env_definition(
+                python_env_definition
+            )
+            if serialized_python_env:
+                rocket_json["settings"]["pythonEnvDefinition"] = serialized_python_env
+        elif "pythonEnvDefinition" not in rocket_json["settings"]:
+            rocket_json["settings"]["pythonEnvDefinition"] = deepcopy(
+                self.STANDARD_SETTINGS["pythonEnvDefinition"]
             )
 
         # Si hay userSparkConf personalizado en el pipeline, inyectarlo

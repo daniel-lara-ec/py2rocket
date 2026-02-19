@@ -18,11 +18,11 @@ import json
 import requests
 import urllib3
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 
 from dotenv import load_dotenv
 from py2rocket.core import pipeline, RocketCompiler
-from py2rocket.core.pipeline import UIPosition
+from py2rocket.core.pipeline import UIPosition, PythonEnvDefinition
 from py2rocket.core.step_defaults import _get_step_defaults
 from py2rocket.templates.workflow_template import WORKFLOW_TEMPLATE
 
@@ -87,7 +87,8 @@ def create(
     post_execution_sql_sentences: Optional[list] = None,
     udfs_to_register: Optional[list] = None,
     udafs_to_register: Optional[list] = None,
-    user_spark_conf: Optional[dict] = None,
+    user_spark_conf: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    python_env_definition: Optional[Any] = None,
     plugins: Optional[list] = None,
 ) -> str:
     """
@@ -110,7 +111,8 @@ def create(
         post_execution_sql_sentences: Lista de sentencias SQL a ejecutar después del pipeline
         udfs_to_register: Lista de UDFs (User Defined Functions) a registrar
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
-        user_spark_conf: Diccionario de configuraciones Spark personalizadas
+        user_spark_conf: Configuraciones Spark personalizadas (dict o lista de dicts)
+        python_env_definition: Configuración pythonEnvDefinition (dict o PythonEnvDefinition)
         plugins: Lista de nombres de plugins a incluir en el build
 
     Returns:
@@ -160,6 +162,11 @@ def create(
     udfs_to_register_str = repr(udfs_to_register) if udfs_to_register else "[]"
     udafs_to_register_str = repr(udafs_to_register) if udafs_to_register else "[]"
     user_spark_conf_str = repr(user_spark_conf) if user_spark_conf else "{}"
+    if isinstance(python_env_definition, PythonEnvDefinition):
+        python_env_definition = python_env_definition.to_dict()
+    python_env_definition_str = (
+        repr(python_env_definition) if python_env_definition else "None"
+    )
     plugins_str = repr(plugins) if plugins else "[]"
 
     content = WORKFLOW_TEMPLATE.format(
@@ -178,6 +185,7 @@ def create(
         udfs_to_register=udfs_to_register_str,
         udafs_to_register=udafs_to_register_str,
         user_spark_conf=user_spark_conf_str,
+        python_env_definition=python_env_definition_str,
         plugins=plugins_str,
     )
 
@@ -1917,6 +1925,18 @@ def _sanitize_var_name(name: str, imported_functions: Optional[set] = None) -> s
     return var_name
 
 
+def _to_python_string_literal(value: str) -> str:
+    """Convierte un string a literal Python, preservando multilínea cuando aplica."""
+    if not isinstance(value, str):
+        return repr(value)
+
+    if "\n" in value:
+        escaped = value.replace('"""', '\\"\\"\\"')
+        return f'"""\\\n{escaped}"""'
+
+    return repr(value)
+
+
 def _is_settings_modified(settings: Dict[str, Any]) -> bool:
     """
     Determina si los settings fueron modificados comparándolos con STANDARD_SETTINGS.
@@ -1928,6 +1948,7 @@ def _is_settings_modified(settings: Dict[str, Any]) -> bool:
     - userPluginsJars (está en plugins=[])
     - sqlSettings.preExecutionSqlSentences/postExecutionSqlSentences (está en objetos SqlSentence)
     - sqlSettings.udfsToRegister/udafsToRegister (está en objetos ToRegister)
+    - pythonEnvDefinition (está en python_env_definition=PythonEnvDefinition(...))
 
     Returns:
         True si hay modificaciones significativas, False si es igual a defaults
@@ -1947,6 +1968,7 @@ def _is_settings_modified(settings: Dict[str, Any]) -> bool:
         settings_copy["global"].pop("parametersUsed", None)
         settings_copy["global"].pop("parametersLists", None)
         settings_copy["global"].pop("userPluginsJars", None)
+        settings_copy.pop("pythonEnvDefinition", None)
 
         if "sqlSettings" in settings_copy["global"]:
             settings_copy["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
@@ -1970,6 +1992,7 @@ def _is_settings_modified(settings: Dict[str, Any]) -> bool:
         standard_copy["global"].pop("parametersUsed", None)
         standard_copy["global"].pop("parametersLists", None)
         standard_copy["global"].pop("userPluginsJars", None)
+        standard_copy.pop("pythonEnvDefinition", None)
 
         if "sqlSettings" in standard_copy["global"]:
             standard_copy["global"]["sqlSettings"].pop("preExecutionSqlSentences", None)
@@ -2023,6 +2046,7 @@ def _filter_raw_settings(
     - parametersSettings.userDefinedParameters: ya está en params={}
     - sqlSettings.preExecutionSqlSentences/postExecutionSqlSentences: ya está en objetos SqlSentence
     - sqlSettings.udfsToRegister/udafsToRegister: ya está en objetos ToRegister
+    - pythonEnvDefinition: ya está en python_env_definition=PythonEnvDefinition(...)
 
     Returns:
         settings filtrado sin campos duplicados
@@ -2098,6 +2122,9 @@ def _filter_raw_settings(
     # Pero preservar userSparkConf si tiene valores personalizados (será extraído como parámetro)
     filtered.pop("sparkSettings", None)
 
+    # Eliminar pythonEnvDefinition (ya está en python_env_definition=...)
+    filtered.pop("pythonEnvDefinition", None)
+
     return filtered
 
 
@@ -2162,6 +2189,10 @@ def from_json(
     settings = workflow_data.get("settings", {})
     global_settings = settings.get("global", {})
     sql_settings = global_settings.get("sqlSettings", {})
+    python_env_definition = settings.get("pythonEnvDefinition")
+    python_env_definition_obj = None
+    if isinstance(python_env_definition, dict):
+        python_env_definition_obj = PythonEnvDefinition.from_dict(python_env_definition)
 
     def _extract_sentence_values(items):
         values = []
@@ -2431,6 +2462,8 @@ def from_json(
     )
     if has_sql_objects:
         imports.add("from py2rocket.core.pipeline import SqlSentence, ToRegister")
+    if python_env_definition_obj is not None:
+        imports.add("from py2rocket.core.pipeline import PythonEnvDefinition")
 
     code_lines = []
     var_names = {}  # Map node name -> variable name
@@ -2783,6 +2816,21 @@ def from_json(
         decorator_args.append(f"plugins={plugins}")
     if user_spark_conf:
         decorator_args.append(f"user_spark_conf={user_spark_conf}")
+    if python_env_definition_obj is not None:
+        conda_yaml_literal = _to_python_string_literal(
+            python_env_definition_obj.conda_yaml_definition
+        )
+        decorator_args.append(
+            "python_env_definition=PythonEnvDefinition("
+            f"v_env_management_mode={repr(python_env_definition_obj.v_env_management_mode)}, "
+            f"conda_yaml_definition={conda_yaml_literal}, "
+            f"freeze_after_debug={python_env_definition_obj.freeze_after_debug}, "
+            f"conda_pack_extension={repr(python_env_definition_obj.conda_pack_extension)}, "
+            "execute_conda_unpack_after_activate="
+            f"{python_env_definition_obj.execute_conda_unpack_after_activate}, "
+            f"py_spark_native_extensions={repr(python_env_definition_obj.py_spark_native_extensions)}"
+            ")"
+        )
     # Extraer group_name de raw_metadata y añadirlo como parámetro
     if raw_metadata:
         group_name = _extract_group_name_from_metadata(raw_metadata)

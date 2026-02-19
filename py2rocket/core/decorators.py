@@ -10,10 +10,10 @@ El decorator:
 """
 
 import os
-from typing import Callable, Dict, Any, Optional
+from typing import Callable, Dict, Any, Optional, Union, List
 from functools import wraps
 from dotenv import load_dotenv
-from py2rocket.core.pipeline import Pipeline, ExecutionEngine
+from py2rocket.core.pipeline import Pipeline, ExecutionEngine, PythonEnvDefinition
 from py2rocket.core.input import set_current_pipeline as _set_current_pipeline_input
 from py2rocket.core.transformation import (
     set_current_pipeline as _set_current_pipeline_transform,
@@ -49,7 +49,8 @@ def pipeline(
     post_execution_sql_sentences: Optional[list] = None,
     udfs_to_register: Optional[list] = None,
     udafs_to_register: Optional[list] = None,
-    user_spark_conf: Optional[dict] = None,
+    user_spark_conf: Optional[Union[Dict[str, str], List[Dict[str, str]]]] = None,
+    python_env_definition: Optional[Union[Dict[str, Any], PythonEnvDefinition]] = None,
     plugins: Optional[list] = None,
     raw_settings: Optional[Dict[str, Any]] = None,
     raw_ui_settings: Optional[Dict[str, Any]] = None,
@@ -78,7 +79,8 @@ def pipeline(
         post_execution_sql_sentences: Lista de sentencias SQL a ejecutar después del pipeline
         udfs_to_register: Lista de UDFs (User Defined Functions) a registrar
         udafs_to_register: Lista de UDAFs (User Defined Aggregate Functions) a registrar
-        user_spark_conf: Diccionario de configuraciones Spark personalizadas
+        user_spark_conf: Configuraciones Spark personalizadas (dict o lista de dicts)
+        python_env_definition: Configuración pythonEnvDefinition de Rocket
         plugins: Lista de nombres de plugins a incluir en el build
         raw_settings: Settings completos del JSON original (opcional)
         raw_ui_settings: uiSettings del JSON original (opcional)
@@ -137,6 +139,7 @@ def pipeline(
                 udfs_to_register=udfs_to_register or [],
                 udafs_to_register=udafs_to_register or [],
                 user_spark_conf=user_spark_conf or {},
+                python_env_definition=python_env_definition,
                 plugins=plugins or [],
                 raw_settings=raw_settings,
                 raw_ui_settings=raw_ui_settings,
