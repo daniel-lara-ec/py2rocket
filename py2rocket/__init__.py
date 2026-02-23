@@ -1887,7 +1887,6 @@ CLASS_TO_FUNCTION = {
     "PersistTransformStep": ("persist", "py2rocket.core.transformation"),
     "CoalesceTransformStep": ("coalesce", "py2rocket.core.transformation"),
     "RepartitionTransformStep": ("repartition", "py2rocket.core.transformation"),
-    "BypassTransformStep": ("bypass", "py2rocket.core.transformation"),
     "ByPassStep": ("bypass", "py2rocket.core.transformation"),
     "FilterTransformStep": ("filter", "py2rocket.core.transformation"),
     "UnionTransformStep": ("union", "py2rocket.core.transformation"),

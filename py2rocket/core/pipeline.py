@@ -59,7 +59,7 @@ class OutputWriter:
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el OutputWriter a formato dict para JSON"""
         extra_options = {
-            "partitionBy": self.partition_by if self.partition_by else "overwrite",
+            "partitionBy": self.partition_by if self.partition_by else "",
             "partitionOverwriteEnabled": self.partition_overwrite,
             "checkIfEmpty": self.check_if_empty,
             "partitionColumns": self.partition_columns,
