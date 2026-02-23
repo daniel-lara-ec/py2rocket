@@ -1945,6 +1945,13 @@ def _to_python_string_literal(value: str) -> str:
     return repr(value)
 
 
+def _sanitize_path_value(value: str) -> str:
+    """Normaliza valores de path removiendo saltos de línea y espacios extremos."""
+    if not isinstance(value, str):
+        return value
+    return value.replace("\n", "").replace("\r", "").strip()
+
+
 def _auto_debug_settings_to_literal(value: AutoDebugSettings) -> str:
     default = AutoDebugSettings()
     args = []
@@ -2460,6 +2467,12 @@ def from_json(
 
         added_params = set()
 
+        input_steps_with_paths = {
+            "ParquetInputStep",
+            "JsonInputStep",
+            "CsvInputStep",
+        }
+
         for key, value in config_args.items():
             if key == "priority":
                 continue
@@ -2482,6 +2495,13 @@ def from_json(
                 snake_key = "code"
 
             if snake_key in valid_params:
+                if class_name in input_steps_with_paths and snake_key == "paths":
+                    if not isinstance(value, list):
+                        continue
+
+                if snake_key == "path":
+                    value = _sanitize_path_value(value)
+
                 if snake_key in added_params:
                     continue
                 added_params.add(snake_key)

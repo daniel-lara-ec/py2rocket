@@ -83,6 +83,13 @@ def _process_outputs_writer(
         node.outputs_writer = [ow.to_dict() for ow in outputs_writer]
 
 
+def _sanitize_path(path: str) -> str:
+    """Normaliza path removiendo saltos de línea y espacios extremos."""
+    if not isinstance(path, str):
+        return path
+    return path.replace("\n", "").replace("\r", "").strip()
+
+
 # ============================================================================
 # CUSTOMADE INPUTS
 # ============================================================================
@@ -213,6 +220,8 @@ def sftp_input(
     """
     pipeline = get_current_pipeline()
 
+    clean_path = _sanitize_path(path)
+
     node = Node(
         name=name,
         step_type=StepType.INPUT,
@@ -224,7 +233,7 @@ def sftp_input(
         description=description,
         configuration={
             "inputOptions": input_options,
-            "path": path,
+            "path": clean_path,
             "username": username,
             "password": password,
             "host": host,
@@ -650,16 +659,24 @@ def parquet(
     """
     pipeline = get_current_pipeline()
 
-    if paths is None:
-        paths = [
-            {
-                "path": None,
-                "subdirGlobFilter": None,
-                "subdirRegexFilter": None,
-                "excludeGlobFilter": None,
-                "excludeRegexFilter": None,
-            }
-        ]
+    clean_path = _sanitize_path(path)
+    configuration = {
+        "path": clean_path,
+        "pathGlobFilter": path_glob_filter,
+        "isRecursiveEnabled": is_recursive_enabled,
+        "metadataColumnEnabled": metadata_column_enabled,
+        "enableFilterPattern": enable_filter_pattern,
+        "readMode": "DefaultReadMode",
+        "genAIMetadataTableDescription": "",
+        "genAIMetadataColumns": "",
+        "debugOptions": {
+            "executeStepAutoDebug": True,
+            "executeStepDebug": True,
+            "mockType": "AutoInfer",
+        },
+    }
+    if isinstance(paths, list):
+        configuration["paths"] = paths
 
     node = Node(
         name=name,
@@ -670,22 +687,7 @@ def parquet(
         execution_engine=ExecutionEngine.HYBRID,
         priority=priority,
         description=description,
-        configuration={
-            "path": path,
-            "paths": paths,
-            "pathGlobFilter": path_glob_filter,
-            "isRecursiveEnabled": is_recursive_enabled,
-            "metadataColumnEnabled": metadata_column_enabled,
-            "enableFilterPattern": enable_filter_pattern,
-            "readMode": "DefaultReadMode",
-            "genAIMetadataTableDescription": "",
-            "genAIMetadataColumns": "",
-            "debugOptions": {
-                "executeStepAutoDebug": True,
-                "executeStepDebug": True,
-                "mockType": "AutoInfer",
-            },
-        },
+        configuration=configuration,
         supported_engines=["Batch", "Hybrid"],
     )
 
@@ -738,6 +740,8 @@ def delta(
     """
     pipeline = get_current_pipeline()
 
+    clean_path = _sanitize_path(path)
+
     node = Node(
         name=name,
         step_type=StepType.INPUT,
@@ -748,7 +752,7 @@ def delta(
         priority=priority,
         description=description,
         configuration={
-            "path": path,
+            "path": clean_path,
             "enableReadingOfOlderVersions": enable_reading_older_versions,
             "readOlderVersionBy": read_older_version_by,
             "versionAsOf": version_as_of,
@@ -809,16 +813,25 @@ def json(
     """
     pipeline = get_current_pipeline()
 
-    if paths is None:
-        paths = [
-            {
-                "path": None,
-                "subdirGlobFilter": None,
-                "subdirRegexFilter": None,
-                "excludeGlobFilter": None,
-                "excludeRegexFilter": None,
-            }
-        ]
+    clean_path = _sanitize_path(path)
+    configuration = {
+        "path": clean_path,
+        "pathGlobFilter": path_glob_filter,
+        "isRecursiveEnabled": is_recursive_enabled,
+        "metadataColumnEnabled": metadata_column_enabled,
+        "enableFilterPattern": enable_filter_pattern,
+        "multilineEnabled": multiline_enabled,
+        "readMode": "DefaultReadMode",
+        "genAIMetadataTableDescription": "",
+        "genAIMetadataColumns": "",
+        "debugOptions": {
+            "executeStepAutoDebug": True,
+            "executeStepDebug": True,
+            "mockType": "AutoInfer",
+        },
+    }
+    if isinstance(paths, list):
+        configuration["paths"] = paths
 
     node = Node(
         name=name,
@@ -829,23 +842,7 @@ def json(
         execution_engine=ExecutionEngine.HYBRID,
         priority=priority,
         description=description,
-        configuration={
-            "path": path,
-            "paths": paths,
-            "pathGlobFilter": path_glob_filter,
-            "isRecursiveEnabled": is_recursive_enabled,
-            "metadataColumnEnabled": metadata_column_enabled,
-            "enableFilterPattern": enable_filter_pattern,
-            "multilineEnabled": multiline_enabled,
-            "readMode": "DefaultReadMode",
-            "genAIMetadataTableDescription": "",
-            "genAIMetadataColumns": "",
-            "debugOptions": {
-                "executeStepAutoDebug": True,
-                "executeStepDebug": True,
-                "mockType": "AutoInfer",
-            },
-        },
+        configuration=configuration,
         supported_engines=["Batch", "Hybrid"],
     )
 
@@ -910,17 +907,36 @@ def csv(
     """
     pipeline = get_current_pipeline()
 
-    # Si no se proporcionan paths, crear una entrada por defecto
-    if paths is None:
-        paths = [
-            {
-                "path": None,
-                "subdirGlobFilter": None,
-                "subdirRegexFilter": None,
-                "excludeGlobFilter": None,
-                "excludeRegexFilter": None,
-            }
-        ]
+    clean_path = _sanitize_path(path)
+    configuration = {
+        "path": clean_path,
+        "delimiter": delimiter,
+        "header": header,
+        "pathGlobFilter": path_glob_filter,
+        "isRecursiveEnabled": is_recursive_enabled,
+        "metadataColumnEnabled": metadata_column_enabled,
+        "dataAsJsonEnabled": data_as_json_enabled,
+        "enableFilterPattern": enable_filter_pattern,
+        "readMode": "DefaultReadMode",
+        "excludeGlobFilter": "",
+        "excludeRegexFilter": "",
+        "subdirGlobFilter": "",
+        "subdirRegexFilter": "",
+        "inputOptions": "",
+        "schema.inputMode": "NOSCHEMAPROVIDED",
+        "schema.header": "",
+        "schema.fields": "",
+        "schema.sparkSchema": "",
+        "genAIMetadataTableDescription": "",
+        "genAIMetadataColumns": "",
+        "debugOptions": {
+            "executeStepAutoDebug": True,
+            "executeStepDebug": True,
+            "mockType": "AutoInfer",
+        },
+    }
+    if isinstance(paths, list):
+        configuration["paths"] = paths
 
     node = Node(
         name=name,
@@ -931,34 +947,7 @@ def csv(
         execution_engine=ExecutionEngine.HYBRID,
         priority=priority,
         description=description,
-        configuration={
-            "path": path,
-            "paths": paths,
-            "delimiter": delimiter,
-            "header": header,
-            "pathGlobFilter": path_glob_filter,
-            "isRecursiveEnabled": is_recursive_enabled,
-            "metadataColumnEnabled": metadata_column_enabled,
-            "dataAsJsonEnabled": data_as_json_enabled,
-            "enableFilterPattern": enable_filter_pattern,
-            "readMode": "DefaultReadMode",
-            "excludeGlobFilter": "",
-            "excludeRegexFilter": "",
-            "subdirGlobFilter": "",
-            "subdirRegexFilter": "",
-            "inputOptions": "",
-            "schema.inputMode": "NOSCHEMAPROVIDED",
-            "schema.header": "",
-            "schema.fields": "",
-            "schema.sparkSchema": "",
-            "genAIMetadataTableDescription": "",
-            "genAIMetadataColumns": "",
-            "debugOptions": {
-                "executeStepAutoDebug": True,
-                "executeStepDebug": True,
-                "mockType": "AutoInfer",
-            },
-        },
+        configuration=configuration,
         supported_engines=["Batch", "Hybrid"],
     )
 
@@ -1006,6 +995,8 @@ def filesystem(
     """
     pipeline = get_current_pipeline()
 
+    clean_path = _sanitize_path(path)
+
     node = Node(
         name=name,
         step_type=StepType.INPUT,
@@ -1016,7 +1007,7 @@ def filesystem(
         priority=priority,
         description=description,
         configuration={
-            "path": path,
+            "path": clean_path,
             "outputField": output_field,
             "inputOptions": input_options,
             "genAIMetadataTableDescription": "",
