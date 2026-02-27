@@ -50,6 +50,7 @@ __all__ = [
     "get_projects",
     "get_workflow_run_parameters",
     "from_json",
+    "validate_standard",
     "pipeline",
     "UIPosition",
 ]
@@ -384,6 +385,128 @@ def render(
         )
 
     return graph
+
+
+def _normalize_priority_value(value: Any) -> str:
+    """Normaliza prioridad para comparación de duplicados."""
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(int(value))
+    try:
+        return str(int(str(value).strip()))
+    except (TypeError, ValueError):
+        return str(value).strip()
+
+
+def validate_standard(workflow_file: str) -> Dict[str, Any]:
+    """
+    Valida estándares básicos de un pipeline desde .json o .py.
+
+    Reglas:
+    - El pipeline debe tener descripción no vacía.
+    - Todos los nodos deben tener descripción no vacía.
+    - No deben existir prioridades repetidas entre nodos.
+
+    Args:
+        workflow_file: Ruta al archivo de entrada (.json o .py). Si no tiene
+            extensión, intenta resolver primero .json y luego .py.
+
+    Returns:
+        Diccionario con resultado y detalle de hallazgos.
+    """
+    input_path = Path(workflow_file)
+
+    if input_path.suffix == "":
+        json_candidate = input_path.with_suffix(".json")
+        py_candidate = input_path.with_suffix(".py")
+        if json_candidate.exists():
+            input_path = json_candidate
+        elif py_candidate.exists():
+            input_path = py_candidate
+
+    if not input_path.exists():
+        raise FileNotFoundError(f"Archivo no encontrado: {workflow_file}")
+
+    input_type = input_path.suffix.lower()
+    if input_type not in {".json", ".py"}:
+        raise ValueError("Formato no soportado. Use archivo .json o .py")
+
+    missing_pipeline_description = False
+    nodes_without_description: List[str] = []
+    priorities_to_nodes: Dict[str, List[str]] = {}
+
+    if input_type == ".json":
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+        pipeline_description = payload.get("description", "")
+        nodes_payload = (payload.get("pipelineGraph") or {}).get("nodes") or []
+
+        missing_pipeline_description = not str(pipeline_description or "").strip()
+
+        for index, node in enumerate(nodes_payload, start=1):
+            node_name = node.get("name") or node.get("id") or f"node_{index}"
+            node_description = node.get("description", "")
+            if not str(node_description or "").strip():
+                nodes_without_description.append(str(node_name))
+
+            priority = None
+            configuration = node.get("configuration")
+            if isinstance(configuration, dict):
+                priority = configuration.get("priority")
+            if priority is None:
+                priority = node.get("executionPriority")
+
+            normalized = _normalize_priority_value(priority)
+            if normalized:
+                priorities_to_nodes.setdefault(normalized, []).append(str(node_name))
+    else:
+        pipeline_obj = _load_pipeline_from_workflow(str(input_path))
+        pipeline_description = getattr(pipeline_obj, "description", "")
+        nodes_payload = getattr(pipeline_obj, "nodes", []) or []
+
+        missing_pipeline_description = not str(pipeline_description or "").strip()
+
+        for index, node in enumerate(nodes_payload, start=1):
+            node_name = getattr(node, "name", None) or f"node_{index}"
+            node_description = getattr(node, "description", "")
+            if not str(node_description or "").strip():
+                nodes_without_description.append(str(node_name))
+
+            normalized = _normalize_priority_value(getattr(node, "priority", None))
+            if normalized:
+                priorities_to_nodes.setdefault(normalized, []).append(str(node_name))
+
+    duplicate_priorities = [
+        {"priority": priority, "nodes": node_names}
+        for priority, node_names in priorities_to_nodes.items()
+        if len(node_names) > 1
+    ]
+    duplicate_priorities.sort(key=lambda item: item["priority"])
+
+    errors: List[str] = []
+    if missing_pipeline_description:
+        errors.append("El pipeline no tiene descripción")
+    if nodes_without_description:
+        errors.append(
+            "Nodos sin descripción: " + ", ".join(sorted(nodes_without_description))
+        )
+    if duplicate_priorities:
+        details = [
+            f"prioridad {item['priority']} ({', '.join(item['nodes'])})"
+            for item in duplicate_priorities
+        ]
+        errors.append("Prioridades repetidas: " + "; ".join(details))
+
+    return {
+        "valid": len(errors) == 0,
+        "input_file": str(input_path),
+        "input_type": "json" if input_type == ".json" else "python",
+        "checked_nodes": len(nodes_payload),
+        "missing_pipeline_description": missing_pipeline_description,
+        "nodes_without_description": sorted(nodes_without_description),
+        "duplicate_priorities": duplicate_priorities,
+        "errors": errors,
+    }
 
 
 def _load_pipeline_from_workflow(workflow_file: str) -> Any:

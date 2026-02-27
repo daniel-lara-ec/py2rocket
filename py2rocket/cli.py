@@ -14,6 +14,7 @@ Comandos disponibles:
     py2rocket projects                     - Lista todos los proyectos disponibles
     py2rocket run-view-parameters <workflow-id> - Obtiene los parámetros disponibles
     py2rocket from-json <archivo.json>     - Convierte JSON a código Python
+    py2rocket validate-standard <archivo>  - Valida descripciones y prioridades
     py2rocket get-extensions               - Lista extensiones por proyecto
     py2rocket create-group <nombre>        - Crea un grupo tomando el nombre del proyecto
 """
@@ -43,6 +44,7 @@ from py2rocket import (
     get_projects,
     get_workflow_run_parameters,
     from_json,
+    validate_standard,
     __version__,
 )
 
@@ -1352,6 +1354,38 @@ def cmd_from_json(args):
         sys.exit(1)
 
 
+def cmd_validate_standard(args):
+    """Comando: validate-standard - Valida estándares de descripción y prioridad"""
+    try:
+        result = validate_standard(args.workflow_file)
+
+        if args.json_output:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            if not result["valid"]:
+                sys.exit(1)
+            return
+
+        if result["valid"]:
+            print("✓ Validación estándar OK")
+            print(f"  Archivo: {result['input_file']}")
+            print(f"  Tipo: {result['input_type']}")
+            print(f"  Nodos revisados: {result['checked_nodes']}")
+            return
+
+        print("❌ Se encontraron incumplimientos de estándar:")
+        for error in result.get("errors", []):
+            print(f"  - {error}")
+        sys.exit(1)
+
+    except (FileNotFoundError, ValueError, json.JSONDecodeError) as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error inesperado: {e}")
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def cmd_create_group(args):
     """Comando: create-group - Crea un grupo tomando el nombre del proyecto"""
     try:
@@ -1972,6 +2006,23 @@ def main():
         help="Archivo Python de salida (default: mismo nombre con .py)",
     )
     parser_from_json.set_defaults(func=cmd_from_json)
+
+    # Comando: validate-standard
+    parser_validate_standard = subparsers.add_parser(
+        "validate-standard",
+        help="Valida que pipeline/nodos tengan descripción y que no haya prioridades repetidas",
+    )
+    parser_validate_standard.add_argument(
+        "workflow_file",
+        help="Archivo del pipeline (.json, .py o sin extensión)",
+    )
+    parser_validate_standard.add_argument(
+        "-j",
+        "--json-output",
+        action="store_true",
+        help="Mostrar salida en formato JSON en la consola",
+    )
+    parser_validate_standard.set_defaults(func=cmd_validate_standard)
 
     # Comando: get-extensions
     parser_get_extensions = subparsers.add_parser(

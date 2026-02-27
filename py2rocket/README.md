@@ -67,7 +67,7 @@ def workflow():
         query="SELECT * FROM {{P_TABLA}}",
         priority=50
     )
-    
+
     print_step(tabla, priority=50)
 
 if __name__ == "__main__":
@@ -90,6 +90,29 @@ py2rocket push mi_pipeline.json \
     --token $ROCKET_API_TOKEN \
     --project-id abc-123
 ```
+
+### 4. Validar estándar de descripción y prioridades
+
+```bash
+py2rocket validate-standard mi_pipeline.json
+```
+
+Salida estructurada para CI/CD:
+
+```bash
+py2rocket validate-standard mi_pipeline.json --json-output
+```
+
+Reglas validadas:
+
+- El pipeline debe tener `description` no vacía.
+- Todos los nodos deben tener `description` no vacía.
+- No deben existir prioridades repetidas entre nodos.
+
+Código de salida:
+
+- `0` si la validación es correcta.
+- `1` si hay incumplimientos o errores de validación.
 
 ---
 
@@ -125,7 +148,7 @@ def mi_workflow():
         query="SELECT * FROM {{P_TABLA}} WHERE fecha >= '2024-01-01'",
         priority=10
     )
-    
+
     # 2. Transformar con PySpark
     filtrado = pyspark(
         name="Filtrar_Activos",
@@ -133,7 +156,7 @@ def mi_workflow():
         inputs=ventas,
         priority=20
     )
-    
+
     # 3. Imprimir resultados
     print_step(filtrado, print_schema=True, priority=30)
 ```
@@ -160,6 +183,7 @@ build(workflow_file="mi_workflow.py", output_path="output.json")
 Crea un archivo .py base para un nuevo workflow.
 
 **Parámetros:**
+
 - `name` (str): Nombre del pipeline
 - `output_path` (str, opcional): Ruta del archivo de salida
 - `execution_engine` (str): "Batch", "Streaming" o "Hybrid" (default)
@@ -175,6 +199,7 @@ Crea un archivo .py base para un nuevo workflow.
 Compila un workflow Python a JSON de Rocket.
 
 **Parámetros:**
+
 - `pipeline_obj` (Pipeline, opcional): Objeto Pipeline a compilar
 - `output_path` (str, opcional): Ruta del JSON de salida
 - `workflow_file` (str, opcional): Archivo .py con el workflow
@@ -191,6 +216,7 @@ Despliega un pipeline a Stratio Rocket vía API.
 > ⚠️ **Función no implementada aún**
 
 **Parámetros:**
+
 - `json_file` (str): Ruta al JSON del pipeline
 - `rocket_url` (str): URL de Rocket
 - `api_token` (str, opcional): Token de API
@@ -276,16 +302,19 @@ py2rocket/
 ## 🛣️ Roadmap
 
 ### ✅ Fase 1 (Actual)
+
 - DSL básico (sql, pyspark, print)
 - Comandos create y build
 - Compilador a JSON de Rocket
 
 ### 🚧 Fase 2 (En progreso)
+
 - Comando push con API de Rocket
 - Validaciones de DAG (ciclos, huérfanos)
 - Más operaciones (join, union, filter)
 
 ### 📋 Fase 3 (Futuro)
+
 - Testing framework
 - Templates corporativos
 - Integración CI/CD
@@ -295,6 +324,7 @@ py2rocket/
 ## 📖 Ejemplos
 
 Ver carpeta `ejemplos/` para más casos de uso:
+
 - `ejemplo_basico.py` - Pipeline simple
 - `ejemplo_branching.py` - Fan-out / Fan-in
 - `ejemplo_parametros.py` - Uso de parámetros
@@ -303,7 +333,7 @@ Ver carpeta `ejemplos/` para más casos de uso:
 
 ## 🤝 Contribuir
 
-Las contribuciones son bienvenidas! 
+Las contribuciones son bienvenidas!
 
 1. Fork el proyecto
 2. Crea una rama (`git checkout -b feature/nueva-operacion`)

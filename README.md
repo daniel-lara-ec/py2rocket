@@ -218,6 +218,36 @@ Características:
 - Filtra valores por defecto conocidos
 - Convierte nombres de parámetros de camelCase a snake_case
 
+### `validate-standard` - Validar estándares del pipeline
+
+```bash
+py2rocket validate-standard <archivo.py|json> [opciones]
+
+Opciones:
+  -j, --json-output         Mostrar salida en formato JSON en la consola
+```
+
+Valida reglas mínimas de estándar sobre un pipeline (desde `.json` o `.py`):
+
+- El pipeline debe tener `description` no vacía.
+- Todos los nodos deben tener `description` no vacía.
+- No pueden existir prioridades repetidas entre nodos.
+
+Comportamiento de salida:
+
+- **Exit code 0** si cumple todas las reglas.
+- **Exit code 1** si hay incumplimientos o error de validación.
+
+Ejemplos:
+
+```bash
+# Validación legible
+py2rocket validate-standard tests/test_filter_build.json
+
+# Validación para CI/CD con salida estructurada
+py2rocket validate-standard tests/test_filter_build.json --json-output
+```
+
 ### `sync` - Sincronizar grupo desde Rocket
 
 ```bash
