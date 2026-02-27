@@ -2093,12 +2093,9 @@ def _to_python_string_literal(value: str) -> str:
     """Convierte un string a literal Python, preservando multilínea cuando aplica."""
     if not isinstance(value, str):
         return repr(value)
-
-    if "\n" in value:
-        escaped = value.replace('"""', '\\"\\"\\"')
-        return f'"""\\\n{escaped}"""'
-
-    return repr(value)
+    # json.dumps produce un literal de string seguro y reversible para Python,
+    # preservando escapes (\n, \\, regex, comillas, unicode) de forma transparente.
+    return json.dumps(value, ensure_ascii=False)
 
 
 def _sanitize_path_value(value: str) -> str:
@@ -2667,32 +2664,7 @@ def from_json(
 
                 # Formatear valor
                 if isinstance(value, str):
-                    # Detectar si es contenido multilínea (SQL, código Python, etc.)
-                    is_multiline = "\n" in value or len(value) > 80
-
-                    # Campos que típicamente contienen SQL o código multilínea
-                    multiline_fields = {
-                        "query",
-                        "python_code",
-                        "code",
-                        "sql",
-                        "add_column_expression_list",
-                        "trigger_sql",
-                        "filterExp",
-                        "filter_exp",
-                        "select_expression",
-                    }
-
-                    if (
-                        is_multiline
-                        or snake_key in multiline_fields
-                        and len(value) > 40
-                    ):
-                        value_escaped = value.replace('"""', r"\"\"\"")
-                        args.append(f'{snake_key}="""\n{value_escaped}\n"""')
-                    else:
-                        value_escaped = value.replace('"', '\\"').replace("\\", "\\\\")
-                        args.append(f'{snake_key}="{value_escaped}"')
+                    args.append(f"{snake_key}={_to_python_string_literal(value)}")
                 elif isinstance(value, bool):
                     args.append(f"{snake_key}={value}")
                 elif isinstance(value, (int, float)):

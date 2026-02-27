@@ -346,6 +346,46 @@ class RocketCompiler:
 
             configuration["pythonCode"] = formatted.rstrip("\n")
 
+    @staticmethod
+    def _trim_surrounding_blank_lines(text: str) -> str:
+        """Elimina líneas vacías al inicio y al final de un bloque de texto."""
+        import re
+
+        # Eliminar solo líneas en blanco al inicio y final, preservando el contenido
+        # interno tal cual (incluyendo escapes, regex y estilo de salto de línea).
+        trimmed = re.sub(r"^(?:[ \t]*\r?\n)+", "", text)
+        trimmed = re.sub(r"(?:\r?\n[ \t]*)+$", "", trimmed)
+        return trimmed
+
+    @staticmethod
+    def _trim_sql_boundary_blank_lines(nodes: list) -> None:
+        """Recorta líneas vacías externas en SQL Input y Trigger."""
+        target_fields = {
+            "SQLInputStep": "query",
+            "TriggerTransformStep": "sql",
+        }
+
+        for node in nodes or []:
+            if not isinstance(node, dict):
+                continue
+
+            class_name = node.get("className")
+            field_name = target_fields.get(class_name)
+            if not field_name:
+                continue
+
+            configuration = node.get("configuration")
+            if not isinstance(configuration, dict):
+                continue
+
+            field_value = configuration.get(field_name)
+            if not isinstance(field_value, str):
+                continue
+
+            configuration[field_name] = RocketCompiler._trim_surrounding_blank_lines(
+                field_value
+            )
+
     def compile(self, format_pyspark_code: bool = False) -> Dict[str, Any]:
         """
         Compila el pipeline a formato JSON de Rocket.
@@ -364,6 +404,8 @@ class RocketCompiler:
         pipeline_dict["pipelineGraph"]["nodes"] = self._add_ui_positions(
             pipeline_dict["pipelineGraph"]["nodes"]
         )
+
+        self._trim_sql_boundary_blank_lines(pipeline_dict["pipelineGraph"]["nodes"])
 
         if format_pyspark_code:
             self._format_pyspark_code_fields(pipeline_dict["pipelineGraph"]["nodes"])
