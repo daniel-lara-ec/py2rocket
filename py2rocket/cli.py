@@ -23,6 +23,8 @@ import argparse
 import sys
 import json
 import os
+import re
+import subprocess
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -337,6 +339,7 @@ def cmd_build(args):
             workflow_file=workflow_file,
             output_path=args.output,
             indent=args.indent,
+            format_pyspark_code=True,
         )
 
         print(
@@ -1386,6 +1389,113 @@ def cmd_validate_standard(args):
         sys.exit(1)
 
 
+def _parse_flake8_issues(stdout: str) -> list:
+    """Parsea salida estándar de flake8 a una estructura de issues."""
+    pattern = re.compile(r"^(.+):(\d+):(\d+):\s*([A-Z]\d+)\s+(.*)$")
+    issues = []
+    for raw_line in (stdout or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        match = pattern.match(line)
+        if not match:
+            continue
+        file_path, line_no, col_no, code, message = match.groups()
+        issues.append(
+            {
+                "file": file_path,
+                "line": int(line_no),
+                "column": int(col_no),
+                "code": code,
+                "message": message,
+            }
+        )
+    return issues
+
+
+def cmd_lint(args):
+    """Comando: lint - Ejecuta flake8 y muestra resultados."""
+    target = args.path
+    command = [sys.executable, "-m", "flake8", target]
+    if args.config:
+        command.extend(["--config", args.config])
+
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+    except Exception as e:
+        print(f"❌ Error ejecutando flake8: {e}")
+        sys.exit(2)
+
+    stderr_text = (completed.stderr or "").strip()
+    stdout_text = (completed.stdout or "").strip()
+    combined_output = "\n".join(
+        [part for part in [stdout_text, stderr_text] if part]
+    ).strip()
+
+    if (
+        "No module named flake8" in stderr_text
+        or "No module named flake8" in stdout_text
+    ):
+        print("❌ flake8 no está instalado en el entorno actual.")
+        print("   Instala dependencias con: pip install -e .[dev]")
+        sys.exit(2)
+
+    if completed.returncode not in (0, 1):
+        print("❌ Error ejecutando flake8")
+        if stderr_text:
+            print(stderr_text)
+        elif combined_output:
+            print(combined_output)
+        sys.exit(2)
+
+    issues = _parse_flake8_issues(combined_output)
+    result = {
+        "valid": completed.returncode == 0,
+        "target": target,
+        "issues_count": len(issues),
+        "issues": issues,
+    }
+
+    if args.output:
+        output_path = Path(args.output)
+        if args.json_output:
+            output_path.write_text(
+                json.dumps(result, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        else:
+            output_path.write_text(
+                combined_output + ("\n" if combined_output else ""),
+                encoding="utf-8",
+            )
+
+    if args.json_output:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    else:
+        if result["valid"]:
+            print("✓ Lint OK (flake8)")
+            print(f"  Target: {target}")
+            print("  Issues: 0")
+        else:
+            print("❌ Lint con issues (flake8)")
+            print(f"  Target: {target}")
+            print(f"  Issues: {result['issues_count']}")
+            if combined_output:
+                print("\n" + combined_output)
+
+    if args.output:
+        print(f"\n✓ Output guardado en: {args.output}")
+
+    if not result["valid"]:
+        sys.exit(1)
+
+
 def cmd_create_group(args):
     """Comando: create-group - Crea un grupo tomando el nombre del proyecto"""
     try:
@@ -2023,6 +2133,32 @@ def main():
         help="Mostrar salida en formato JSON en la consola",
     )
     parser_validate_standard.set_defaults(func=cmd_validate_standard)
+
+    # Comando: lint
+    parser_lint = subparsers.add_parser(
+        "lint",
+        help="Ejecuta flake8 sobre archivos Python y muestra resultados",
+    )
+    parser_lint.add_argument(
+        "path",
+        help="Archivo o carpeta a revisar con flake8",
+    )
+    parser_lint.add_argument(
+        "--config",
+        help="Ruta de configuración flake8 (opcional)",
+    )
+    parser_lint.add_argument(
+        "-j",
+        "--json-output",
+        action="store_true",
+        help="Mostrar salida en formato JSON en la consola",
+    )
+    parser_lint.add_argument(
+        "-o",
+        "--output",
+        help="Guardar resultado en archivo (texto o JSON con --json-output)",
+    )
+    parser_lint.set_defaults(func=cmd_lint)
 
     # Comando: get-extensions
     parser_get_extensions = subparsers.add_parser(

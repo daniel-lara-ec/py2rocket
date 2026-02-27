@@ -315,9 +315,44 @@ class RocketCompiler:
 
         return nodes
 
-    def compile(self) -> Dict[str, Any]:
+    @staticmethod
+    def _format_pyspark_code_fields(nodes: list) -> None:
+        """Formatea pythonCode de nodos PySpark usando black cuando está disponible."""
+        try:
+            import black
+        except ImportError:
+            return
+
+        pyspark_classes = {"PySparkTransformerStep", "PySparkTransformStep"}
+
+        for node in nodes or []:
+            if not isinstance(node, dict):
+                continue
+            if node.get("className") not in pyspark_classes:
+                continue
+
+            configuration = node.get("configuration")
+            if not isinstance(configuration, dict):
+                continue
+
+            python_code = configuration.get("pythonCode")
+            if not isinstance(python_code, str) or not python_code.strip():
+                continue
+
+            try:
+                formatted = black.format_str(python_code, mode=black.Mode())
+            except (black.InvalidInput, SyntaxError, ValueError):
+                continue
+
+            configuration["pythonCode"] = formatted.rstrip("\n")
+
+    def compile(self, format_pyspark_code: bool = False) -> Dict[str, Any]:
         """
         Compila el pipeline a formato JSON de Rocket.
+
+        Args:
+            format_pyspark_code: Si es True, formatea campos pythonCode de nodos
+                PySpark con black antes de generar el JSON final.
 
         Returns:
             Diccionario con la estructura completa del pipeline en formato Rocket
@@ -329,6 +364,9 @@ class RocketCompiler:
         pipeline_dict["pipelineGraph"]["nodes"] = self._add_ui_positions(
             pipeline_dict["pipelineGraph"]["nodes"]
         )
+
+        if format_pyspark_code:
+            self._format_pyspark_code_fields(pipeline_dict["pipelineGraph"]["nodes"])
 
         # No reordenamos nodos ni edges porque el orden no importa, solo el contenido
 
@@ -586,25 +624,27 @@ class RocketCompiler:
 
         return rocket_json
 
-    def to_json(self, indent: int = 2) -> str:
+    def to_json(self, indent: int = 2, format_pyspark_code: bool = False) -> str:
         """
         Compila y serializa el pipeline a JSON string.
 
         Args:
             indent: Nivel de indentación para el JSON
+            format_pyspark_code: Si formatea pythonCode en nodos PySpark.
 
         Returns:
             String JSON formateado
         """
-        compiled = self.compile()
+        compiled = self.compile(format_pyspark_code=format_pyspark_code)
         return json.dumps(compiled, indent=indent, ensure_ascii=False)
 
-    def save(self, filepath: str) -> None:
+    def save(self, filepath: str, format_pyspark_code: bool = False) -> None:
         """
         Compila y guarda el pipeline en un archivo JSON.
 
         Args:
             filepath: Ruta donde guardar el archivo JSON
+            format_pyspark_code: Si formatea pythonCode en nodos PySpark.
         """
         with open(filepath, "w", encoding="utf-8") as f:
-            f.write(self.to_json())
+            f.write(self.to_json(format_pyspark_code=format_pyspark_code))

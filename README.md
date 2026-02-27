@@ -113,6 +113,10 @@ Opciones:
   -i, --indent NUM          Indentación (default: 2)
 ```
 
+Nota: el comando `build` formatea automáticamente con `black` los campos
+`pythonCode` de nodos PySpark antes de guardar el JSON.
+`black` está incluido como dependencia del módulo en `pyproject.toml`.
+
 ### `render` - Ver estructura del grafo
 
 ```bash
@@ -246,6 +250,86 @@ py2rocket validate-standard tests/test_filter_build.json
 
 # Validación para CI/CD con salida estructurada
 py2rocket validate-standard tests/test_filter_build.json --json-output
+```
+
+### `lint` - Revisar código Python con flake8
+
+```bash
+py2rocket lint <archivo_o_carpeta> [opciones]
+
+Opciones:
+  --config PATH             Ruta de configuración flake8 (opcional)
+  -j, --json-output         Mostrar salida en formato JSON en la consola
+  -o, --output PATH         Guardar resultado (texto o JSON con --json-output)
+```
+
+`flake8` está incluido como dependencia del módulo en `pyproject.toml`.
+
+Comportamiento de salida:
+
+- **Exit code 0** si no hay issues.
+- **Exit code 1** si hay issues de lint.
+- **Exit code 2** si hay error de ejecución (por ejemplo, flake8 no instalado).
+
+Ejemplos:
+
+```bash
+# Revisar un archivo
+py2rocket lint py2rocket/core/transformation.py
+
+# Revisar todo el paquete con configuración personalizada
+py2rocket lint py2rocket --config .flake8
+
+# Revisar todo el paquete y guardar JSON para CI/CD
+py2rocket lint py2rocket --json-output --output lint_report.json
+```
+
+Ejemplo recomendado para CI/CD:
+
+```bash
+# 1) Ejecutar lint y guardar resultado estructurado
+py2rocket lint py2rocket --json-output --output lint_report.json
+
+# 2) Inspeccionar el reporte (PowerShell)
+Get-Content lint_report.json
+```
+
+Formato de salida JSON (ejemplo):
+
+```json
+{
+  "path": "py2rocket",
+  "issues_count": 2,
+  "issues": [
+    {
+      "file": "py2rocket/core/transformation.py",
+      "line": 1056,
+      "column": 13,
+      "code": "E501",
+      "message": "line too long (95 > 88 characters)"
+    }
+  ]
+}
+```
+
+Configuración recomendada de `.flake8`:
+
+```ini
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    build,
+    dist
+```
+
+Uso con configuración explícita:
+
+```bash
+py2rocket lint py2rocket --config .flake8 --json-output --output lint_report.json
 ```
 
 ### `sync` - Sincronizar grupo desde Rocket

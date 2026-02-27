@@ -114,6 +114,56 @@ Código de salida:
 - `0` si la validación es correcta.
 - `1` si hay incumplimientos o errores de validación.
 
+### 5. Revisar calidad de código con lint
+
+```bash
+py2rocket lint py2rocket/core/transformation.py
+```
+
+Opciones útiles:
+
+- `--config <ruta>` para usar configuración personalizada de `flake8`.
+- `--json-output` para salida estructurada (ideal para CI/CD).
+- `--output <ruta>` para guardar el resultado en archivo.
+
+`flake8` está incluido como dependencia del módulo en `pyproject.toml`.
+
+Ejemplo completo para CI/CD:
+
+```bash
+# Ejecutar lint del paquete completo y guardar reporte JSON
+py2rocket lint py2rocket --json-output --output lint_report.json
+
+# Ver el reporte (PowerShell)
+Get-Content lint_report.json
+```
+
+Códigos de salida de `lint`:
+
+- `0` sin issues.
+- `1` con issues de lint.
+- `2` error de ejecución (por ejemplo, problema al invocar flake8).
+
+Configuración recomendada de `.flake8`:
+
+```ini
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    build,
+    dist
+```
+
+Ejecutar lint usando esa configuración:
+
+```bash
+py2rocket lint py2rocket --config .flake8 --json-output --output lint_report.json
+```
+
 ---
 
 ## 📚 Uso Programático

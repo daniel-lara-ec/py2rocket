@@ -216,6 +216,7 @@ def build(
     output_path: Optional[str] = None,
     workflow_file: Optional[str] = None,
     indent: int = 2,
+    format_pyspark_code: bool = False,
 ) -> str:
     """
     Compila un workflow Python a JSON de Rocket.
@@ -231,6 +232,8 @@ def build(
         workflow_file: Ruta a un archivo .py que contiene el workflow. Se ejecutará
                       y se extraerá el pipeline
         indent: Nivel de indentación del JSON (default: 2)
+        format_pyspark_code: Si es True, formatea campos pythonCode de nodos
+                    PySpark con black antes de guardar el JSON.
 
     Returns:
         Ruta del archivo JSON generado
@@ -331,7 +334,10 @@ def build(
     compiler = RocketCompiler(pipeline_obj)
 
     # Guardar JSON
-    compiler.save(str(output_file))
+    compiler.save(
+        str(output_file),
+        format_pyspark_code=format_pyspark_code,
+    )
 
     print(f"[+] Pipeline compilado: {output_path}")
     print(f"  - Nombre: {pipeline_obj.name}")
