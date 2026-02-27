@@ -432,7 +432,18 @@ def _graph_from_pipeline(pipeline_obj: Any) -> Dict[str, Any]:
     nodes = []
     for node in pipeline_obj.nodes:
         step_type = getattr(node.step_type, "value", str(node.step_type))
-        nodes.append({"id": node.name, "type": _step_type_to_graph_type(step_type)})
+        priority = getattr(node, "priority", 50)
+        try:
+            priority_value = int(priority)
+        except (TypeError, ValueError):
+            priority_value = 50
+        nodes.append(
+            {
+                "id": node.name,
+                "type": _step_type_to_graph_type(step_type),
+                "priority": priority_value,
+            }
+        )
 
     edges = [
         {"source": edge.origin, "target": edge.destination}
@@ -454,7 +465,23 @@ def _graph_from_json(json_path: Path) -> Dict[str, Any]:
         if not node_id:
             continue
         step_type = node.get("stepType")
-        nodes.append({"id": node_id, "type": _step_type_to_graph_type(step_type)})
+        priority = None
+        configuration = node.get("configuration")
+        if isinstance(configuration, dict):
+            priority = configuration.get("priority")
+        if priority is None:
+            priority = node.get("executionPriority", 50)
+        try:
+            priority_value = int(str(priority))
+        except (TypeError, ValueError):
+            priority_value = 50
+        nodes.append(
+            {
+                "id": node_id,
+                "type": _step_type_to_graph_type(step_type),
+                "priority": priority_value,
+            }
+        )
 
     edges = []
     for edge in edges_payload:
