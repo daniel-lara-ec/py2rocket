@@ -709,8 +709,8 @@ def run_workflow(
     priority: int = 50,
     execution_priority: int = 0,
     run_workflow_when: str = "RECEIVE_DATA",
-    variables: str = "",
-    contexts: str = "",
+    variables: Union[str, List[Dict[str, Any]]] = "",
+    contexts: Union[str, List[Dict[str, Any]]] = "",
     forward_variables: bool = False,
     forward_contexts: bool = False,
     unique_instance: bool = False,
@@ -743,8 +743,8 @@ def run_workflow(
         priority: Prioridad de ejecución del paso
         execution_priority: Prioridad de ejecución del workflow invocado
         run_workflow_when: Cuándo ejecutar ("RECEIVE_DATA", etc.)
-        variables: Variables a pasar al workflow
-        contexts: Contextos a pasar al workflow
+        variables: Variables a pasar al workflow (string o lista de diccionarios)
+        contexts: Contextos a pasar al workflow (string o lista de diccionarios)
         forward_variables: Si se deben reenviar las variables del workflow actual
         forward_contexts: Si se deben reenviar los contextos del workflow actual
         unique_instance: Si se debe ejecutar una única instancia
@@ -785,7 +785,7 @@ def run_workflow(
         configuration={
             "workflowId": workflow_id,
             "assetId": asset_id,
-            "executionPriority": str(execution_priority),
+            "executionPriority": int(execution_priority),
             "runWorkflowWhen": run_workflow_when,
             "variables": variables,
             "contexts": contexts,
@@ -794,7 +794,7 @@ def run_workflow(
             "uniqueInstance": unique_instance,
             "dropDuplicates": drop_duplicates,
             "limitMaxInputRows": limit_max_input_rows,
-            "maxAttempts": str(max_attempts),
+            "maxAttempts": int(max_attempts),
             "attemptsConditions": attempts_conditions,
             "forceExecutionIfAvailableResources": force_execution_if_available_resources,
             "retryUnsuccessfulWrites": retry_unsuccessful_writes,

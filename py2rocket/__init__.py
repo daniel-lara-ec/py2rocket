@@ -2661,6 +2661,24 @@ def from_json(
                 snake_key = "code"
 
             if snake_key in valid_params:
+                if class_name == "RunWorkflowOutputStep":
+                    if snake_key in {"execution_priority", "max_attempts"}:
+                        if isinstance(value, str):
+                            try:
+                                value = int(value)
+                            except (TypeError, ValueError):
+                                pass
+                    elif snake_key in {"variables", "contexts"}:
+                        if isinstance(value, str):
+                            text_value = value.strip()
+                            if text_value.startswith("[") and text_value.endswith("]"):
+                                try:
+                                    parsed_value = json.loads(text_value)
+                                    if isinstance(parsed_value, list):
+                                        value = parsed_value
+                                except (TypeError, ValueError, json.JSONDecodeError):
+                                    pass
+
                 if class_name in input_steps_with_paths and snake_key == "paths":
                     if not isinstance(value, list):
                         continue
