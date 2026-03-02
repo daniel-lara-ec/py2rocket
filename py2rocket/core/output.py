@@ -263,6 +263,9 @@ def jdbc_output(
     jdbc_save_mode: str = "STATEMENT",
     schema_from_database: bool = False,
     save_options: str = "",
+    primary_key: str = "",
+    update_fields: str = "",
+    check_if_empty: bool = False,
     description: str = "",
     ui_position: Optional[Union[dict, "UIPosition"]] = None,
     include_description: bool = True,
@@ -292,6 +295,9 @@ def jdbc_output(
         jdbc_save_mode: Modo de guardado (STATEMENT, etc.)
         schema_from_database: Si obtener schema de la BD
         save_options: Opciones adicionales
+        primary_key: Clave primaria para modo Upsert en outputsWriter
+        update_fields: Campos a actualizar para modo Upsert en outputsWriter
+        check_if_empty: Validar si el dataset está vacío antes de escribir
         description: Descripción del propósito de este paso
 
     Returns:
@@ -339,6 +345,13 @@ def jdbc_output(
     _apply_include_description(node, include_description)
     pipeline.add_node(node)
 
+    jdbc_extra_options = {
+        "saveMode": jdbc_save_mode,
+        "primaryKey": primary_key,
+        "updateFields": update_fields,
+        "checkIfEmpty": check_if_empty,
+    }
+
     # Manejar múltiples inputs
     if isinstance(inputs, list):
         for input_step in inputs:
@@ -350,7 +363,11 @@ def jdbc_output(
             )
             pipeline.add_edge(edge)
             _attach_outputs_writer(
-                input_step, node.name, jdbc_save_mode, table_name=dbtable
+                input_step,
+                node.name,
+                jdbc_save_mode,
+                table_name=dbtable,
+                extra_options=jdbc_extra_options,
             )
     else:
         origin_name, data_relation = _get_origin_and_relation(inputs)
@@ -360,7 +377,13 @@ def jdbc_output(
             data_type=data_relation,
         )
         pipeline.add_edge(edge)
-        _attach_outputs_writer(inputs, node.name, jdbc_save_mode, table_name=dbtable)
+        _attach_outputs_writer(
+            inputs,
+            node.name,
+            jdbc_save_mode,
+            table_name=dbtable,
+            extra_options=jdbc_extra_options,
+        )
 
     return StepResult(node, pipeline)
 

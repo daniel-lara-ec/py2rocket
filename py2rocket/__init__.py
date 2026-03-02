@@ -2717,6 +2717,8 @@ def from_json(
                     "partitionOverwriteEnabled", True
                 )
                 check_if_empty = extra_options.get("checkIfEmpty", False)
+                primary_key = extra_options.get("primaryKey", "")
+                update_fields = extra_options.get("updateFields", "")
                 partition_columns = extra_options.get("partitionColumns", "")
                 partitions = extra_options.get("partitions", "")
 
@@ -2733,6 +2735,10 @@ def from_json(
                     ow_args.append(f"partition_overwrite={partition_overwrite}")
                 if check_if_empty:
                     ow_args.append(f"check_if_empty={check_if_empty}")
+                if primary_key:
+                    ow_args.append(f'primary_key="{primary_key}"')
+                if update_fields:
+                    ow_args.append(f'update_fields="{update_fields}"')
                 if partition_columns:
                     ow_args.append(f'partition_columns="{partition_columns}"')
                 if partitions:

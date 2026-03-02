@@ -53,19 +53,41 @@ class OutputWriter:
     partition_by: Optional[str] = None
     partition_overwrite: bool = True
     check_if_empty: bool = False
+    primary_key: str = ""
+    update_fields: str = ""
     partition_columns: str = ""
     partitions: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el OutputWriter a formato dict para JSON"""
-        extra_options = {
-            "partitionBy": self.partition_by if self.partition_by else "",
-            "partitionOverwriteEnabled": self.partition_overwrite,
-            "checkIfEmpty": self.check_if_empty,
-            "partitionColumns": self.partition_columns,
-            "saveMode": self.save_mode,
-            "partitions": self.partitions,
-        }
+        is_upsert = self.save_mode.lower() == "upsert"
+        has_partition_options = bool(
+            self.partition_by
+            or self.partition_columns
+            or self.partitions
+            or not self.partition_overwrite
+        )
+
+        if is_upsert and not has_partition_options:
+            extra_options = {
+                "saveMode": self.save_mode,
+                "primaryKey": self.primary_key,
+                "updateFields": self.update_fields,
+                "checkIfEmpty": self.check_if_empty,
+            }
+        else:
+            extra_options = {
+                "partitionBy": self.partition_by if self.partition_by else "",
+                "partitionOverwriteEnabled": self.partition_overwrite,
+                "checkIfEmpty": self.check_if_empty,
+                "partitionColumns": self.partition_columns,
+                "saveMode": self.save_mode,
+                "partitions": self.partitions,
+            }
+
+            if is_upsert or self.primary_key or self.update_fields:
+                extra_options["primaryKey"] = self.primary_key
+                extra_options["updateFields"] = self.update_fields
 
         return {
             "saveMode": self.save_mode,
@@ -708,6 +730,8 @@ class StepResult:
         table_name: str = "",
         discard_table_name: str = "",
         check_if_empty: bool = False,
+        primary_key: str = "",
+        update_fields: str = "",
         partition_by: Optional[List[str]] = None,
         partition_overwrite_enabled: bool = True,
         partition_columns: Optional[List[str]] = None,
@@ -724,6 +748,8 @@ class StepResult:
             table_name: Nombre de tabla destino
             discard_table_name: Nombre de tabla de descartes
             check_if_empty: Si validar vacío antes de escribir
+            primary_key: Clave primaria para modo Upsert
+            update_fields: Campos a actualizar para modo Upsert
             partition_by: Columnas para particionar (lista de strings)
             partition_overwrite_enabled: Si habilitar overwrite de particiones
             partition_columns: Columnas de partición (lista de strings)
@@ -744,6 +770,10 @@ class StepResult:
             "saveMode": save_mode,
             "partitions": partitions_str,
         }
+
+        if save_mode.lower() == "upsert" or primary_key or update_fields:
+            extra_options["primaryKey"] = primary_key
+            extra_options["updateFields"] = update_fields
 
         entry = {
             "saveMode": save_mode,
