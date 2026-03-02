@@ -252,6 +252,7 @@ def jdbc_output(
     dbtable: str = "",
     driver: str = "",
     priority: int = 50,
+    vault_db_name: str = "",
     batch_size: str = "1000",
     isolation_level: str = "READ_UNCOMMITTED",
     tls_enabled: bool = False,
@@ -280,6 +281,7 @@ def jdbc_output(
         dbtable: Tabla destino
         driver: Driver JDBC a usar
         priority: Prioridad de ejecución
+        vault_db_name: Nombre de la BD del vault para credenciales
         batch_size: Tamaño del lote para escritura
         isolation_level: Nivel de aislamiento
         tls_enabled: Si se debe habilitar TLS
@@ -311,6 +313,7 @@ def jdbc_output(
             "dbtable": dbtable,
             "driver": driver,
             "batchsize": batch_size,
+            "vaultDbName": vault_db_name,
             "isolationLevel": isolation_level,
             "tlsEnabled": tls_enabled,
             "userPassEnable": user_pass_enabled,
