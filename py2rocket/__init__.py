@@ -2945,7 +2945,8 @@ def from_json(
         group_name = _extract_group_name_from_metadata(raw_metadata)
         if group_name:
             decorator_args.append(f"group_name={repr(group_name)}")
-    # raw_ui_settings no se incluye en código generado (solo útil para preservar canvas UI en roundtrip)
+    if raw_ui_settings is not None:
+        decorator_args.append(f"ui_settings={repr(raw_ui_settings)}")
     # raw_metadata no se incluye ya que group_name y group_id están como parámetros separados
     # Solo incluir annotations si no está vacío
     annotations_value = pipeline_graph.get("annotations", [])

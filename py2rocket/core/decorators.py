@@ -63,6 +63,7 @@ def pipeline(
     errors_management: Optional[ErrorsManagement] = None,
     structured_streaming_settings: Optional[StructuredStreamingSettings] = None,
     plugins: Optional[list] = None,
+    ui_settings: Optional[Dict[str, Any]] = None,
     raw_ui_settings: Optional[Dict[str, Any]] = None,
     raw_metadata: Optional[Dict[str, Any]] = None,
     annotations: Optional[list] = None,
@@ -95,6 +96,7 @@ def pipeline(
         errors_management: Configuración tipada para settings.errorsManagement
         structured_streaming_settings: Configuración tipada para settings.structuredStreamingSettings
         plugins: Lista de nombres de plugins a incluir en el build
+        ui_settings: uiSettings raíz del workflow (canvas global)
         raw_ui_settings: uiSettings del JSON original (opcional)
         raw_metadata: Metadatos de primer nivel del JSON original (opcional)
         annotations: Annotations del pipelineGraph (opcional)
@@ -158,7 +160,9 @@ def pipeline(
                 structured_streaming_settings=structured_streaming_settings
                 or StructuredStreamingSettings(),
                 plugins=plugins or [],
-                raw_ui_settings=raw_ui_settings,
+                raw_ui_settings=(
+                    ui_settings if ui_settings is not None else raw_ui_settings
+                ),
                 raw_metadata=raw_metadata or {},
                 annotations=annotations or [],
                 node_groups=node_groups or [],

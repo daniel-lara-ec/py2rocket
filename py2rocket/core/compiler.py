@@ -316,6 +316,58 @@ class RocketCompiler:
         return nodes
 
     @staticmethod
+    def _compute_auto_ui_settings(nodes: list) -> Dict[str, Any]:
+        """Calcula uiSettings raíz centrando la vista según bounds de nodos."""
+        positions = []
+        for node in nodes or []:
+            ui_cfg = node.get("uiConfiguration", {})
+            if not isinstance(ui_cfg, dict):
+                continue
+            pos = ui_cfg.get("position", {})
+            if not isinstance(pos, dict):
+                continue
+            x = pos.get("x")
+            y = pos.get("y")
+            if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+                positions.append((float(x), float(y)))
+
+        if not positions:
+            return {
+                "position": {
+                    "x": -2083.536303142103,
+                    "y": -859.7024044750958,
+                    "k": 4.0,
+                }
+            }
+
+        min_x = min(x for x, _ in positions)
+        max_x = max(x for x, _ in positions)
+        min_y = min(y for _, y in positions)
+        max_y = max(y for _, y in positions)
+
+        center_x = (min_x + max_x) / 2.0
+        center_y = (min_y + max_y) / 2.0
+
+        span_x = max_x - min_x
+        span_y = max_y - min_y
+        max_span = max(span_x, span_y)
+
+        margin = 250.0
+        if max_span <= 0:
+            zoom = 4.0
+        else:
+            zoom = 1200.0 / (max_span + 2.0 * margin)
+            zoom = max(0.5, min(4.0, zoom))
+
+        return {
+            "position": {
+                "x": center_x,
+                "y": center_y,
+                "k": zoom,
+            }
+        }
+
+    @staticmethod
     def _format_pyspark_code_fields(nodes: list) -> None:
         """Formatea pythonCode de nodos PySpark usando black cuando está disponible."""
         try:
@@ -423,6 +475,10 @@ class RocketCompiler:
             except (TypeError, ValueError):
                 pipeline_version = 0
 
+        auto_ui_settings = self._compute_auto_ui_settings(
+            pipeline_dict["pipelineGraph"]["nodes"]
+        )
+
         rocket_json = {
             "id": self.pipeline.workflow_id or str(uuid.uuid4()),
             "name": self.pipeline.name,
@@ -432,9 +488,7 @@ class RocketCompiler:
             "executionEngine": self.pipeline.execution_engine.value,
             "workflowType": "SpartaWorkflow",
             "uiSettings": getattr(self.pipeline, "raw_ui_settings", None)
-            or {
-                "position": {"x": -2083.536303142103, "y": -859.7024044750958, "k": 4.0}
-            },
+            or auto_ui_settings,
             "creationDate": now,
             "lastUpdateDate": now,
             "version": pipeline_version,
