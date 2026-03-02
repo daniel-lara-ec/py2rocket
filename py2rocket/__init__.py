@@ -2699,6 +2699,10 @@ def from_json(
                         args.append(
                             f"{snake_key}={_to_python_multiline_string_literal(value)}"
                         )
+                    elif class_name == "SQLInputStep" and snake_key == "query":
+                        args.append(
+                            f"{snake_key}={_to_python_multiline_string_literal(value)}"
+                        )
                     elif (
                         class_name == "FilterTransformStep"
                         and snake_key == "filter_exp"
