@@ -3010,8 +3010,18 @@ def from_json(
     # Asegurar que el archivo termina con un solo newline
     cleaned_code = "\n".join(cleaned_lines) + "\n"
 
+    # Formatear con black para mejorar legibilidad del archivo generado
+    formatted_code = cleaned_code
     try:
-        output_path.write_text(cleaned_code, encoding="utf-8")
+        import importlib
+
+        black = importlib.import_module("black")
+        formatted_code = black.format_str(cleaned_code, mode=black.Mode())
+    except (ImportError, ValueError, SyntaxError, AttributeError):
+        formatted_code = cleaned_code
+
+    try:
+        output_path.write_text(formatted_code, encoding="utf-8")
     except IOError as exc:
         raise IOError(f"Error al guardar el archivo: {exc}") from exc
 
