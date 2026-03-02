@@ -2098,6 +2098,19 @@ def _to_python_string_literal(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _to_python_multiline_string_literal(value: str) -> str:
+    """Convierte un string multilínea a triple-quoted literal legible y seguro."""
+    if not isinstance(value, str):
+        return repr(value)
+
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    if "\n" not in normalized:
+        return _to_python_string_literal(normalized)
+
+    escaped = normalized.replace("\\", "\\\\").replace('"""', '\\"""')
+    return f'"""{escaped}"""'
+
+
 def _sanitize_path_value(value: str) -> str:
     """Normaliza valores de path removiendo saltos de línea y espacios extremos."""
     if not isinstance(value, str):
@@ -2664,7 +2677,28 @@ def from_json(
 
                 # Formatear valor
                 if isinstance(value, str):
-                    args.append(f"{snake_key}={_to_python_string_literal(value)}")
+                    if class_name == "TriggerTransformStep" and snake_key == "sql":
+                        args.append(
+                            f"{snake_key}={_to_python_multiline_string_literal(value)}"
+                        )
+                    elif (
+                        class_name == "FilterTransformStep"
+                        and snake_key == "filter_exp"
+                    ):
+                        args.append(
+                            f"{snake_key}={_to_python_multiline_string_literal(value)}"
+                        )
+                    elif class_name in {
+                        "PySparkInputStep",
+                        "PySparkTransformStep",
+                        "PySparkTransformerStep",
+                        "PySparkOutputStep",
+                    } and snake_key in {"python_code", "code"}:
+                        args.append(
+                            f"{snake_key}={_to_python_multiline_string_literal(value)}"
+                        )
+                    else:
+                        args.append(f"{snake_key}={_to_python_string_literal(value)}")
                 elif isinstance(value, bool):
                     args.append(f"{snake_key}={value}")
                 elif isinstance(value, (int, float)):
