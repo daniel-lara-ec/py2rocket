@@ -964,7 +964,7 @@ def bypass(
     node = Node(
         name=name,
         step_type=StepType.TRANSFORMATION,
-        class_name="BypassTransformStep",
+        class_name="ByPassStep",
         class_pretty_name="Bypass",
         arity=["UnaryToNary"],
         execution_engine=ExecutionEngine.HYBRID,
