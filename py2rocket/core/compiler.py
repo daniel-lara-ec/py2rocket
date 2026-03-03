@@ -497,7 +497,7 @@ class RocketCompiler:
             "tags": [],
             "debugMode": False,
             "debugAsExecutionMaybe": False,
-            "versionSparta": "3.6.3",
+            "versionSparta": "3.6.5",
             "normalizedName": self.pipeline.name.lower(),
             "isHybridStreaming": False,
         }
