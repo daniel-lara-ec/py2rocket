@@ -30,9 +30,10 @@ from typing import Optional
 from urllib.parse import quote
 from dotenv import load_dotenv
 import requests
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
 import traceback
 from tqdm import tqdm
-import urllib3
 
 from py2rocket import (
     create,
@@ -52,6 +53,24 @@ from py2rocket import (
 
 # Cargar variables de entorno
 load_dotenv()
+
+
+def _get_suppress_insecure_warning_from_env() -> bool:
+    """Obtiene ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING desde .env (default: True)."""
+    value = os.getenv("ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING")
+    if value is None:
+        return True
+    value = value.strip().lower()
+    if value in {"1", "true", "yes", "y", "on"}:
+        return True
+    if value in {"0", "false", "no", "n", "off"}:
+        return False
+    return True
+
+
+# Suprimir globalmente advertencias SSL inseguras de requests/urllib3 (configurable por .env)
+if _get_suppress_insecure_warning_from_env():
+    urllib3.disable_warnings(InsecureRequestWarning)
 
 
 def _get_verify_ssl_from_env() -> bool:
@@ -139,10 +158,6 @@ def cmd_create(args):
         verify_ssl = _get_verify_ssl_from_env()
         if args.no_verify_ssl:
             verify_ssl = False
-        if not verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        if not verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Solicitar parámetros interactivos
         name = _prompt_required("Nombre del pipeline", args.name)
@@ -1526,8 +1541,6 @@ def cmd_create_group(args):
         verify_ssl = _get_verify_ssl_from_env()
         if args.no_verify_ssl:
             verify_ssl = False
-        if not verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",

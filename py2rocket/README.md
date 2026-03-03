@@ -39,6 +39,14 @@ pip install -e .
 cp -r py2rocket /tu/proyecto/
 ```
 
+### Variables de entorno (.env)
+
+- `ROCKET_API_HOST`: URL base de Rocket.
+- `ROCKET_AUTH_COOKIE`: cookie de autenticación.
+- `PROJECT_ID`: ID de proyecto por defecto (opcional).
+- `ROCKET_VERIFY_SSL`: verifica certificados SSL (`true`/`false`, default `true`).
+- `ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING`: suprime `InsecureRequestWarning` (`true`/`false`, default `true`).
+
 ---
 
 ## 🚀 Inicio Rápido

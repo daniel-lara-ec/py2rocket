@@ -40,6 +40,19 @@ pip install -e .
 py2rocket --version
 ```
 
+### Variables de entorno (.env)
+
+Variables principales de conexión:
+
+- `ROCKET_API_HOST`: URL base de Rocket
+- `ROCKET_AUTH_COOKIE`: cookie de autenticación
+- `PROJECT_ID`: proyecto por defecto (opcional)
+- `ROCKET_VERIFY_SSL`: verificación SSL (`true`/`false`, default `true`)
+
+Control de warnings SSL inseguros:
+
+- `ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING`: suprime `InsecureRequestWarning` cuando SSL está desactivado (`true`/`false`, default `true`)
+
 ---
 
 ## 📚 Uso Rápido

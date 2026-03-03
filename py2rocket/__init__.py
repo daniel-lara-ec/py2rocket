@@ -17,6 +17,7 @@ import sys
 import json
 import requests
 import urllib3
+from urllib3.exceptions import InsecureRequestWarning
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 
@@ -57,6 +58,24 @@ __all__ = [
 
 # Cargar variables de entorno del archivo .env
 load_dotenv()
+
+
+def _get_suppress_insecure_warning_from_env() -> bool:
+    """Obtiene ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING desde .env (default: True)."""
+    value = os.getenv("ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING")
+    if value is None:
+        return True
+    value = value.strip().lower()
+    if value in {"1", "true", "yes", "y", "on"}:
+        return True
+    if value in {"0", "false", "no", "n", "off"}:
+        return False
+    return True
+
+
+# Suprimir globalmente advertencias SSL inseguras de requests/urllib3 (configurable por .env)
+if _get_suppress_insecure_warning_from_env():
+    urllib3.disable_warnings(InsecureRequestWarning)
 
 
 def _get_project_id_from_env() -> Optional[str]:
@@ -287,8 +306,6 @@ def build(
         auth_cookie = os.getenv("ROCKET_AUTH_COOKIE")
         if api_host and auth_cookie:
             verify_ssl = _get_verify_ssl_from_env()
-            if not verify_ssl:
-                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
                 "Accept": "application/json, text/plain, */*",
@@ -913,9 +930,6 @@ def create_asset(
     }
 
     try:
-        if not verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
         response = requests.post(
             url,
             headers=headers,
@@ -1097,9 +1111,6 @@ def create_workflow_version(
     }
 
     try:
-        if not verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
         versions_response = requests.get(
             versions_url,
             headers=headers,
@@ -1861,9 +1872,6 @@ def get_projects(
         }
 
     try:
-        if not verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
         url = f"{rocket_url.rstrip('/')}/projects"
 
         headers = {
@@ -1967,9 +1975,6 @@ def get_workflow_run_parameters(
         }
 
     try:
-        if not verify_ssl:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
         url = f"{rocket_url.rstrip('/')}/workflows/runWithParametersViewById/{workflow_id}"
 
         headers = {
