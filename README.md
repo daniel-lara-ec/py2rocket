@@ -53,6 +53,11 @@ Control de warnings SSL inseguros:
 
 - `ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING`: suprime `InsecureRequestWarning` cuando SSL está desactivado (`true`/`false`, default `true`)
 
+Log opcional de errores HTTP:
+
+- `ROCKET_HTTP_ERROR_LOG_FILE`: ruta de archivo para guardar errores HTTP (incluye `status_code` y `response_text`). Si está vacío, no se genera log.
+  Rotación automática: al llegar a 5MB, el archivo actual se renombra a `<archivo>.1`.
+
 ---
 
 ## 📚 Uso Rápido

@@ -25,6 +25,7 @@ import json
 import os
 import re
 import subprocess
+import datetime as dt
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -84,6 +85,49 @@ def _get_verify_ssl_from_env() -> bool:
     if value in {"0", "false", "no", "n", "off"}:
         return False
     return True
+
+
+def _format_request_exception(exc: requests.exceptions.RequestException) -> str:
+    """Devuelve detalle de error HTTP incluyendo status_code y response.text cuando exista."""
+
+    def _log_http_error(detail: str) -> None:
+        log_file = (os.getenv("ROCKET_HTTP_ERROR_LOG_FILE") or "").strip()
+        if not log_file:
+            return
+        try:
+            log_path = Path(log_file).expanduser()
+            if log_path.parent != Path(""):
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+
+            max_bytes = 5 * 1024 * 1024
+            if log_path.exists() and log_path.stat().st_size >= max_bytes:
+                rotated_path = log_path.with_name(log_path.name + ".1")
+                if rotated_path.exists():
+                    rotated_path.unlink()
+                log_path.replace(rotated_path)
+
+            timestamp = dt.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+            with log_path.open("a", encoding="utf-8") as handler:
+                handler.write(f"[{timestamp}] {detail}\n")
+        except OSError:
+            pass
+
+    base_message = str(exc)
+    response = getattr(exc, "response", None)
+    if response is None:
+        _log_http_error(base_message)
+        return base_message
+
+    status_code = getattr(response, "status_code", None)
+    response_text = (getattr(response, "text", "") or "").strip()
+    if len(response_text) > 1000:
+        response_text = response_text[:1000] + "... [truncated]"
+
+    formatted_message = (
+        f"{base_message} | status_code={status_code} | response_text={response_text}"
+    )
+    _log_http_error(formatted_message)
+    return formatted_message
 
 
 def _sanitize_path_part(value: str) -> str:
@@ -217,7 +261,10 @@ def cmd_create(args):
                     print(f"✓ Proyecto encontrado: {project_id}")
                     break
                 except requests.exceptions.RequestException as e:
-                    print(f"❌ Error al buscar proyecto: {e}")
+                    print(
+                        "❌ Error al buscar proyecto: "
+                        f"{_format_request_exception(e)}"
+                    )
                     project_name = _prompt_optional("Nombre del proyecto")
 
             # Verificar grupo
@@ -242,7 +289,9 @@ def cmd_create(args):
                     print(f"✓ Grupo encontrado: {group_id}")
                     break
                 except requests.exceptions.RequestException as e:
-                    print(f"❌ Error al buscar grupo: {e}")
+                    print(
+                        "❌ Error al buscar grupo: " f"{_format_request_exception(e)}"
+                    )
                     group_name = _prompt_optional("Nombre del grupo")
 
             # Crear asset en Rocket
@@ -301,9 +350,14 @@ def cmd_create(args):
                             else:
                                 print("⚠️  No se encontró workflow con version 0")
                         except requests.exceptions.RequestException as e:
-                            print(f"⚠️  Error al obtener workflow ID: {e}")
+                            print(
+                                "⚠️  Error al obtener workflow ID: "
+                                f"{_format_request_exception(e)}"
+                            )
                 except requests.exceptions.RequestException as e:
-                    print(f"❌ Error al crear el asset: {e}")
+                    print(
+                        "❌ Error al crear el asset: " f"{_format_request_exception(e)}"
+                    )
             else:
                 print("⚠️  No se pudo crear el asset porque falta projectId o groupId.")
         else:
@@ -653,9 +707,7 @@ def _create_py2rocket_metadata(
     }
 
     # Agregar fecha de sincronización
-    from datetime import datetime
-
-    metadata["sync_info"]["sync_date"] = datetime.now().isoformat()
+    metadata["sync_info"]["sync_date"] = dt.datetime.now().isoformat()
 
     metadata_file = output_path / ".py2rocket"
     try:
@@ -954,7 +1006,10 @@ def cmd_sync(args):
                         )
                     break
         except requests.exceptions.RequestException as e:
-            print(f"⚠️  No se pudo obtener información del proyecto: {e}")
+            print(
+                "⚠️  No se pudo obtener información del proyecto: "
+                f"{_format_request_exception(e)}"
+            )
 
         # 1.1) Buscar subgrupos (recursivo si la API lo permite)
         group_targets = [{"name": group_name, "id": group_id}]
@@ -1051,7 +1106,7 @@ def cmd_sync(args):
         )
 
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error al consultar Rocket: {e}")
+        print(f"❌ Error al consultar Rocket: {_format_request_exception(e)}")
         sys.exit(1)
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -1575,7 +1630,7 @@ def cmd_create_group(args):
                 sys.exit(1)
             print(f"✓ Proyecto encontrado: {project_id}")
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error al buscar proyecto: {e}")
+            print("❌ Error al buscar proyecto: " f"{_format_request_exception(e)}")
             sys.exit(1)
 
         # Crear el grupo
@@ -1605,9 +1660,7 @@ def cmd_create_group(args):
                 print(f"Respuesta: {json.dumps(group_data, indent=2)}")
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error al crear el grupo: {e}")
-            if hasattr(e, "response") and e.response is not None:
-                print(f"Respuesta del servidor: {e.response.text}")
+            print(f"❌ Error al crear el grupo: {_format_request_exception(e)}")
             sys.exit(1)
 
     except Exception as e:
@@ -1752,7 +1805,7 @@ def cmd_get_extensions(args):
                 )
 
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error al consultar extensiones: {e}")
+        print(f"❌ Error al consultar extensiones: {_format_request_exception(e)}")
         sys.exit(1)
     except Exception as e:
         print(f"❌ Error: {e}")

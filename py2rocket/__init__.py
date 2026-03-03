@@ -15,6 +15,7 @@ Comandos principales:
 import os
 import sys
 import json
+import datetime as dt
 import requests
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
@@ -99,6 +100,49 @@ def _get_verify_ssl_from_env() -> bool:
     if value in {"0", "false", "no", "n", "off"}:
         return False
     return True
+
+
+def _format_request_exception(exc: requests.exceptions.RequestException) -> str:
+    """Devuelve detalle de error HTTP incluyendo status_code y response.text cuando exista."""
+
+    def _log_http_error(detail: str) -> None:
+        log_file = (os.getenv("ROCKET_HTTP_ERROR_LOG_FILE") or "").strip()
+        if not log_file:
+            return
+        try:
+            log_path = Path(log_file).expanduser()
+            if log_path.parent != Path(""):
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+
+            max_bytes = 5 * 1024 * 1024
+            if log_path.exists() and log_path.stat().st_size >= max_bytes:
+                rotated_path = log_path.with_name(log_path.name + ".1")
+                if rotated_path.exists():
+                    rotated_path.unlink()
+                log_path.replace(rotated_path)
+
+            timestamp = dt.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+            with log_path.open("a", encoding="utf-8") as handler:
+                handler.write(f"[{timestamp}] {detail}\n")
+        except OSError:
+            pass
+
+    base_message = str(exc)
+    response = getattr(exc, "response", None)
+    if response is None:
+        _log_http_error(base_message)
+        return base_message
+
+    status_code = getattr(response, "status_code", None)
+    response_text = (getattr(response, "text", "") or "").strip()
+    if len(response_text) > 1000:
+        response_text = response_text[:1000] + "... [truncated]"
+
+    formatted_message = (
+        f"{base_message} | status_code={status_code} | response_text={response_text}"
+    )
+    _log_http_error(formatted_message)
+    return formatted_message
 
 
 def create(
@@ -341,7 +385,10 @@ def build(
                             )
                     pipeline_obj.user_plugins_jars = user_plugins_jars
             except requests.exceptions.RequestException as e:
-                print(f"⚠️  No se pudieron resolver plugins: {e}")
+                print(
+                    "⚠️  No se pudieron resolver plugins: "
+                    f"{_format_request_exception(e)}"
+                )
         else:
             print(
                 "⚠️  ROCKET_API_HOST o ROCKET_AUTH_COOKIE no definidos; se omite resolución de plugins."
@@ -777,7 +824,9 @@ def push(
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        raise ConnectionError(f"Error al enviar el pipeline a Rocket: {exc}") from exc
+        raise ConnectionError(
+            "Error al enviar el pipeline a Rocket: " f"{_format_request_exception(exc)}"
+        ) from exc
 
     # 7. Procesar respuesta
     try:
@@ -940,7 +989,9 @@ def create_asset(
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        raise ConnectionError(f"Error al crear el asset en Rocket: {exc}") from exc
+        raise ConnectionError(
+            "Error al crear el asset en Rocket: " f"{_format_request_exception(exc)}"
+        ) from exc
 
     # 8. Procesar respuesta
     try:
@@ -1121,7 +1172,9 @@ def create_workflow_version(
         versions_response.raise_for_status()
         versions = versions_response.json()
     except requests.exceptions.RequestException as exc:
-        raise ConnectionError(f"Error al obtener versiones del asset: {exc}") from exc
+        raise ConnectionError(
+            "Error al obtener versiones del asset: " f"{_format_request_exception(exc)}"
+        ) from exc
 
     # 6. Determinar el número de la nueva versión
     if versions and len(versions) > 0:
@@ -1157,7 +1210,10 @@ def create_workflow_version(
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        raise ConnectionError(f"Error al crear la versión del workflow: {exc}") from exc
+        raise ConnectionError(
+            "Error al crear la versión del workflow: "
+            f"{_format_request_exception(exc)}"
+        ) from exc
 
     # 9. Procesar respuesta
     try:
@@ -1388,7 +1444,9 @@ def run(
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        raise ConnectionError(f"Error al ejecutar el workflow: {exc}") from exc
+        raise ConnectionError(
+            "Error al ejecutar el workflow: " f"{_format_request_exception(exc)}"
+        ) from exc
 
     try:
         response_data = response.json()
@@ -1490,7 +1548,9 @@ def pull(
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        raise ConnectionError(f"Error al descargar el workflow: {exc}") from exc
+        raise ConnectionError(
+            "Error al descargar el workflow: " f"{_format_request_exception(exc)}"
+        ) from exc
 
     try:
         workflow_data = response.json()
@@ -1610,7 +1670,9 @@ def download(
         )
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
-        raise ConnectionError(f"Error al descargar el workflow: {exc}") from exc
+        raise ConnectionError(
+            "Error al descargar el workflow: " f"{_format_request_exception(exc)}"
+        ) from exc
 
     try:
         workflow_data = response.json()
@@ -1778,7 +1840,8 @@ def get_execution_history(
         response.raise_for_status()
     except requests.exceptions.RequestException as exc:
         raise ConnectionError(
-            f"Error al obtener historial de ejecuciones: {exc}"
+            "Error al obtener historial de ejecuciones: "
+            f"{_format_request_exception(exc)}"
         ) from exc
 
     try:
@@ -1893,7 +1956,9 @@ def get_projects(
     except requests.exceptions.RequestException as exc:
         return {
             "status": "error",
-            "message": f"Error al conectar con Rocket: {str(exc)}",
+            "message": (
+                "Error al conectar con Rocket: " f"{_format_request_exception(exc)}"
+            ),
             "total_count": 0,
             "projects": [],
         }
@@ -1996,7 +2061,9 @@ def get_workflow_run_parameters(
     except requests.exceptions.RequestException as exc:
         return {
             "status": "error",
-            "message": f"Error al conectar con Rocket: {str(exc)}",
+            "message": (
+                "Error al conectar con Rocket: " f"{_format_request_exception(exc)}"
+            ),
             "workflow_id": workflow_id,
             "groupsAndContexts": [],
             "extraParams": [],
@@ -2423,7 +2490,10 @@ def from_json(
                                 f"⚠️  Plugin no encontrado en extensiones del proyecto para jarPath: {jar_id}"
                             )
             except requests.exceptions.RequestException as e:
-                print(f"⚠️  No se pudieron resolver plugins en from-json: {e}")
+                print(
+                    "⚠️  No se pudieron resolver plugins en from-json: "
+                    f"{_format_request_exception(e)}"
+                )
         else:
             print(
                 "⚠️  ROCKET_API_HOST o ROCKET_AUTH_COOKIE no definidos; se omite resolución de plugins en from-json."

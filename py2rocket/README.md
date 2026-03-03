@@ -46,6 +46,8 @@ cp -r py2rocket /tu/proyecto/
 - `PROJECT_ID`: ID de proyecto por defecto (opcional).
 - `ROCKET_VERIFY_SSL`: verifica certificados SSL (`true`/`false`, default `true`).
 - `ROCKET_SUPPRESS_INSECURE_REQUEST_WARNING`: suprime `InsecureRequestWarning` (`true`/`false`, default `true`).
+- `ROCKET_HTTP_ERROR_LOG_FILE`: archivo opcional para registrar errores HTTP (incluye `status_code` y `response_text`). Si está vacío, no registra.
+    Rotación automática: al llegar a 5MB, el archivo actual se renombra a `<archivo>.1`.
 
 ---
 
