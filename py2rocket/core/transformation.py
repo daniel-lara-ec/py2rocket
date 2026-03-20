@@ -112,7 +112,7 @@ def add_columns(
     name: str,
     inputs: Optional[Union[StepResult, List[StepResult]]] = None,
     select_type: str = "EXPRESSION",
-    add_column_expression_list: str = "",
+    add_column_expression_list: Optional[list] = None,
     columns: Optional[list] = None,
     priority: int = 50,
     description: str = "",
@@ -129,8 +129,8 @@ def add_columns(
         name: Nombre único del paso
         inputs: Paso(s) previo(s) que alimentan esta transformación
         select_type: Tipo de selección ("EXPRESSION" o "SUBQUERY")
-        add_column_expression_list: Expresiones de columnas a agregar
-        columns: Lista de columnas a agregar con su configuración
+        add_column_expression_list: Lista de diccionarios con expresiones de columnas a agregar
+        columns: Lista de diccionarios de columnas a agregar con su configuración
         priority: Prioridad de ejecución
         description: Descripción de la transformación
 
@@ -142,13 +142,29 @@ def add_columns(
         >>> con_calc = add_columns(
         ...     name="Add_Totals",
         ...     inputs=base,
-        ...     add_column_expression_list="precio * cantidad AS total"
+        ...     add_column_expression_list=[{"field": "total", "query": "precio * cantidad"}]
         ... )
     """
     pipeline = get_current_pipeline()
 
-    if columns is None:
-        columns = [{"field": None, "query": None, "type": "string"}]
+    # Determinar qué parámetro usar en la configuración
+    config_dict = {
+        "selectType": select_type,
+        "inputSchemas": "",
+        "genAIMetadataTableDescription": "",
+        "genAIMetadataColumns": "",
+        "debugOptions": {
+            "executeStepAutoDebug": True,
+            "executeStepDebug": True,
+            "mockType": "NoMock",
+        },
+    }
+
+    # Solo agregar uno de los dos parámetros (exclusivo)
+    if add_column_expression_list is not None:
+        config_dict["addColumnExpressionList"] = add_column_expression_list
+    elif columns is not None:
+        config_dict["columns"] = columns
 
     node = Node(
         name=name,
@@ -159,19 +175,7 @@ def add_columns(
         execution_engine=ExecutionEngine.HYBRID,
         priority=priority,
         description=description,
-        configuration={
-            "selectType": select_type,
-            "addColumnExpressionList": add_column_expression_list,
-            "columns": columns,
-            "inputSchemas": "",
-            "genAIMetadataTableDescription": "",
-            "genAIMetadataColumns": "",
-            "debugOptions": {
-                "executeStepAutoDebug": True,
-                "executeStepDebug": True,
-                "mockType": "NoMock",
-            },
-        },
+        configuration=config_dict,
         supported_engines=["Streaming", "Batch", "Hybrid"],
     )
 
