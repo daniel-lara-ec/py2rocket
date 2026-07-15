@@ -6,6 +6,10 @@ __pycache__/
 # Environment variables
 .env
 tests/
+!tests/
+tests/*
+!tests/test_databricks_compiler.py
 ref_workflows/
 ref_api/
 *.json
+!examples/databricks_demo/unity_catalog.json

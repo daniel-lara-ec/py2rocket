@@ -39,6 +39,7 @@ from tqdm import tqdm
 from py2rocket import (
     create,
     build,
+    build_databricks,
     render,
     push,
     run,
@@ -420,6 +421,26 @@ def cmd_build(args):
         sys.exit(1)
     except Exception as e:
         print(f"❌ Error inesperado: {e}")
+        sys.exit(1)
+
+
+def cmd_build_databricks(args):
+    """Comando: build-databricks - Compila workflow a notebook source Python."""
+    try:
+        workflow_file = args.workflow_file
+        if Path(workflow_file).suffix == "":
+            workflow_file = f"{workflow_file}.py"
+        output_path = build_databricks(
+            workflow_file=workflow_file,
+            output_path=args.output,
+            unity_catalog_mapping_file=args.unity_catalog_map,
+        )
+        print(f"\nSiguiente paso: importa o despliega {output_path} en Databricks")
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error inesperado: {e}")
         sys.exit(1)
 
 
@@ -1879,6 +1900,20 @@ def main():
         "-i", "--indent", type=int, default=2, help="Indentación del JSON (default: 2)"
     )
     parser_build.set_defaults(func=cmd_build)
+
+    parser_databricks = subparsers.add_parser(
+        "build-databricks",
+        help="Compila un workflow a notebook Python de Databricks",
+    )
+    parser_databricks.add_argument("workflow_file", help="Archivo .py del workflow")
+    parser_databricks.add_argument(
+        "-o", "--output", help="Ruta del notebook .py de salida"
+    )
+    parser_databricks.add_argument(
+        "--unity-catalog-map",
+        help="JSON con mapping de nodos a tablas de Unity Catalog",
+    )
+    parser_databricks.set_defaults(func=cmd_build_databricks)
 
     # Comando: render
     parser_render = subparsers.add_parser(

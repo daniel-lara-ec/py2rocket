@@ -79,6 +79,10 @@ from py2rocket.core.output import (
 
 from py2rocket.core.decorators import pipeline
 from py2rocket.core.compiler import RocketCompiler
+from py2rocket.core.databricks_compiler import (
+    DatabricksCompiler,
+    DatabricksCompileError,
+)
 
 __all__ = [
     # Core pipeline
@@ -164,4 +168,6 @@ __all__ = [
     # Decorators and compiler
     "pipeline",
     "RocketCompiler",
+    "DatabricksCompiler",
+    "DatabricksCompileError",
 ]

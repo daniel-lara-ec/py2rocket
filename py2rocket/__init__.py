@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 
 from dotenv import load_dotenv
-from py2rocket.core import pipeline, RocketCompiler
+from py2rocket.core import pipeline, RocketCompiler, DatabricksCompiler
 from py2rocket.core.pipeline import (
     UIPosition,
     PythonEnvDefinition,
@@ -41,6 +41,7 @@ __version__ = "0.4.7"
 __all__ = [
     "create",
     "build",
+    "build_databricks",
     "render",
     "push",
     "create_asset",
@@ -410,6 +411,46 @@ def build(
     print(f"  - Motor: {pipeline_obj.execution_engine.value}")
 
     return str(output_path)
+
+
+def build_databricks(
+    pipeline_obj: Any = None,
+    output_path: Optional[str] = None,
+    workflow_file: Optional[str] = None,
+    unity_catalog_mapping: Optional[Dict[str, Any]] = None,
+    unity_catalog_mapping_file: Optional[str] = None,
+) -> str:
+    """Compile a DSL workflow to a Databricks source-format Python notebook.
+
+    ``unity_catalog_mapping`` accepts either a flat ``{node: table}`` mapping or
+    ``{"sources": {...}, "destinations": {...}}``. A JSON file can be supplied
+    instead with ``unity_catalog_mapping_file``.
+    """
+    if pipeline_obj is None and workflow_file is None:
+        raise ValueError("Debe proporcionar 'pipeline_obj' o 'workflow_file'")
+    if unity_catalog_mapping is not None and unity_catalog_mapping_file is not None:
+        raise ValueError(
+            "Use 'unity_catalog_mapping' o 'unity_catalog_mapping_file', no ambos"
+        )
+    if workflow_file is not None:
+        pipeline_obj = _load_pipeline_from_workflow(workflow_file)
+    if output_path is None:
+        if workflow_file is not None:
+            output_path = f"{Path(workflow_file).stem}_databricks.py"
+        else:
+            name = pipeline_obj.name.replace("pl-", "").replace("-", "_")
+            output_path = f"{name}_databricks.py"
+
+    if unity_catalog_mapping_file:
+        compiler = DatabricksCompiler.from_mapping_file(
+            pipeline_obj, unity_catalog_mapping_file
+        )
+    else:
+        compiler = DatabricksCompiler(pipeline_obj, unity_catalog_mapping)
+    result = compiler.save(str(output_path))
+    print(f"[+] Notebook Databricks generado: {result}")
+    print(f"  - Nodos/celdas: {len(pipeline_obj.nodes)}")
+    return result
 
 
 def render(

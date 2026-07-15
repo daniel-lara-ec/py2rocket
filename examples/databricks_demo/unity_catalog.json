@@ -1,0 +1,8 @@
+{
+  "sources": {
+    "Load_Ventas": "main.bronze.ventas"
+  },
+  "destinations": {
+    "Save_Valid_Sales": "main.silver.ventas_alto_valor"
+  }
+}
