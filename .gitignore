@@ -9,6 +9,7 @@ tests/
 !tests/
 tests/*
 !tests/test_databricks_compiler.py
+!tests/test_databricks_migration_demo.py
 ref_workflows/
 ref_api/
 *.json
