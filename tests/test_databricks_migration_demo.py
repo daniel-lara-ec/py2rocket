@@ -43,7 +43,7 @@ def test_convert_workflows_preserves_hierarchy(tmp_path, monkeypatch):
     monkeypatch.setattr(demo, "build_databricks", fake_build_databricks)
     output = tmp_path / "databricks"
     converted, errors = demo.convert_workflows(
-        downloads, output, "unity_catalog.json"
+        downloads, output, "unity_catalog.json", {"enabled": True}
     )
 
     expected = output / "ventas" / "asset-a" / "v0.py"
@@ -55,6 +55,7 @@ def test_convert_workflows_preserves_hierarchy(tmp_path, monkeypatch):
             "workflow_file": str(source),
             "output_path": str(expected),
             "unity_catalog_mapping_file": "unity_catalog.json",
+            "template_replacement": {"enabled": True},
         }
     ]
 
@@ -72,6 +73,7 @@ def test_migration_notebook_is_valid_and_all_code_cells_compile():
     assert 'load_dotenv()' in parameters
     assert 'os.getenv("ROCKET_AUTH_COOKIE")' in parameters
     assert 'os.getenv("PY2ROCKET_MIGRATION_PROJECT"' in parameters
+    assert 'os.getenv("PY2ROCKET_TEMPLATE_NODES"' in parameters
 
     for index, cell in enumerate(code_cells, start=1):
         compile("".join(cell["source"]), f"<notebook-cell-{index}>", "exec")

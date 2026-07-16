@@ -62,8 +62,28 @@ PY2ROCKET_MIGRATION_GROUP_PATH=pipelines/diarios
 PY2ROCKET_MIGRATION_OUTPUT=migracion_databricks
 PY2ROCKET_UNITY_CATALOG_MAP=examples/databricks_demo/unity_catalog.json
 PY2ROCKET_MIGRATION_FORCE=false
+PY2ROCKET_TEMPLATE_REPLACEMENT=true
+PY2ROCKET_TEMPLATE_NODES=Parametros,tri_punto_control,tri_registrar_fin,tri_registrar_inicio,sql_rangos_fechas,tri_resumen_ejecucion,pys_notificaciones_ini_tpl,pys_notificaciones_fin_tpl
+PY2ROCKET_TEMPLATE_PARAMETER_NODE=Parametros
+PY2ROCKET_TEMPLATE_TABLE_FIELD=tablaUbicacion
+PY2ROCKET_TEMPLATE_OUTPUT_NAME=Save_Migrated_Table
+PY2ROCKET_TEMPLATE_SAVE_MODE=Overwrite
+PY2ROCKET_TEMPLATE_SOURCE_NODE=
 ```
 
 La plantilla completa está en `.env.example`. Si
 `PY2ROCKET_MIGRATION_PROJECT` está vacío, el notebook muestra los proyectos y
 solicita una selección; un grupo vacío migra el proyecto completo.
+
+Cuando encuentra la caja configurada en `PY2ROCKET_TEMPLATE_PARAMETER_NODE`, la
+migración elimina las cajas de `PY2ROCKET_TEMPLATE_NODES` y crea un único output
+Delta con `saveAsTable`. El nombre de tabla se extrae del literal SQL cuyo alias
+es `tablaUbicacion`, por ejemplo:
+
+```sql
+SELECT 'catalogo.esquema.tabla' AS tablaUbicacion
+```
+
+El DataFrame se infiere del único nodo externo que entra en la plantilla. Si
+existen varios candidatos, configura explícitamente
+`PY2ROCKET_TEMPLATE_SOURCE_NODE` con el nombre de la caja que debe guardarse.

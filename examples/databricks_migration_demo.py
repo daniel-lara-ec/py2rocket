@@ -17,6 +17,16 @@ from py2rocket import build_databricks, get_projects
 
 
 Project = Dict[str, Any]
+DEFAULT_TEMPLATE_NODES = (
+    "Parametros",
+    "tri_punto_control",
+    "tri_registrar_fin",
+    "tri_registrar_inicio",
+    "sql_rangos_fechas",
+    "tri_resumen_ejecucion",
+    "pys_notificaciones_ini_tpl",
+    "pys_notificaciones_fin_tpl",
+)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -24,6 +34,27 @@ def _env_bool(name: str, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def template_replacement_from_env() -> Dict[str, Any]:
+    raw_nodes = os.getenv(
+        "PY2ROCKET_TEMPLATE_NODES", ",".join(DEFAULT_TEMPLATE_NODES)
+    )
+    return {
+        "enabled": _env_bool("PY2ROCKET_TEMPLATE_REPLACEMENT", True),
+        "nodes": [name.strip() for name in raw_nodes.split(",") if name.strip()],
+        "parameter_node": os.getenv(
+            "PY2ROCKET_TEMPLATE_PARAMETER_NODE", "Parametros"
+        ),
+        "table_field": os.getenv(
+            "PY2ROCKET_TEMPLATE_TABLE_FIELD", "tablaUbicacion"
+        ),
+        "output_name": os.getenv(
+            "PY2ROCKET_TEMPLATE_OUTPUT_NAME", "Save_Migrated_Table"
+        ),
+        "save_mode": os.getenv("PY2ROCKET_TEMPLATE_SAVE_MODE", "Overwrite"),
+        "source_node": os.getenv("PY2ROCKET_TEMPLATE_SOURCE_NODE") or None,
+    }
 
 
 def _project_label(project: Project) -> str:
@@ -132,6 +163,7 @@ def convert_workflows(
     download_dir: Path,
     notebooks_dir: Path,
     unity_catalog_mapping_file: Optional[str] = None,
+    template_replacement: Optional[Dict[str, Any]] = None,
 ) -> Tuple[List[Path], List[Tuple[Path, str]]]:
     """Convierte los DSL y conserva su ruta relativa en la salida."""
     converted: List[Path] = []
@@ -146,6 +178,7 @@ def convert_workflows(
                 workflow_file=str(workflow_file),
                 output_path=str(notebook_file),
                 unity_catalog_mapping_file=unity_catalog_mapping_file,
+                template_replacement=template_replacement,
             )
             converted.append(notebook_file)
         except Exception as exc:  # Continúa migrando los demás assets.
@@ -233,7 +266,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "PY2ROCKET_UNITY_CATALOG_MAP"
         )
         converted, errors = convert_workflows(
-            download_dir, notebooks_dir, mapping_file or None
+            download_dir,
+            notebooks_dir,
+            mapping_file or None,
+            template_replacement_from_env(),
         )
     except (ValueError, OSError, subprocess.CalledProcessError) as exc:
         print(f"Error durante la migración: {exc}")

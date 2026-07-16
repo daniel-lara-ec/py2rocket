@@ -419,6 +419,7 @@ def build_databricks(
     workflow_file: Optional[str] = None,
     unity_catalog_mapping: Optional[Dict[str, Any]] = None,
     unity_catalog_mapping_file: Optional[str] = None,
+    template_replacement: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Compile a DSL workflow to a Databricks source-format Python notebook.
 
@@ -443,10 +444,12 @@ def build_databricks(
 
     if unity_catalog_mapping_file:
         compiler = DatabricksCompiler.from_mapping_file(
-            pipeline_obj, unity_catalog_mapping_file
+            pipeline_obj, unity_catalog_mapping_file, template_replacement
         )
     else:
-        compiler = DatabricksCompiler(pipeline_obj, unity_catalog_mapping)
+        compiler = DatabricksCompiler(
+            pipeline_obj, unity_catalog_mapping, template_replacement
+        )
     result = compiler.save(str(output_path))
     print(f"[+] Notebook Databricks generado: {result}")
     print(f"  - Nodos/celdas: {len(pipeline_obj.nodes)}")

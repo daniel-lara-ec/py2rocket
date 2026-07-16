@@ -77,6 +77,78 @@ def test_discarded_edge_uses_discarded_dataframe():
     assert "display(filter__discarded)" in notebook
 
 
+def test_add_columns_accepts_native_rocket_expression_keys():
+    pipeline = Pipeline(name="add-columns")
+    pipeline.nodes = [
+        node("source", StepType.INPUT, "SQLInputStep", {"query": "SELECT 1 columna"}),
+        node(
+            "add-example",
+            StepType.TRANSFORMATION,
+            "AddColumnsTransformStep",
+            {
+                "addColumnExpressionList": [
+                    {
+                        "addColumnExpression": (
+                            "CASE WHEN columna = 1 THEN 1 ELSE 0 END"
+                        ),
+                        "addColumnAlias": "columnaEjemplo",
+                    }
+                ]
+            },
+        ),
+    ]
+    pipeline.edges = [Edge("source", "add-example")]
+
+    notebook = DatabricksCompiler(pipeline).compile()
+
+    assert (
+        "add_example = add_example.withColumn('columnaEjemplo', "
+        "F.expr('CASE WHEN columna = 1 THEN 1 ELSE 0 END'))"
+    ) in notebook
+
+
+def test_replaces_operational_template_with_table_output():
+    pipeline = Pipeline(name="template-replacement")
+    pipeline.nodes = [
+        node(
+            "Parametros",
+            StepType.INPUT,
+            "SQLInputStep",
+            {"query": "SELECT 'main.gold.resultado' AS tablaUbicacion"},
+            10,
+        ),
+        node("source", StepType.INPUT, "SQLInputStep", {"query": "SELECT 1 id"}, 20),
+        node("result", StepType.TRANSFORMATION, "ByPassStep", priority=30),
+        node("tri_registrar_fin", StepType.OUTPUT, "PrintOutputStep", priority=40),
+    ]
+    pipeline.edges = [
+        Edge("source", "result"),
+        Edge("result", "tri_registrar_fin"),
+        Edge("Parametros", "tri_registrar_fin"),
+    ]
+
+    notebook = DatabricksCompiler(
+        pipeline,
+        template_replacement={
+            "nodes": ["Parametros", "tri_registrar_fin"],
+            "parameter_node": "Parametros",
+            "table_field": "tablaUbicacion",
+            "output_name": "Save_Result",
+        },
+    ).compile()
+
+    assert "# Node: Parametros" not in notebook
+    assert "# Node: tri_registrar_fin" not in notebook
+    assert "# Node: Save_Result [DeltaOutputStep]" in notebook
+    assert "result.write.mode('overwrite').saveAsTable('main.gold.resultado')" in notebook
+    assert {item.name for item in pipeline.nodes} == {
+        "Parametros",
+        "source",
+        "result",
+        "tri_registrar_fin",
+    }
+
+
 def test_cycle_is_rejected():
     pipeline = Pipeline(name="cycle")
     pipeline.nodes = [

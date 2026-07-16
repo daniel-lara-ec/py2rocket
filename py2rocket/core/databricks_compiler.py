@@ -6,10 +6,18 @@ import json
 import keyword
 import re
 from collections import defaultdict
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
-from py2rocket.core.pipeline import DataRelation, Node, Pipeline
+from py2rocket.core.pipeline import (
+    DataRelation,
+    Edge,
+    ExecutionEngine,
+    Node,
+    Pipeline,
+    StepType,
+)
 
 
 def _literal_options(value: Any) -> Dict[str, Any]:
@@ -51,6 +59,151 @@ class DatabricksCompileError(ValueError):
     """Raised when a Rocket node cannot be translated safely."""
 
 
+def _extract_table_from_parameter_node(node: Node, field: str) -> Optional[str]:
+    direct_value = node.configuration.get(field)
+    if direct_value:
+        return str(direct_value).strip()
+
+    escaped_field = re.escape(field)
+    alias_pattern = re.compile(
+        rf"(['\"])(?P<table>.*?)\1\s+(?:AS\s+)?`?{escaped_field}`?\b",
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    assignment_pattern = re.compile(
+        rf"\b`?{escaped_field}`?\s*=\s*(['\"])(?P<table>.*?)\1",
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    for value in node.configuration.values():
+        if not isinstance(value, str):
+            continue
+        for pattern in (alias_pattern, assignment_pattern):
+            match = pattern.search(value)
+            if match:
+                return match.group("table").strip()
+    return None
+
+
+def replace_template_with_table_output(
+    pipeline: Pipeline,
+    configuration: Optional[Mapping[str, Any]],
+) -> Pipeline:
+    """Replace a Rocket operational template branch with one table output."""
+    if not configuration or not configuration.get("enabled", True):
+        return pipeline
+
+    configured_nodes = configuration.get("nodes", [])
+    if isinstance(configured_nodes, str):
+        configured_nodes = configured_nodes.split(",")
+    names = {
+        str(name).strip().casefold() for name in configured_nodes if str(name).strip()
+    }
+    parameter_name = str(
+        configuration.get("parameter_node", "Parametros")
+    ).strip()
+    names.add(parameter_name.casefold())
+
+    by_folded_name = {node.name.casefold(): node for node in pipeline.nodes}
+    parameter_node = by_folded_name.get(parameter_name.casefold())
+    if parameter_node is None:
+        return pipeline
+
+    removed_nodes = [node for node in pipeline.nodes if node.name.casefold() in names]
+    removed_names = {node.name for node in removed_nodes}
+    if not removed_names:
+        return pipeline
+
+    table_field = str(configuration.get("table_field", "tablaUbicacion")).strip()
+    table = _extract_table_from_parameter_node(parameter_node, table_field)
+    if not table:
+        raise DatabricksCompileError(
+            f"Could not extract table field {table_field!r} from template node "
+            f"{parameter_node.name!r}"
+        )
+
+    outgoing = sorted(
+        {
+            edge.destination
+            for edge in pipeline.edges
+            if edge.origin in removed_names and edge.destination not in removed_names
+        }
+    )
+    if outgoing:
+        raise DatabricksCompileError(
+            "Template nodes still feed retained nodes: " + ", ".join(outgoing)
+        )
+
+    incoming = [
+        edge
+        for edge in pipeline.edges
+        if edge.origin not in removed_names and edge.destination in removed_names
+    ]
+    requested_source = str(configuration.get("source_node") or "").strip()
+    if requested_source:
+        source_node = next(
+            (node for node in pipeline.nodes if node.name == requested_source), None
+        )
+        if source_node is None or source_node.name in removed_names:
+            raise DatabricksCompileError(
+                f"Invalid template replacement source node: {requested_source!r}"
+            )
+        source_relation = next(
+            (
+                edge.data_type
+                for edge in incoming
+                if edge.origin == source_node.name
+                and getattr(edge.data_type, "value", edge.data_type)
+                == DataRelation.VALID_DATA.value
+            ),
+            DataRelation.VALID_DATA,
+        )
+    else:
+        source_names = sorted({edge.origin for edge in incoming})
+        if len(source_names) != 1:
+            detail = ", ".join(source_names) if source_names else "none"
+            raise DatabricksCompileError(
+                "Template replacement requires exactly one external input; found "
+                f"{detail}. Configure source_node explicitly."
+            )
+        source_node = next(node for node in pipeline.nodes if node.name == source_names[0])
+        source_relation = next(
+            edge.data_type for edge in incoming if edge.origin == source_node.name
+        )
+
+    output_name = str(
+        configuration.get("output_name", "Save_Migrated_Table")
+    ).strip()
+    retained_names = {node.name for node in pipeline.nodes if node.name not in removed_names}
+    if output_name in retained_names:
+        raise DatabricksCompileError(
+            f"Template replacement output already exists: {output_name!r}"
+        )
+
+    migrated = deepcopy(pipeline)
+    migrated.nodes = [node for node in migrated.nodes if node.name not in removed_names]
+    migrated.edges = [
+        edge
+        for edge in migrated.edges
+        if edge.origin not in removed_names and edge.destination not in removed_names
+    ]
+    migrated.nodes.append(
+        Node(
+            name=output_name,
+            step_type=StepType.OUTPUT,
+            class_name="DeltaOutputStep",
+            class_pretty_name="Delta",
+            execution_engine=ExecutionEngine.HYBRID,
+            priority=max((node.priority for node in migrated.nodes), default=0) + 10,
+            description="Guardado generado al retirar la plantilla operacional",
+            configuration={
+                "tableName": table,
+                "saveMode": configuration.get("save_mode", "Overwrite"),
+            },
+        )
+    )
+    migrated.edges.append(Edge(source_node.name, output_name, source_relation))
+    return migrated
+
+
 class DatabricksCompiler:
     """Generate a Databricks ``.py`` source notebook, preserving one cell per node."""
 
@@ -60,20 +213,26 @@ class DatabricksCompiler:
         self,
         pipeline: Pipeline,
         unity_catalog_mapping: Optional[Mapping[str, Any]] = None,
+        template_replacement: Optional[Mapping[str, Any]] = None,
     ) -> None:
-        self.pipeline = pipeline
+        self.pipeline = replace_template_with_table_output(
+            pipeline, template_replacement
+        )
         self.mapping = dict(unity_catalog_mapping or {})
         self.sources = self._mapping_section("sources")
         self.transformations = self._mapping_section("transformations")
         self.destinations = self._mapping_section("destinations")
-        self._variables = self._make_unique_variables(pipeline.nodes)
+        self._variables = self._make_unique_variables(self.pipeline.nodes)
         self._incoming = defaultdict(list)
-        for edge in pipeline.edges:
+        for edge in self.pipeline.edges:
             self._incoming[edge.destination].append(edge)
 
     @classmethod
     def from_mapping_file(
-        cls, pipeline: Pipeline, mapping_path: Optional[str] = None
+        cls,
+        pipeline: Pipeline,
+        mapping_path: Optional[str] = None,
+        template_replacement: Optional[Mapping[str, Any]] = None,
     ) -> "DatabricksCompiler":
         mapping: Dict[str, Any] = {}
         if mapping_path:
@@ -83,7 +242,7 @@ class DatabricksCompiler:
             mapping = json.loads(path.read_text(encoding="utf-8"))
             if not isinstance(mapping, dict):
                 raise DatabricksCompileError("Unity Catalog mapping must be a JSON object")
-        return cls(pipeline, mapping)
+        return cls(pipeline, mapping, template_replacement)
 
     def _mapping_section(self, name: str) -> Dict[str, Any]:
         section = self.mapping.get(name)
@@ -472,8 +631,20 @@ class DatabricksCompiler:
             expressions = config.get("addColumnExpressionList") or config.get("columns") or []
             lines = [f"{variable} = {source}"]
             for item in expressions:
-                field = item.get("field", item.get("name"))
-                expression = item.get("query", item.get("expression"))
+                if not isinstance(item, dict):
+                    raise DatabricksCompileError(
+                        f"Invalid AddColumns item in {node.name!r}: {item!r}"
+                    )
+                field = (
+                    item.get("field")
+                    or item.get("name")
+                    or item.get("addColumnAlias")
+                )
+                expression = item.get("query")
+                if expression is None:
+                    expression = item.get("expression")
+                if expression is None:
+                    expression = item.get("addColumnExpression")
                 if not field or expression is None:
                     raise DatabricksCompileError(f"Invalid AddColumns item in {node.name!r}: {item!r}")
                 lines.append(
@@ -570,7 +741,7 @@ class DatabricksCompiler:
         source = inputs[0] + "".join(
             f".unionByName({item}, allowMissingColumns=True)" for item in inputs[1:]
         )
-        table = self._mapping_table(node, destination=True)
+        table = self._mapping_table(node, destination=True) or config.get("tableName")
 
         if cls == "PrintOutputStep":
             lines: List[str] = []
